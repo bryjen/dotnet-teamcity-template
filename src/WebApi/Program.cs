@@ -47,6 +47,14 @@ builder.Services.AddCors(options =>
 
 // Add JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
+
+// Tests (WebApplicationFactory) can run before test-specific configuration overrides are applied.
+// Provide a safe default JWT secret in Test environment so the host can start deterministically.
+if (builder.Environment.IsEnvironment("Test") && string.IsNullOrWhiteSpace(jwtSettings["Secret"]))
+{
+    builder.Configuration["Jwt:Secret"] = "TestJwtSecret_ForLocalUnitTests_ChangeMe_1234567890";
+    jwtSettings = builder.Configuration.GetSection("Jwt");
+}
 var secretKey = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
 
 builder.Services.AddAuthentication(options =>

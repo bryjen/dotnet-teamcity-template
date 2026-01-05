@@ -1,5 +1,10 @@
 ﻿$startTime = Get-Date
 
+if (-not $env:ConnectionStrings__DefaultConnection) {
+  Write-Error "Missing env var: ConnectionStrings__DefaultConnection. Set it (or run via docker-compose where it's provided) before running this script."
+  exit 1
+}
+
 cd "..\WebApi"
 
 echo "[Database:Drop] WebApi.Data.AppDbContext"

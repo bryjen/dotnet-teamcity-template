@@ -6,8 +6,10 @@ services:
     container_name: asptemplate-webapi
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
+      # Database (from .env)
+      ConnectionStrings__DefaultConnection: "${WEBAPI_CONNECTION_STRING}"
       # JWT
-      Jwt__Secret: "${JWT_SECRET:-ThisIsAVeryLongSecretKeyForJWTTokenGeneration123456789}"
+      Jwt__Secret: "${JWT_SECRET}"
       Jwt__Issuer: "TodoAppApi"
       Jwt__Audience: "TodoAppClient"
       Jwt__ExpirationInDays: "7"
@@ -26,7 +28,7 @@ services:
       context: .
       dockerfile: src/WebFrontend/Dockerfile
       args:
-        API_BASE_URL: "http://localhost:8080/"
+        API_BASE_URL: "${API_BASE_URL:-http://localhost:8080/}"
     container_name: asptemplate-webfrontend
     depends_on:
       - webapi
