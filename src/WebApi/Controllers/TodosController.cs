@@ -35,6 +35,8 @@ public class TodosController : ControllerBase
     /// <param name="status">Filter by completion status (all/completed/pending)</param>
     /// <param name="priority">Filter by priority level (low/medium/high)</param>
     /// <param name="tag">Filter by tag ID</param>
+    /// <param name="isCompleted">Alias for status filter: true = completed, false = pending</param>
+    /// <param name="tagId">Alias for tag filter (same as tag)</param>
     /// <returns>List of todos matching the filter criteria</returns>
     /// <response code="200">Returns the list of todos</response>
     /// <response code="401">User not authenticated</response>
@@ -46,6 +48,8 @@ public class TodosController : ControllerBase
     ///     GET /api/todos?priority=high
     ///     GET /api/todos?status=pending&amp;priority=medium
     ///     GET /api/todos?tag=550e8400-e29b-41d4-a716-446655440000
+    ///     GET /api/todos?isCompleted=false
+    ///     GET /api/todos?tagId=550e8400-e29b-41d4-a716-446655440000
     ///
     /// </remarks>
     [HttpGet]
@@ -54,9 +58,21 @@ public class TodosController : ControllerBase
     public async Task<ActionResult<List<TodoItemDto>>> GetAllTodos(
         [FromQuery] string? status = null,
         [FromQuery] string? priority = null,
-        [FromQuery] Guid? tag = null)
+        [FromQuery] Guid? tag = null,
+        // Back-compat / test-friendly aliases:
+        [FromQuery] bool? isCompleted = null,
+        [FromQuery] Guid? tagId = null)
     {
         var userId = GetUserId();
+
+        // If the caller uses the bool-style filter (?isCompleted=true/false), map it to status.
+        if (string.IsNullOrEmpty(status) && isCompleted.HasValue)
+        {
+            status = isCompleted.Value ? "completed" : "pending";
+        }
+
+        // If the caller uses ?tagId=..., map it to the existing tag filter.
+        tag ??= tagId;
         
         Priority? priorityEnum = null;
         if (!string.IsNullOrEmpty(priority) && Enum.TryParse<Priority>(priority, true, out var parsedPriority))
@@ -122,8 +138,15 @@ public class TodosController : ControllerBase
     public async Task<ActionResult<TodoItemDto>> CreateTodo([FromBody] CreateTodoRequest request)
     {
         var userId = GetUserId();
-        var todo = await _todoService.CreateTodoAsync(request, userId);
-        return CreatedAtAction(nameof(GetTodoById), new { id = todo.Id }, todo);
+        try
+        {
+            var todo = await _todoService.CreateTodoAsync(request, userId);
+            return CreatedAtAction(nameof(GetTodoById), new { id = todo.Id }, todo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>

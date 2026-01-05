@@ -26,7 +26,7 @@ public class AuthController : ControllerBase
     /// </summary>
     /// <param name="request">User registration information including username, email, and password</param>
     /// <returns>Authentication response with user details and JWT token</returns>
-    /// <response code="200">User successfully registered</response>
+    /// <response code="201">User successfully registered</response>
     /// <response code="400">Invalid input or user already exists</response>
     /// <remarks>
     /// Sample request:
@@ -40,14 +40,14 @@ public class AuthController : ControllerBase
     ///
     /// </remarks>
     [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
     {
         try
         {
             var response = await _authService.RegisterAsync(request);
-            return Ok(response);
+            return CreatedAtAction(nameof(GetCurrentUser), response);
         }
         catch (InvalidOperationException ex)
         {

@@ -64,6 +64,11 @@ public class TodoService : ITodoService
 
     public async Task<TodoItemDto> CreateTodoAsync(CreateTodoRequest request, Guid userId)
     {
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            throw new InvalidOperationException("Title is required");
+        }
+
         var todo = new TodoItem
         {
             Id = Guid.NewGuid(),

@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Mail;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,21 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Username))
+        {
+            throw new InvalidOperationException("Username is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email) || !MailAddress.TryCreate(request.Email, out _))
+        {
+            throw new InvalidOperationException("Invalid email address");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+        {
+            throw new InvalidOperationException("Password must be at least 8 characters long");
+        }
+
         // Check if username already exists
         if (await _context.Users.AnyAsync(u => u.Username == request.Username))
         {

@@ -24,7 +24,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Add DbContext
-builder.Services.ConfigureDatabase(builder.Configuration);
+builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
 
 // Add CORS
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
@@ -97,3 +97,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Make the implicit Program class public for testing
+public partial class Program { }

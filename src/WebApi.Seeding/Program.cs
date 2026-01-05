@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Environment.EnvironmentName = "Development";
 
 // Configure database using shared configuration
-builder.Services.ConfigureDatabase(builder.Configuration);
+builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
 
 var serviceProvider = builder.Services.BuildServiceProvider();
 using var scope = serviceProvider.CreateScope();

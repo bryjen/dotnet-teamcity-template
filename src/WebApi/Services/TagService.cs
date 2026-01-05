@@ -8,6 +8,8 @@ namespace WebApi.Services;
 public class TagService : ITagService
 {
     private readonly AppDbContext _context;
+    private static readonly System.Text.RegularExpressions.Regex HexColorRegex =
+        new(@"^#[0-9A-Fa-f]{6}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     public TagService(AppDbContext context)
     {
@@ -36,6 +38,16 @@ public class TagService : ITagService
 
     public async Task<TagDto> CreateTagAsync(CreateTagRequest request, Guid userId)
     {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            throw new InvalidOperationException("Tag name is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Color) || !HexColorRegex.IsMatch(request.Color))
+        {
+            throw new InvalidOperationException("Color must be in hex format (#RRGGBB)");
+        }
+
         // Check if tag name already exists for this user
         if (await _context.Tags.AnyAsync(t => t.UserId == userId && t.Name == request.Name))
         {
@@ -65,6 +77,16 @@ public class TagService : ITagService
         if (tag == null)
         {
             return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            throw new InvalidOperationException("Tag name is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Color) || !HexColorRegex.IsMatch(request.Color))
+        {
+            throw new InvalidOperationException("Color must be in hex format (#RRGGBB)");
         }
 
         // Check if new name conflicts with existing tag
