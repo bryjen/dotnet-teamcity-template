@@ -4,6 +4,7 @@
 
 bin/
 obj/
+app/
 
 AspTemplate.sln.DotSetting.user
 appsettings.json

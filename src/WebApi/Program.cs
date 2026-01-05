@@ -73,21 +73,19 @@ builder.Services.AddScoped<ITagService, TagService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// no need to hide openapi docs since this is a "test" project anyways
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Todo App API v1");
-        options.RoutePrefix = string.Empty; // Set Swagger UI at the app's root
-        options.DocumentTitle = "Todo App API Documentation";
-        options.DefaultModelsExpandDepth(2);
-        options.DefaultModelExpandDepth(2);
-        options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
-        options.EnableDeepLinking();
-        options.DisplayRequestDuration();
-    });
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Todo App API v1");
+    options.RoutePrefix = string.Empty; // Set Swagger UI at the app's root
+    options.DocumentTitle = "Todo App API Documentation";
+    options.DefaultModelsExpandDepth(2);
+    options.DefaultModelExpandDepth(2);
+    options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);
+    options.EnableDeepLinking();
+    options.DisplayRequestDuration();
+});
 
 app.UseHttpsRedirection();
 
