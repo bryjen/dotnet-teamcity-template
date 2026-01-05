@@ -3,6 +3,10 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Trace;
 using WebApi.Configuration;
 using WebApi.Data;
 using WebApi.Services;
@@ -66,6 +70,63 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// OpenTelemetry (traces) - export via OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set.
+// This keeps observability optional and avoids test/network coupling by default.
+if (!builder.Environment.IsEnvironment("Test"))
+{
+    var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] ?? "WebApi";
+    var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+    var resourceBuilder = ResourceBuilder.CreateDefault().AddService(serviceName);
+
+    Uri? endpointUri = null;
+    if (!string.IsNullOrWhiteSpace(otlpEndpoint) && Uri.TryCreate(otlpEndpoint, UriKind.Absolute, out var parsed))
+    {
+        endpointUri = parsed;
+    }
+
+    // Logs (structured)
+    builder.Logging.AddOpenTelemetry(logging =>
+    {
+        logging.SetResourceBuilder(resourceBuilder);
+        logging.IncludeFormattedMessage = true;
+        logging.IncludeScopes = true;
+        logging.ParseStateValues = true;
+
+        if (endpointUri != null)
+        {
+            logging.AddOtlpExporter(o => o.Endpoint = endpointUri);
+        }
+    });
+
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(r => r.AddService(serviceName))
+        .WithTracing(tracing =>
+        {
+            tracing
+                .SetResourceBuilder(resourceBuilder)
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation();
+
+            if (endpointUri != null)
+            {
+                tracing.AddOtlpExporter(o => o.Endpoint = endpointUri);
+            }
+        })
+        .WithMetrics(metrics =>
+        {
+            metrics
+                .SetResourceBuilder(resourceBuilder)
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddRuntimeInstrumentation();
+
+            if (endpointUri != null)
+            {
+                metrics.AddOtlpExporter(o => o.Endpoint = endpointUri);
+            }
+        });
+}
 
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
