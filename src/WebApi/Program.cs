@@ -1,8 +1,10 @@
 using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using WebApi.Configuration;
+using WebApi.Data;
 using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -95,6 +97,24 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Apply migrations automatically in container/dev environments (safe no-op if already applied).
+// This is required for docker-compose scenarios where the DB starts empty.
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var env = services.GetRequiredService<IHostEnvironment>();
+
+    // Only attempt migration if a relational DbContext is registered (tests override this).
+    if (!env.IsEnvironment("Test"))
+    {
+        var db = services.GetService<AppDbContext>();
+        if (db != null && db.Database.IsRelational())
+        {
+            db.Database.Migrate();
+        }
+    }
+}
 
 app.Run();
 

@@ -1,0 +1,31 @@
+services:
+  webapi:
+    build:
+      context: .
+      dockerfile: src/WebApi/Dockerfile
+    container_name: asptemplate-webapi
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      # JWT
+      Jwt__Secret: "${JWT_SECRET:-ThisIsAVeryLongSecretKeyForJWTTokenGeneration123456789}"
+      Jwt__Issuer: "TodoAppApi"
+      Jwt__Audience: "TodoAppClient"
+      Jwt__ExpirationInDays: "7"
+      # CORS (frontend runs on host at :5026)
+      Cors__AllowedOrigins__0: "http://localhost:5026"
+    ports:
+      - "8080:8080"
+
+  webfrontend:
+    build:
+      context: .
+      dockerfile: src/WebFrontend/Dockerfile
+      args:
+        API_BASE_URL: "http://localhost:8080/"
+    container_name: asptemplate-webfrontend
+    depends_on:
+      - webapi
+    ports:
+      - "5026:8080"
+
+

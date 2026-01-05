@@ -1,0 +1,97 @@
+@page "/login"
+@using WebApi.DTOs.Auth
+@inject AuthService AuthService
+@inject AuthState AuthState
+@inject NavigationManager Nav
+
+<PageTitle>Login</PageTitle>
+
+<h1>Login</h1>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+<EditForm Model="_model" OnValidSubmit="HandleSubmit">
+    <div class="mb-3">
+        <label class="form-label">Username or email</label>
+        <InputText class="form-control" @bind-Value="_model.UsernameOrEmail" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Password</label>
+        <InputText class="form-control" type="password" @bind-Value="_model.Password" />
+    </div>
+
+    <button class="btn btn-primary" type="submit" disabled="@_isSubmitting">
+        @(_isSubmitting ? "Signing in..." : "Sign in")
+    </button>
+
+    <a class="btn btn-link" href="/register">Create account</a>
+</EditForm>
+
+@code {
+    private LoginRequest _model = new()
+    {
+        UsernameOrEmail = "",
+        Password = ""
+    };
+
+    private bool _isSubmitting;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (AuthState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/todos");
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(_model.UsernameOrEmail) || string.IsNullOrWhiteSpace(_model.Password))
+        {
+            _error = "Please enter your username/email and password.";
+            return;
+        }
+
+        _isSubmitting = true;
+        try
+        {
+            var result = await AuthService.LoginAsync(_model);
+            if (!result.IsSuccess)
+            {
+                _error = result.ErrorMessage ?? "Login failed.";
+                return;
+            }
+
+            var returnUrl = GetQueryParam("returnUrl");
+            Nav.NavigateTo(string.IsNullOrWhiteSpace(returnUrl) ? "/todos" : returnUrl);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private string? GetQueryParam(string key)
+    {
+        var uri = new Uri(Nav.Uri);
+        var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in query)
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && string.Equals(kv[0], key, StringComparison.OrdinalIgnoreCase))
+            {
+                return Uri.UnescapeDataString(kv[1]);
+            }
+        }
+        return null;
+    }
+}
+
+

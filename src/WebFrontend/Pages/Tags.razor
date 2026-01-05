@@ -1,0 +1,212 @@
+@page "/tags"
+@attribute [RequireAuth]
+@using System.Text.RegularExpressions
+@using WebApi.DTOs.Tags
+@inject ITagsApi TagsApi
+
+<PageTitle>Tags</PageTitle>
+
+<h1>Tags</h1>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">@( _editingId == null ? "Create tag" : "Edit tag")</div>
+    <div class="card-body">
+        <EditForm Model="_edit" OnValidSubmit="SaveTag">
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Name</label>
+                    <InputText class="form-control" @bind-Value="_edit.Name" />
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Color</label>
+                    <InputText class="form-control" @bind-Value="_edit.Color" />
+                    <div class="form-text">Hex format: #RRGGBB</div>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary me-2" type="submit" disabled="@_saving">
+                        @(_saving ? "Saving..." : (_editingId == null ? "Create" : "Save"))
+                    </button>
+                    @if (_editingId != null)
+                    {
+                        <button class="btn btn-secondary" type="button" @onclick="CancelEdit" disabled="@_saving">Cancel</button>
+                    }
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Color</th>
+                <th>Todos</th>
+                <th class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var tag in _tags)
+            {
+                <tr>
+                    <td>@tag.Name</td>
+                    <td>
+                        <span class="badge text-bg-secondary">@tag.Color</span>
+                    </td>
+                    <td>@tag.TodoCount</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => StartEdit(tag)" disabled="@_saving">
+                            Edit
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(tag)" disabled="@_saving">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private static readonly Regex HexColorRegex = new("^#[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
+
+    private bool _loading = true;
+    private bool _saving;
+    private string? _error;
+
+    private readonly List<TagDto> _tags = new();
+
+    private Guid? _editingId;
+    private TagEditModel _edit = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        _error = null;
+        _loading = true;
+        try
+        {
+            _tags.Clear();
+            var res = await TagsApi.GetAllAsync();
+            if (!res.IsSuccess)
+            {
+                _error = res.ErrorMessage ?? "Failed to load tags.";
+                return;
+            }
+            _tags.AddRange(res.Value!);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveTag()
+    {
+        _error = null;
+        if (string.IsNullOrWhiteSpace(_edit.Name))
+        {
+            _error = "Name is required.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_edit.Color) || !HexColorRegex.IsMatch(_edit.Color))
+        {
+            _error = "Color must be in hex format (#RRGGBB).";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            if (_editingId == null)
+            {
+                var req = new CreateTagRequest { Name = _edit.Name, Color = _edit.Color };
+                var res = await TagsApi.CreateAsync(req);
+                if (!res.IsSuccess)
+                {
+                    _error = res.ErrorMessage ?? "Create failed.";
+                    return;
+                }
+            }
+            else
+            {
+                var req = new UpdateTagRequest { Name = _edit.Name, Color = _edit.Color };
+                var res = await TagsApi.UpdateAsync(_editingId.Value, req);
+                if (!res.IsSuccess)
+                {
+                    _error = res.ErrorMessage ?? "Update failed.";
+                    return;
+                }
+            }
+
+            CancelEdit();
+            await Reload();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void StartEdit(TagDto tag)
+    {
+        _editingId = tag.Id;
+        _edit = new TagEditModel
+        {
+            Name = tag.Name,
+            Color = tag.Color
+        };
+    }
+
+    private void CancelEdit()
+    {
+        _editingId = null;
+        _edit = new TagEditModel();
+    }
+
+    private async Task Delete(TagDto tag)
+    {
+        _error = null;
+        _saving = true;
+        try
+        {
+            var res = await TagsApi.DeleteAsync(tag.Id);
+            if (!res.IsSuccess)
+            {
+                _error = res.ErrorMessage ?? "Delete failed.";
+                return;
+            }
+            await Reload();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private sealed class TagEditModel
+    {
+        public string Name { get; set; } = "";
+        public string Color { get; set; } = "#000000";
+    }
+}
+
+

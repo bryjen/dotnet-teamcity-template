@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\WebApi\WebApi.csproj" />
+        <ProjectReference Include="..\Web.Common\Web.Common.csproj" />
     </ItemGroup>
 
     <ItemGroup>

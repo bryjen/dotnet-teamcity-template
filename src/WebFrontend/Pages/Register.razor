@@ -1,0 +1,90 @@
+@page "/register"
+@using WebApi.DTOs.Auth
+@inject AuthService AuthService
+@inject AuthState AuthState
+@inject NavigationManager Nav
+
+<PageTitle>Register</PageTitle>
+
+<h1>Create account</h1>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+
+<EditForm Model="_model" OnValidSubmit="HandleSubmit">
+    <div class="mb-3">
+        <label class="form-label">Username</label>
+        <InputText class="form-control" @bind-Value="_model.Username" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <InputText class="form-control" type="email" @bind-Value="_model.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Password</label>
+        <InputText class="form-control" type="password" @bind-Value="_model.Password" />
+        <div class="form-text">Minimum 8 characters (backend rule).</div>
+    </div>
+
+    <button class="btn btn-primary" type="submit" disabled="@_isSubmitting">
+        @(_isSubmitting ? "Creating..." : "Create account")
+    </button>
+
+    <a class="btn btn-link" href="/login">Already have an account?</a>
+</EditForm>
+
+@code {
+    private RegisterRequest _model = new()
+    {
+        Username = "",
+        Email = "",
+        Password = ""
+    };
+
+    private bool _isSubmitting;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        if (AuthState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/todos");
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(_model.Username) ||
+            string.IsNullOrWhiteSpace(_model.Email) ||
+            string.IsNullOrWhiteSpace(_model.Password))
+        {
+            _error = "Please fill out all fields.";
+            return;
+        }
+
+        _isSubmitting = true;
+        try
+        {
+            var result = await AuthService.RegisterAsync(_model);
+            if (!result.IsSuccess)
+            {
+                _error = result.ErrorMessage ?? "Registration failed.";
+                return;
+            }
+
+            Nav.NavigateTo("/todos");
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}
+
+
