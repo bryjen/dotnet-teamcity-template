@@ -1,0 +1,191 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebApi.DTOs.Tags;
+using WebApi.Services;
+
+namespace WebApi.Controllers;
+
+/// <summary>
+/// Manages tags for categorizing todo items
+/// </summary>
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+[Produces("application/json")]
+public class TagsController : ControllerBase
+{
+    private readonly ITagService _tagService;
+
+    public TagsController(ITagService tagService)
+    {
+        _tagService = tagService;
+    }
+
+    private Guid GetUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return Guid.Parse(userIdClaim!);
+    }
+
+    /// <summary>
+    /// Get all tags for the authenticated user
+    /// </summary>
+    /// <returns>List of all tags with todo counts</returns>
+    /// <response code="200">Returns the list of tags</response>
+    /// <response code="401">User not authenticated</response>
+    /// <remarks>
+    /// Each tag includes the count of todo items associated with it.
+    /// Tags are returned sorted alphabetically by name.
+    /// </remarks>
+    [HttpGet]
+    [ProducesResponseType(typeof(List<TagDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<List<TagDto>>> GetAllTags()
+    {
+        var userId = GetUserId();
+        var tags = await _tagService.GetAllTagsAsync(userId);
+        return Ok(tags);
+    }
+
+    /// <summary>
+    /// Get a specific tag by ID
+    /// </summary>
+    /// <param name="id">The unique identifier of the tag</param>
+    /// <returns>The requested tag with todo count</returns>
+    /// <response code="200">Returns the tag</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="404">Tag not found or doesn't belong to user</response>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(TagDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TagDto>> GetTagById(Guid id)
+    {
+        var userId = GetUserId();
+        var tag = await _tagService.GetTagByIdAsync(id, userId);
+
+        if (tag == null)
+        {
+            return NotFound(new { message = "Tag not found" });
+        }
+
+        return Ok(tag);
+    }
+
+    /// <summary>
+    /// Create a new tag
+    /// </summary>
+    /// <param name="request">Tag creation details</param>
+    /// <returns>The newly created tag</returns>
+    /// <response code="201">Tag created successfully</response>
+    /// <response code="400">Invalid input or tag name already exists</response>
+    /// <response code="401">User not authenticated</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/tags
+    ///     {
+    ///        "name": "Work",
+    ///        "color": "#FF5733"
+    ///     }
+    ///
+    /// Tag names must be unique per user. 
+    /// Color should be in hex format (#RRGGBB).
+    /// </remarks>
+    [HttpPost]
+    [ProducesResponseType(typeof(TagDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<TagDto>> CreateTag([FromBody] CreateTagRequest request)
+    {
+        var userId = GetUserId();
+        
+        try
+        {
+            var tag = await _tagService.CreateTagAsync(request, userId);
+            return CreatedAtAction(nameof(GetTagById), new { id = tag.Id }, tag);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Update an existing tag
+    /// </summary>
+    /// <param name="id">The unique identifier of the tag to update</param>
+    /// <param name="request">Updated tag details</param>
+    /// <returns>The updated tag</returns>
+    /// <response code="200">Tag updated successfully</response>
+    /// <response code="400">Invalid input or tag name already exists</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="404">Tag not found or doesn't belong to user</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     PUT /api/tags/550e8400-e29b-41d4-a716-446655440000
+    ///     {
+    ///        "name": "Personal",
+    ///        "color": "#3498DB"
+    ///     }
+    ///
+    /// When updating a tag, all associated todos will retain their association with the tag.
+    /// </remarks>
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(TagDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TagDto>> UpdateTag(Guid id, [FromBody] UpdateTagRequest request)
+    {
+        var userId = GetUserId();
+        
+        try
+        {
+            var tag = await _tagService.UpdateTagAsync(id, request, userId);
+
+            if (tag == null)
+            {
+                return NotFound(new { message = "Tag not found" });
+            }
+
+            return Ok(tag);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Delete a tag
+    /// </summary>
+    /// <param name="id">The unique identifier of the tag to delete</param>
+    /// <returns>No content on success</returns>
+    /// <response code="204">Tag deleted successfully</response>
+    /// <response code="401">User not authenticated</response>
+    /// <response code="404">Tag not found or doesn't belong to user</response>
+    /// <remarks>
+    /// When a tag is deleted, it will be removed from all associated todos.
+    /// The todos themselves will not be deleted.
+    /// </remarks>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteTag(Guid id)
+    {
+        var userId = GetUserId();
+        var result = await _tagService.DeleteTagAsync(id, userId);
+
+        if (!result)
+        {
+            return NotFound(new { message = "Tag not found" });
+        }
+
+        return NoContent();
+    }
+}
+

@@ -6,6 +6,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BCFCC6B1-C66
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebFrontend", "src\WebFrontend\WebFrontend.csproj", "{915A2322-FBE1-4C6D-BD27-27EA774BC2D7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApi.Seeding", "src\WebApi.Seeding\WebApi.Seeding.csproj", "{0EA16D2A-EE2B-4355-91B6-AC90DA61B42E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,9 +22,14 @@ Global
 		{915A2322-FBE1-4C6D-BD27-27EA774BC2D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{915A2322-FBE1-4C6D-BD27-27EA774BC2D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{915A2322-FBE1-4C6D-BD27-27EA774BC2D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0EA16D2A-EE2B-4355-91B6-AC90DA61B42E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0EA16D2A-EE2B-4355-91B6-AC90DA61B42E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0EA16D2A-EE2B-4355-91B6-AC90DA61B42E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0EA16D2A-EE2B-4355-91B6-AC90DA61B42E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{DAB77B11-EB1D-443E-A87F-9F3B4C20C1C5} = {BCFCC6B1-C661-4DF6-AB50-7F256B65879E}
 		{915A2322-FBE1-4C6D-BD27-27EA774BC2D7} = {BCFCC6B1-C661-4DF6-AB50-7F256B65879E}
+		{0EA16D2A-EE2B-4355-91B6-AC90DA61B42E} = {BCFCC6B1-C661-4DF6-AB50-7F256B65879E}
 	EndGlobalSection
 EndGlobal
