@@ -41,3 +41,4 @@ public class SmokeTests : PageTest
         await Expect(Page.Locator("h1")).ToContainTextAsync("Hello");
     }
 }
+
