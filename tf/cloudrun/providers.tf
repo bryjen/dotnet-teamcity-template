@@ -13,3 +13,8 @@ provider "google" {
   project = var.gcp_project_id
   region  = var.gcp_region
 }
+
+# Optional: if you want to separate Cloud Run region from other resources later
+locals {
+  cloud_run_location = var.gcp_region
+}

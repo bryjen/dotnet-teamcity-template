@@ -1,7 +1,10 @@
-# Cloud Run Service for WebApi
+########################################
+# Cloud Run Service: WebApi
+########################################
+
 resource "google_cloud_run_service" "webapi" {
   name     = "${var.project_name}-webapi"
-  location = var.gcp_region
+  location = local.cloud_run_location
 
   template {
     spec {
@@ -9,13 +12,13 @@ resource "google_cloud_run_service" "webapi" {
         image = var.webapi_image != "" ? var.webapi_image : "gcr.io/${var.gcp_project_id}/${var.project_name}-webapi:latest"
 
         ports {
-          container_port = var.webapi_port
+          container_port = 8080
         }
 
         resources {
           limits = {
-            cpu    = var.webapi_cpu
-            memory = var.webapi_memory
+            cpu    = "1"
+            memory = "1Gi"
           }
         }
 
@@ -63,8 +66,8 @@ resource "google_cloud_run_service" "webapi" {
 
     metadata {
       annotations = {
-        "autoscaling.knative.dev/maxScale" = tostring(var.webapi_max_instances)
-        "autoscaling.knative.dev/minScale" = tostring(var.webapi_min_instances)
+        "autoscaling.knative.dev/maxScale" = "10"
+        "autoscaling.knative.dev/minScale" = "1"
       }
     }
   }
@@ -75,10 +78,13 @@ resource "google_cloud_run_service" "webapi" {
   }
 }
 
-# Cloud Run Service for WebFrontend
+########################################
+# Cloud Run Service: WebFrontend
+########################################
+
 resource "google_cloud_run_service" "webfrontend" {
   name     = "${var.project_name}-webfrontend"
-  location = var.gcp_region
+  location = local.cloud_run_location
 
   template {
     spec {
@@ -86,13 +92,13 @@ resource "google_cloud_run_service" "webfrontend" {
         image = var.webfrontend_image != "" ? var.webfrontend_image : "gcr.io/${var.gcp_project_id}/${var.project_name}-webfrontend:latest"
 
         ports {
-          container_port = var.webfrontend_port
+          container_port = 8080
         }
 
         resources {
           limits = {
-            cpu    = var.webfrontend_cpu
-            memory = var.webfrontend_memory
+            cpu    = "1"
+            memory = "512Mi"
           }
         }
 
@@ -101,9 +107,8 @@ resource "google_cloud_run_service" "webfrontend" {
           value = var.environment == "prod" ? "Production" : "Development"
         }
 
-        # API_BASE_URL - set via build arg or update after deployment
-        # The image should be built with the correct API_BASE_URL
-        # Or you can set it here once webapi URL is known
+        # API_BASE_URL is typically baked into the frontend image, but you could
+        # also pass it as an env var here once the WebApi URL is known.
       }
 
       container_concurrency = 80
@@ -112,8 +117,8 @@ resource "google_cloud_run_service" "webfrontend" {
 
     metadata {
       annotations = {
-        "autoscaling.knative.dev/maxScale" = tostring(var.webfrontend_max_instances)
-        "autoscaling.knative.dev/minScale" = tostring(var.webfrontend_min_instances)
+        "autoscaling.knative.dev/maxScale" = "10"
+        "autoscaling.knative.dev/minScale" = "1"
       }
     }
   }
@@ -124,7 +129,10 @@ resource "google_cloud_run_service" "webfrontend" {
   }
 }
 
-# IAM Policy to allow unauthenticated access to WebApi
+########################################
+# IAM: Public access for both services
+########################################
+
 resource "google_cloud_run_service_iam_member" "webapi_public" {
   service  = google_cloud_run_service.webapi.name
   location = google_cloud_run_service.webapi.location
@@ -132,7 +140,6 @@ resource "google_cloud_run_service_iam_member" "webapi_public" {
   member   = "allUsers"
 }
 
-# IAM Policy to allow unauthenticated access to WebFrontend
 resource "google_cloud_run_service_iam_member" "webfrontend_public" {
   service  = google_cloud_run_service.webfrontend.name
   location = google_cloud_run_service.webfrontend.location
