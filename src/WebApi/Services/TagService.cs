@@ -107,7 +107,7 @@ public class TagService : ITagService
     public async Task<bool> DeleteTagAsync(Guid tagId, Guid userId)
     {
         // Must remove many-to-many join rows first; the join table uses DeleteBehavior.NoAction
-        // so SQL Server will reject deleting a Tag that is still referenced by TodoItemTag.
+        // so PostgreSQL will reject deleting a Tag that is still referenced by TodoItemTag.
         var tag = await _context.Tags
             .Include(t => t.TodoItems)
             .FirstOrDefaultAsync(t => t.Id == tagId && t.UserId == userId);

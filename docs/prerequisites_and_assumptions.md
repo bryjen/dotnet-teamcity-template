@@ -3,12 +3,12 @@
 ## Database
 
 As you may have noticed, this setup does not define a database.
-The backend API uses a [Microsoft SQL server docker container](https://www.microsoft.com/en-ca/sql-server/sql-server-downloads#SQL-containers), and is assumed to be present and reachable during runtime.
-The connection string present in this repository in some `appsettings.json` files and the [`.env`](../.env) file point to a locally hosted SQL server instance.
+The backend API uses a PostgreSQL database, and is assumed to be present and reachable during runtime.
+The connection string present in this repository in some `appsettings.json` files and the [`.env`](../.env) file point to a locally hosted PostgreSQL instance.
 
 To replicate the current setup, first:
-1. [Get a SQL Server docker container running](https://medium.com/@analyticscodeexplained/running-microsoft-sql-server-in-docker-a8dfdd246e45)
-2. Obtain a connection string. You may need to [creaate a database](https://learn.microsoft.com/en-us/sql/relational-databases/databases/create-a-database?view=sql-server-ver17) and [set up users](https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/create-a-database-user?view=sql-server-ver17).
+1. Get a PostgreSQL database running (e.g., using [PostgreSQL Docker container](https://hub.docker.com/_/postgres) or install PostgreSQL locally)
+2. Obtain a connection string. You may need to create a database and set up users. For Docker: `docker run --name postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=AspTemplate -p 5432:5432 -d postgres`
 3. Replace the placeholder connection strings present in the [`.env`](../.env) file and in some `appsettings.json` files
 4. Set up the database:
 

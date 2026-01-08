@@ -41,7 +41,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         
         builder.ConfigureTestServices(services =>
         {
-            // Remove the SQL Server DbContext registration
+            // Remove the PostgreSQL DbContext registration
             var descriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
             if (descriptor != null)

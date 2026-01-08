@@ -32,7 +32,7 @@ public static class ServiceConfiguration
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         var logger = loggerFactory.CreateLogger("WebApi.Configuration.ServiceConfiguration");
 
-        // Skip SQL Server registration if running in test mode (tests swap in an in-memory DbContext).
+        // Skip PostgreSQL registration if running in test mode (tests swap in an in-memory DbContext).
         // Important: don't require a connection string in Test env, otherwise WebApplicationFactory can fail
         // before test configuration overrides are applied.
         var isTestEnvironment = environment?.IsEnvironment("Test") ?? false;
@@ -46,7 +46,7 @@ public static class ServiceConfiguration
         var configuredProvider = configuration["Database:Provider"];
         if (string.Equals(configuredProvider, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
-            logger.LogInformation("Configuration 'Database:Provider=InMemory' detected. Using in-memory database provider 'FallbackInMemoryDatabase' and skipping SQL Server.");
+            logger.LogInformation("Configuration 'Database:Provider=InMemory' detected. Using in-memory database provider 'FallbackInMemoryDatabase' and skipping PostgreSQL.");
             services.AddDbContext<AppDbContext>(options =>
                 options.UseInMemoryDatabase("FallbackInMemoryDatabase"));
             return;
@@ -57,7 +57,7 @@ public static class ServiceConfiguration
         // Also treat the sentinel value "InMemory" as test mode (used by tests / local tooling).
         if (string.Equals(connectionString, "InMemory", StringComparison.OrdinalIgnoreCase))
         {
-            logger.LogInformation("Connection string 'DefaultConnection' is set to 'InMemory'. Skipping SQL Server registration (tests/local tooling).");
+            logger.LogInformation("Connection string 'DefaultConnection' is set to 'InMemory'. Skipping PostgreSQL registration (tests/local tooling).");
             return;
         }
 
@@ -76,7 +76,7 @@ public static class ServiceConfiguration
         try
         {
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString);
+                .UseNpgsql(connectionString);
             
             using var testContext = new AppDbContext(optionsBuilder.Options);
             
@@ -85,26 +85,26 @@ public static class ServiceConfiguration
             
             if (canConnect)
             {
-                // Connection successful, use SQL Server
-                logger.LogInformation("Successfully connected to SQL Server using connection string 'DefaultConnection'. Using SQL Server database provider.");
+                // Connection successful, use PostgreSQL
+                logger.LogInformation("Successfully connected to PostgreSQL using connection string 'DefaultConnection'. Using PostgreSQL database provider.");
                 services.AddDbContext<AppDbContext>(options =>
-                    options.UseSqlServer(connectionString));
+                    options.UseNpgsql(connectionString));
                 return;
             }
             
-            logger.LogWarning("SQL Server connection test for 'DefaultConnection' returned false. Falling back to in-memory database.");
+            logger.LogWarning("PostgreSQL connection test for 'DefaultConnection' returned false. Falling back to in-memory database.");
         }
         catch (Exception ex)
         {
             // Connection failed, will fall back to in-memory below
             logger.LogError(ex, 
-                "Failed to connect to SQL Server database using connection string. " +
+                "Failed to connect to PostgreSQL database using connection string. " +
                 "Error: {ErrorMessage}. Falling back to in-memory database.", 
                 ex.Message);
         }
 
         // Fall back to in-memory database
-        logger.LogInformation("Using in-memory database provider 'FallbackInMemoryDatabase' due to SQL Server connection issues.");
+        logger.LogInformation("Using in-memory database provider 'FallbackInMemoryDatabase' due to PostgreSQL connection issues.");
         services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase("FallbackInMemoryDatabase"));
     }

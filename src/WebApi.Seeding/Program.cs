@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 using WebApi.Configuration;
 using WebApi.Data;
 using WebApi.Models;
@@ -11,12 +14,62 @@ Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 var builder = WebApplication.CreateBuilder(args);
 builder.Environment.EnvironmentName = "Development";
 
-// Configure database using shared configuration
-builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
+// Get connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-var serviceProvider = builder.Services.BuildServiceProvider();
-using var scope = serviceProvider.CreateScope();
-var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    Console.WriteLine("Error: Connection string 'DefaultConnection' not found in configuration.");
+    Environment.Exit(1);
+}
+
+// Create DbContext directly with connection string to avoid service provider lifecycle issues
+// Add connection string parameters to prevent premature connection closure
+var connectionStringBuilder = new Npgsql.NpgsqlConnectionStringBuilder(connectionString)
+{
+    // Ensure connection stays open long enough
+    CommandTimeout = 60,
+    // Disable connection pooling for seeding to avoid disposal issues
+    Pooling = false
+};
+
+var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>()
+    .UseNpgsql(connectionStringBuilder.ConnectionString);
+    // Disable retry for seeding to avoid connection disposal issues
+
+using var dbContext = new AppDbContext(optionsBuilder.Options);
+
+// Check if we should just drop tables (for reset script)
+if (args.Length > 0 && args[0] == "--drop-tables")
+{
+    try
+    {
+        Console.WriteLine("Dropping all tables in asp_template schema...");
+        var dropTablesSql = @"
+DO $$ 
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'asp_template') 
+    LOOP
+        EXECUTE 'DROP TABLE IF EXISTS asp_template.' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+END;
+$$;
+DROP TABLE IF EXISTS ""__EFMigrationsHistory"" CASCADE;";
+        
+        await dbContext.Database.ExecuteSqlRawAsync(dropTablesSql);
+        Console.WriteLine("Successfully dropped all tables.");
+        await dbContext.DisposeAsync();
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error: {ex.Message}");
+        await dbContext.DisposeAsync();
+        return 1;
+    }
+}
 
 Console.WriteLine("=== Todo App Database Seeding ===\n");
 
@@ -369,25 +422,38 @@ todo15.Tags.Add(projectTag);
 
 #endregion
 
-Console.WriteLine("[1/5] Adding users...");
-dbContext.Users.AddRange(user1, user2, user3);
+// Use simple transaction without retry strategy
+using var transaction = await dbContext.Database.BeginTransactionAsync();
+try
+{
+    Console.WriteLine("[1/5] Adding and saving users...");
+    dbContext.Users.AddRange(user1, user2, user3);
+    await dbContext.SaveChangesAsync();
 
-Console.WriteLine("[2/5] Adding tags...");
-dbContext.Tags.AddRange(
-    workTag, personalTag, urgentTag, shoppingTag,
-    fitnessTag, studyTag,
-    projectTag, meetingTag
-);
+    Console.WriteLine("[2/5] Adding and saving tags...");
+    dbContext.Tags.AddRange(
+        workTag, personalTag, urgentTag, shoppingTag,
+        fitnessTag, studyTag,
+        projectTag, meetingTag
+    );
+    await dbContext.SaveChangesAsync();
 
-Console.WriteLine("[3/5] Adding todos...");
-dbContext.TodoItems.AddRange(
-    todo1, todo2, todo3, todo4, todo5, todo6,
-    todo7, todo8, todo9, todo10,
-    todo11, todo12, todo13, todo14, todo15
-);
+    Console.WriteLine("[3/5] Adding and saving todos...");
+    dbContext.TodoItems.AddRange(
+        todo1, todo2, todo3, todo4, todo5, todo6,
+        todo7, todo8, todo9, todo10,
+        todo11, todo12, todo13, todo14, todo15
+    );
+    await dbContext.SaveChangesAsync();
 
-Console.WriteLine("[4/5] Saving to database...");
-await dbContext.SaveChangesAsync();
+    await transaction.CommitAsync();
+    Console.WriteLine("[4/5] All data saved successfully");
+}
+catch
+{
+    await transaction.RollbackAsync();
+    throw;
+}
 
 Console.WriteLine("[5/5] Verifying data...");
 var userCount = await dbContext.Users.CountAsync();
@@ -405,3 +471,7 @@ Console.WriteLine($"  bob@example.com     | Password123!");
 Console.WriteLine($"  charlie@example.com | Password123!");
 
 Console.WriteLine("\nHello, World!");
+
+// Explicitly dispose the context
+await dbContext.DisposeAsync();
+return 0;

@@ -6,21 +6,25 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace WebApi.Migrations
 {
     /// <inheritdoc />
-    public partial class _202601050020_TodoApp : Migration
+    public partial class Initial_20260108183610 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "asp_template");
+
             migrationBuilder.CreateTable(
                 name: "Users",
+                schema: "asp_template",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Username = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Username = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Email = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    PasswordHash = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
@@ -29,12 +33,13 @@ namespace WebApi.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Tags",
+                schema: "asp_template",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Color = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Color = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -42,6 +47,7 @@ namespace WebApi.Migrations
                     table.ForeignKey(
                         name: "FK_Tags_Users_UserId",
                         column: x => x.UserId,
+                        principalSchema: "asp_template",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -49,17 +55,18 @@ namespace WebApi.Migrations
 
             migrationBuilder.CreateTable(
                 name: "TodoItems",
+                schema: "asp_template",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    IsCompleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    Priority = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
-                    DueDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    IsCompleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    Priority = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
+                    DueDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -67,6 +74,7 @@ namespace WebApi.Migrations
                     table.ForeignKey(
                         name: "FK_TodoItems_Users_UserId",
                         column: x => x.UserId,
+                        principalSchema: "asp_template",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -74,10 +82,11 @@ namespace WebApi.Migrations
 
             migrationBuilder.CreateTable(
                 name: "TodoItemTag",
+                schema: "asp_template",
                 columns: table => new
                 {
-                    TodoItemId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TagId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    TodoItemId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TagId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -85,39 +94,46 @@ namespace WebApi.Migrations
                     table.ForeignKey(
                         name: "FK_TodoItemTag_Tags_TagId",
                         column: x => x.TagId,
+                        principalSchema: "asp_template",
                         principalTable: "Tags",
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_TodoItemTag_TodoItems_TodoItemId",
                         column: x => x.TodoItemId,
+                        principalSchema: "asp_template",
                         principalTable: "TodoItems",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tags_UserId_Name",
+                schema: "asp_template",
                 table: "Tags",
                 columns: new[] { "UserId", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_TodoItems_UserId",
+                schema: "asp_template",
                 table: "TodoItems",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TodoItemTag_TagId",
+                schema: "asp_template",
                 table: "TodoItemTag",
                 column: "TagId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
+                schema: "asp_template",
                 table: "Users",
                 column: "Email",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Username",
+                schema: "asp_template",
                 table: "Users",
                 column: "Username",
                 unique: true);
@@ -127,16 +143,20 @@ namespace WebApi.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "TodoItemTag");
+                name: "TodoItemTag",
+                schema: "asp_template");
 
             migrationBuilder.DropTable(
-                name: "Tags");
+                name: "Tags",
+                schema: "asp_template");
 
             migrationBuilder.DropTable(
-                name: "TodoItems");
+                name: "TodoItems",
+                schema: "asp_template");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "Users",
+                schema: "asp_template");
         }
     }
 }
