@@ -18,10 +18,10 @@ RUN dotnet publish "./src/WebApi/WebApi.csproj" -c $BUILD_CONFIGURATION -o /app/
 
 FROM base AS final
 
-# Install Tailscale (run as root for simplicity - Tailscale needs proper permissions)
+# Install Tailscale and network testing tools (run as root for simplicity - Tailscale needs proper permissions)
 USER root
 RUN apt-get update && \
-    apt-get install -y curl && \
+    apt-get install -y curl netcat-openbsd && \
     curl -fsSL https://tailscale.com/install.sh | sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*

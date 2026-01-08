@@ -63,18 +63,41 @@ if [ -n "$TS_AUTHKEY" ]; then
         echo "[TAILSCALE] Authentication successful"
         echo "[TAILSCALE] $AUTH_OUTPUT"
         
-        # Wait a bit for connection to establish
+        # Wait for Tailscale connection to fully establish
         echo "[DEBUG] Waiting for Tailscale connection to establish..."
         sleep 5
         
-        # Verify Tailscale connection
-        echo "[DEBUG] Verifying Tailscale connection..."
+        # Wait for Tailscale to be fully ready (check multiple times)
+        echo "[DEBUG] Verifying Tailscale is fully ready..."
+        MAX_RETRIES=10
+        RETRY_COUNT=0
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          if tailscale status > /dev/null 2>&1; then
+            # Check if we have a valid IP address
+            TS_IP=$(tailscale ip -4 2>/dev/null | head -1)
+            if [ -n "$TS_IP" ] && [ "$TS_IP" != "" ]; then
+              echo "[SUCCESS] Tailscale is connected and ready! IP: $TS_IP"
+              break
+            fi
+          fi
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+          if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo "[DEBUG] Waiting for Tailscale IP assignment... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+            sleep 2
+          fi
+        done
+        
+        # Final verification
         if tailscale status > /dev/null 2>&1; then
           echo "[SUCCESS] Tailscale is connected and working!"
           echo "[DEBUG] Tailscale status:"
           tailscale status
           echo "[DEBUG] Tailscale IP addresses:"
           tailscale ip -4 || echo "[WARN] Could not get Tailscale IP"
+          
+          # Additional wait to ensure routing is fully established
+          echo "[DEBUG] Waiting additional 3 seconds for routing to stabilize..."
+          sleep 3
           
           # Test connectivity to database server if connection string is available
           # Check both environment variable formats
@@ -91,6 +114,24 @@ if [ -n "$TS_AUTHKEY" ]; then
               else
                 echo "[WARN] Cannot reach database server at $DB_IP via Tailscale ping"
                 echo "[WARN] This may indicate routing issues, but SQL connection may still work"
+              fi
+              
+              # Test direct TCP connectivity to SQL Server port (1433)
+              echo "[DEBUG] Testing TCP connectivity to $DB_IP:1433..."
+              if command -v nc >/dev/null 2>&1; then
+                if timeout 5 nc -zv "$DB_IP" 1433 > /dev/null 2>&1; then
+                  echo "[SUCCESS] TCP connection to $DB_IP:1433 succeeded"
+                else
+                  echo "[ERROR] TCP connection to $DB_IP:1433 failed - database may be unreachable"
+                fi
+              elif command -v telnet >/dev/null 2>&1; then
+                if timeout 5 sh -c "echo > /dev/tcp/$DB_IP/1433" 2>/dev/null; then
+                  echo "[SUCCESS] TCP connection to $DB_IP:1433 succeeded"
+                else
+                  echo "[ERROR] TCP connection to $DB_IP:1433 failed - database may be unreachable"
+                fi
+              else
+                echo "[WARN] No network testing tools available (nc/telnet)"
               fi
             fi
           fi

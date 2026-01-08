@@ -83,26 +83,61 @@ public static class ServiceConfiguration
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString, options => 
                 {
-                    options.CommandTimeout(10); // 10 second timeout for connection test
+                    options.CommandTimeout(30); // 30 second timeout for connection test (allows time for Tailscale routing)
                 });
             
             using var testContext = new AppDbContext(optionsBuilder.Options);
             
             // Test the connection (synchronous to avoid deadlock in configuration phase)
             logger.LogInformation("Testing database connection...");
-            var canConnect = testContext.Database.CanConnect();
             
-            if (canConnect)
+            // Try to actually open a connection to get detailed error information
+            try
             {
-                // Connection successful, use SQL Server
-                logger.LogInformation("Successfully connected to SQL Server using connection string 'DefaultConnection'. Using SQL Server database provider.");
-                services.AddDbContext<AppDbContext>(options =>
-                    options.UseSqlServer(connectionString));
-                return;
+                var canConnect = testContext.Database.CanConnect();
+                
+                if (canConnect)
+                {
+                    // Connection successful, use SQL Server
+                    logger.LogInformation("Successfully connected to SQL Server using connection string 'DefaultConnection'. Using SQL Server database provider.");
+                    services.AddDbContext<AppDbContext>(options =>
+                        options.UseSqlServer(connectionString));
+                    return;
+                }
+                
+                // CanConnect returned false - try to get more info by attempting to execute a query
+                logger.LogWarning("CanConnect() returned false. Attempting to get more details...");
+                try
+                {
+                    // Force an actual connection attempt - this will throw an exception with details
+                    _ = testContext.Database.ExecuteSqlRaw("SELECT 1");
+                    logger.LogWarning("ExecuteSqlRaw succeeded even though CanConnect() returned false - this is unusual");
+                }
+                catch (Microsoft.Data.SqlClient.SqlException sqlQueryEx)
+                {
+                    logger.LogError(sqlQueryEx, 
+                        "SQL Server connection failed during test query. Error Number: {Number}, State: {State}, Class: {Class}, Server: {Server}, Message: {Message}",
+                        sqlQueryEx.Number, sqlQueryEx.State, sqlQueryEx.Class, sqlQueryEx.Server, sqlQueryEx.Message);
+                    throw; // Re-throw to be caught by outer catch
+                }
+                catch (Exception queryEx)
+                {
+                    logger.LogError(queryEx, "Failed to execute test query. Exception Type: {ExceptionType}, Message: {ErrorMessage}, StackTrace: {StackTrace}", 
+                        queryEx.GetType().Name, queryEx.Message, queryEx.StackTrace);
+                    throw; // Re-throw to be caught by outer catch
+                }
+                
+                logger.LogWarning("SQL Server connection test for 'DefaultConnection' returned false (CanConnect() = false). Falling back to in-memory database.");
+                logger.LogWarning("This usually means the database server is unreachable, not accepting connections, or authentication failed.");
             }
-            
-            logger.LogWarning("SQL Server connection test for 'DefaultConnection' returned false (CanConnect() = false). Falling back to in-memory database.");
-            logger.LogWarning("This usually means the database server is unreachable, not accepting connections, or authentication failed.");
+            catch (Microsoft.Data.SqlClient.SqlException sqlEx)
+            {
+                // SQL Server specific exception
+                logger.LogError(sqlEx, 
+                    "SQL Server connection failed. Error Number: {Number}, State: {State}, Class: {Class}, Server: {Server}, Message: {Message}", 
+                    sqlEx.Number, sqlEx.State, sqlEx.Class, sqlEx.Server, sqlEx.Message);
+                throw; // Re-throw to be caught by outer catch
+            }
         }
         catch (Exception ex)
         {
