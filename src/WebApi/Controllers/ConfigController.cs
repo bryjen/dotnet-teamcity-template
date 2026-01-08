@@ -28,13 +28,9 @@ public class ConfigController : ControllerBase
         // Use the exact same logic as Program.cs
         var resolvedOrigins = ServiceConfiguration.GetCorsAllowedOrigins(_configuration);
 
-        // Check all possible configuration keys for debugging
+        // Check configuration key for debugging
         var corsOriginsString = _configuration["Cors__AllowedOrigins"]
-                             ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins")
-                             ?? _configuration["Cors:AllowedOrigins:0"] 
-                             ?? _configuration["Cors__AllowedOrigins__0"]
-                             ?? _configuration["Cors:AllowedOrigins__0"]
-                             ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0");
+                             ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins");
 
         var corsOriginsArray = _configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
 
@@ -51,14 +47,10 @@ public class ConfigController : ControllerBase
             corsOriginsArray = corsOriginsArray ?? Array.Empty<string>(),
             corsOriginsArrayLength = corsOriginsArray?.Length ?? 0,
             environmentVariable = Environment.GetEnvironmentVariable("Cors__AllowedOrigins") ?? "(not set)",
-            environmentVariableWithIndex = Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0") ?? "(not set)",
             allCorsEnvironmentVariables = allCorsEnvVars,
             allConfigKeys = new
             {
                 corsAllowedOrigins = _configuration["Cors__AllowedOrigins"] ?? "(null)",
-                corsAllowedOrigins0 = _configuration["Cors:AllowedOrigins:0"] ?? "(null)",
-                corsAllowedOriginsUnderscore0 = _configuration["Cors__AllowedOrigins__0"] ?? "(null)",
-                corsAllowedOriginsHybrid = _configuration["Cors:AllowedOrigins__0"] ?? "(null)",
             },
             resolvedOrigins = resolvedOrigins,
             resolvedOriginsCount = resolvedOrigins.Length,

@@ -10,6 +10,6 @@ output "webfrontend_url" {
 
 output "webapi_cors_env_var" {
   description = "Debug: CORS environment variable value that should be set on WebApi"
-  value       = var.cors_allowed_origins != "" ? "Cors__AllowedOrigins__0=${var.cors_allowed_origins}" : "CORS env var not set (empty or default)"
+  value       = var.cors_allowed_origins != "" ? "Cors__AllowedOrigins=${var.cors_allowed_origins}" : "CORS env var not set (empty or default)"
 }
 

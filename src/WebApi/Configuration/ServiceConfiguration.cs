@@ -10,40 +10,22 @@ public static class ServiceConfiguration
 {
     /// <summary>
     /// Resolves CORS allowed origins from configuration.
-    /// Supports both array format (appsettings.json) and single string/comma-separated (env vars).
-    /// Terraform sets Cors__AllowedOrigins as a string, so read it as string first, then split.
+    /// If environment variable is set, use it (comma-separated). Otherwise fall back to appsettings.json array.
     /// </summary>
     public static string[] GetCorsAllowedOrigins(IConfiguration configuration)
     {
-        // Check for single string value from environment variable (not array index)
+        // Check environment variable first
         var corsOriginsString = configuration["Cors__AllowedOrigins"]
                               ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins");
-        
-        // Also check array index format for backwards compatibility
-        if (string.IsNullOrWhiteSpace(corsOriginsString))
-        {
-            corsOriginsString = configuration["Cors:AllowedOrigins:0"] 
-                             ?? configuration["Cors__AllowedOrigins__0"]
-                             ?? configuration["Cors:AllowedOrigins__0"]
-                             ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0");
-        }
 
         if (!string.IsNullOrWhiteSpace(corsOriginsString))
         {
-            // Environment variable or single string value - split by comma if needed
-            // Handles both "origin1" and "origin1,origin2,origin3"
             return corsOriginsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
 
-        // Try array format from appsettings.json: ["origin1", "origin2"]
+        // Fall back to appsettings.json array
         var corsOriginsArray = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
-        if (corsOriginsArray != null && corsOriginsArray.Length > 0)
-        {
-            return corsOriginsArray;
-        }
-
-        // Empty = allow all origins (permissive mode)
-        return Array.Empty<string>();
+        return corsOriginsArray ?? Array.Empty<string>();
     }
     public static void ConfigureDatabase(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
     {
