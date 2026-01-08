@@ -36,3 +36,8 @@ terraform.rc
 # Ignore GCP CLI outputs
 tf/gcloud/*.json
 tf/cloudrun/cloud_run
+
+# Environment variables (may contain secrets like Tailscale auth keys)
+.env
+.env.local
+.env.*.local

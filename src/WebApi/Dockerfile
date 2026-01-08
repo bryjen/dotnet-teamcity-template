@@ -17,9 +17,25 @@ ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./src/WebApi/WebApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
+
+# Install Tailscale (requires root during install, then run app as non-root)
+USER root
+RUN apt-get update && \
+    apt-get install -y curl && \
+    curl -fsSL https://tailscale.com/install.sh | sh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# Copy entrypoint script that starts Tailscale (if configured) then the app
+COPY src/WebApi/docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Back to app user for running the service
+USER $APP_UID
+
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "WebApi.dll", "--urls", "http://+:8080"]
+ENTRYPOINT ["/entrypoint.sh"]
 # don't forget to map to a host port

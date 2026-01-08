@@ -22,6 +22,28 @@ services:
       - "8080:8080"
     depends_on:
       - otel-collector
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: asptemplate-tailscale
+    network_mode: "service:webapi"
+    depends_on:
+      - webapi
+    environment:
+      # Tailscale authentication key (get from https://login.tailscale.com/admin/settings/keys)
+      # This should be a reusable auth key for the container
+      TS_AUTHKEY: "${TAILSCALE_AUTHKEY:-}"
+      # State directory (persisted via volume)
+      TS_STATE_DIR: "/var/lib/tailscale"
+      # Optional: Set a hostname for this device in Tailscale
+      TS_HOSTNAME: "${TAILSCALE_HOSTNAME:-asptemplate-webapi}"
+      # Optional: Set user (if using auth key, this may not be needed)
+      TS_USER: "${TAILSCALE_USER:-}"
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    restart: unless-stopped
 
   webfrontend:
     build:
@@ -59,4 +81,7 @@ services:
     depends_on:
       - otel-collector
 
+volumes:
+  tailscale-state:
+    driver: local
 

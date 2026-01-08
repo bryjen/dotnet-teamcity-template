@@ -67,3 +67,14 @@ variable "api_base_url" {
   type        = string
   default     = ""
 }
+
+########################################
+# Tailscale configuration
+########################################
+
+variable "tailscale_authkey" {
+  description = "Tailscale auth key for outbound connections to Tailscale network"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

@@ -61,6 +61,15 @@ resource "google_cloud_run_service" "webapi" {
             value = var.cors_allowed_origins
           }
         }
+
+        # Tailscale configuration (auth key only; outbound connectivity)
+        dynamic "env" {
+          for_each = var.tailscale_authkey != "" ? [1] : []
+          content {
+            name  = "TS_AUTHKEY"
+            value = var.tailscale_authkey
+          }
+        }
       }
 
       container_concurrency = 80
