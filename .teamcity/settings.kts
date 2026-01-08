@@ -179,6 +179,15 @@ object LocalDeploy : BuildType({
                 # terraform apply "cloud_run"
             """.trimIndent()
         }
+        script {
+            name = "Declare Docker Env Variables"
+            id = "Declare_Docker_Env_Variables"
+            scriptContent = """
+                echo "##teamcity[setParameter name='env.TF_VAR_database_connection_string' value='%backend.connection_string%']"
+                echo "##teamcity[setParameter name='env.TF_VAR_jwt_secret' value='%backend.jwt_secret%']"
+                echo "##teamcity[setParameter name='env.TF_VAR_cors_allowed_origins' value='https://your-frontend.run.app']"
+            """.trimIndent()
+        }
     }
 
     features {
