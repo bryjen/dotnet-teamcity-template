@@ -136,6 +136,8 @@ object LocalDeploy : BuildType({
                 echo "##teamcity[setParameter name='env.TF_VAR_database_connection_string' value='%backend.connection_string%']"
                 echo "##teamcity[setParameter name='env.TF_VAR_jwt_secret' value='%backend.jwt_secret%']"
                 echo "##teamcity[setParameter name='env.TF_VAR_cors_allowed_origins' value='https://your-frontend.run.app']"
+                
+                env | grep TF_VAR
             """.trimIndent()
         }
         script {
