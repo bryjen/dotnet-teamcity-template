@@ -53,10 +53,11 @@ resource "google_cloud_run_service" "webapi" {
         }
 
         # CORS - allow frontend URL
+        # Set as a single string value (not array index)
         dynamic "env" {
           for_each = var.cors_allowed_origins != "" ? [1] : []
           content {
-            name  = "Cors__AllowedOrigins__0"
+            name  = "Cors__AllowedOrigins"
             value = var.cors_allowed_origins
           }
         }

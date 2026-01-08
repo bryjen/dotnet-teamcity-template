@@ -11,15 +11,22 @@ public static class ServiceConfiguration
     /// <summary>
     /// Resolves CORS allowed origins from configuration.
     /// Supports both array format (appsettings.json) and single string/comma-separated (env vars).
-    /// Terraform sets Cors__AllowedOrigins__0 as a string, so read it as string first, then split.
+    /// Terraform sets Cors__AllowedOrigins as a string, so read it as string first, then split.
     /// </summary>
     public static string[] GetCorsAllowedOrigins(IConfiguration configuration)
     {
-        // Check multiple possible key formats to ensure we catch the env var
-        var corsOriginsString = configuration["Cors:AllowedOrigins:0"] 
-                              ?? configuration["Cors__AllowedOrigins__0"]
-                              ?? configuration["Cors:AllowedOrigins__0"]
-                              ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0");
+        // Check for single string value from environment variable (not array index)
+        var corsOriginsString = configuration["Cors__AllowedOrigins"]
+                              ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins");
+        
+        // Also check array index format for backwards compatibility
+        if (string.IsNullOrWhiteSpace(corsOriginsString))
+        {
+            corsOriginsString = configuration["Cors:AllowedOrigins:0"] 
+                             ?? configuration["Cors__AllowedOrigins__0"]
+                             ?? configuration["Cors:AllowedOrigins__0"]
+                             ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0");
+        }
 
         if (!string.IsNullOrWhiteSpace(corsOriginsString))
         {

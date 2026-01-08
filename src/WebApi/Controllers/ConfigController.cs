@@ -29,12 +29,20 @@ public class ConfigController : ControllerBase
         var resolvedOrigins = ServiceConfiguration.GetCorsAllowedOrigins(_configuration);
 
         // Check all possible configuration keys for debugging
-        var corsOriginsString = _configuration["Cors:AllowedOrigins:0"] 
+        var corsOriginsString = _configuration["Cors__AllowedOrigins"]
+                             ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins")
+                             ?? _configuration["Cors:AllowedOrigins:0"] 
                              ?? _configuration["Cors__AllowedOrigins__0"]
                              ?? _configuration["Cors:AllowedOrigins__0"]
                              ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0");
 
         var corsOriginsArray = _configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+
+        // Get all environment variables that start with "Cors" for debugging
+        var allCorsEnvVars = Environment.GetEnvironmentVariables()
+            .Cast<System.Collections.DictionaryEntry>()
+            .Where(e => e.Key.ToString()?.StartsWith("Cors", StringComparison.OrdinalIgnoreCase) == true)
+            .ToDictionary(e => e.Key.ToString()!, e => e.Value?.ToString() ?? "(null)");
 
         // Build response showing what we found
         var response = new
@@ -42,9 +50,12 @@ public class ConfigController : ControllerBase
             corsOriginsString = corsOriginsString ?? "(null)",
             corsOriginsArray = corsOriginsArray ?? Array.Empty<string>(),
             corsOriginsArrayLength = corsOriginsArray?.Length ?? 0,
-            environmentVariable = Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0") ?? "(not set)",
+            environmentVariable = Environment.GetEnvironmentVariable("Cors__AllowedOrigins") ?? "(not set)",
+            environmentVariableWithIndex = Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0") ?? "(not set)",
+            allCorsEnvironmentVariables = allCorsEnvVars,
             allConfigKeys = new
             {
+                corsAllowedOrigins = _configuration["Cors__AllowedOrigins"] ?? "(null)",
                 corsAllowedOrigins0 = _configuration["Cors:AllowedOrigins:0"] ?? "(null)",
                 corsAllowedOriginsUnderscore0 = _configuration["Cors__AllowedOrigins__0"] ?? "(null)",
                 corsAllowedOriginsHybrid = _configuration["Cors:AllowedOrigins__0"] ?? "(null)",
