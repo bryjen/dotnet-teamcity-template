@@ -18,9 +18,47 @@ Simple Terraform configuration for deploying AspTemplate to Google Cloud Platfor
    ```bash
    gcloud services enable run.googleapis.com
    gcloud services enable artifactregistry.googleapis.com
+   gcloud services enable storage.googleapis.com
    ```
 
 ## Setup
+
+### 0. Set Up Remote State Backend (GCS)
+
+Terraform state is stored remotely in Google Cloud Storage for team collaboration and state management.
+
+#### Create a GCS Bucket for State
+
+```bash
+# Replace YOUR_PROJECT_ID and YOUR_BUCKET_NAME with your values
+# Bucket names must be globally unique
+gsutil mb -p YOUR_PROJECT_ID -l us-central1 gs://YOUR_PROJECT_NAME-terraform-state
+
+# Enable versioning for state file history
+gsutil versioning set on gs://YOUR_PROJECT_NAME-terraform-state
+```
+
+#### Configure Backend
+
+You have two options:
+
+**Option A: Update providers.tf directly**
+- Edit `tf/cloudrun/providers.tf` and replace `YOUR_PROJECT_NAME-terraform-state` with your actual bucket name
+
+**Option B: Use a backend config file (recommended)**
+- Copy `backend.hcl.example` to `backend.hcl`:
+  ```bash
+  cp backend.hcl.example backend.hcl
+  ```
+- Edit `backend.hcl` and set your bucket name
+- Initialize with: `terraform init -backend-config=backend.hcl`
+
+**Option C: Override during init**
+```bash
+terraform init -backend-config="bucket=your-bucket-name"
+```
+
+> **Note**: If you already have local state, Terraform will prompt you to migrate it to the remote backend during `terraform init`.
 
 ### 1. Configure Variables
 
@@ -59,9 +97,19 @@ webfrontend_min_instances = 1
 ### 2. Initialize Terraform
 
 ```bash
-cd tf
+cd tf/cloudrun
+
+# If using backend.hcl file:
+terraform init -backend-config=backend.hcl
+
+# Or if you updated providers.tf directly:
 terraform init
+
+# Or override bucket name during init:
+terraform init -backend-config="bucket=your-bucket-name"
 ```
+
+> **First-time setup**: If you have existing local state, Terraform will ask if you want to migrate it to the remote backend. Type `yes` to migrate.
 
 ### 3. Review the Plan
 
