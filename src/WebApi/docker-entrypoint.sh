@@ -21,10 +21,6 @@ if [ -n "$TS_AUTHKEY" ]; then
   mkdir -p "$TS_RUN_DIR" && echo "[DEBUG] Created $TS_RUN_DIR" || echo "[ERROR] Failed to create $TS_RUN_DIR"
   mkdir -p "$TS_LIB_DIR" && echo "[DEBUG] Created $TS_LIB_DIR" || echo "[ERROR] Failed to create $TS_LIB_DIR"
   
-  # Set environment variables for Tailscale to use our directories
-  export TS_STATE_DIR="$TS_STATE_DIR"
-  export TS_SOCKET_DIR="$TS_RUN_DIR"
-  
   echo "[DEBUG] Starting tailscaled daemon..."
   echo "[DEBUG] State dir: $TS_STATE_DIR"
   echo "[DEBUG] Socket dir: $TS_RUN_DIR"
@@ -50,8 +46,9 @@ if [ -n "$TS_AUTHKEY" ]; then
   else
     echo "[DEBUG] tailscaled is running, authenticating..."
     
-    # Authenticate with Tailscale using only the auth key (outbound use-case)
-    tailscale up --authkey="$TS_AUTHKEY" 2>&1 | while IFS= read -r line; do
+    # Authenticate with Tailscale using only the auth key (outbound use-case),
+    # explicitly pointing the CLI at the same socket tailscaled is using.
+    tailscale --socket="$TS_RUN_DIR/tailscaled.sock" up --authkey="$TS_AUTHKEY" 2>&1 | while IFS= read -r line; do
       echo "[TAILSCALE] $line"
     done
     
@@ -59,10 +56,10 @@ if [ -n "$TS_AUTHKEY" ]; then
     RETRY_COUNT=0
     MAX_RETRIES=30
     while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-      if tailscale status > /dev/null 2>&1; then
+      if tailscale --socket="$TS_RUN_DIR/tailscaled.sock" status > /dev/null 2>&1; then
         echo "[DEBUG] Tailscale connected successfully!"
         echo "[DEBUG] Tailscale status:"
-        tailscale status
+        tailscale --socket="$TS_RUN_DIR/tailscaled.sock" status
         break
       fi
       RETRY_COUNT=$((RETRY_COUNT + 1))
