@@ -123,11 +123,20 @@ if [ -n "$TS_AUTHKEY" ]; then
               # Extract just the IP (remove port if present)
               DB_IP=$(echo "$DB_SERVER" | cut -d',' -f1 | cut -d':' -f1)
               echo "[DEBUG] Testing Tailscale connectivity to database IP: $DB_IP"
-              if tailscale ping -c 1 -timeout 5s "$DB_IP" > /dev/null 2>&1; then
+              PING_OUTPUT=$(tailscale ping -c 1 -timeout 5s "$DB_IP" 2>&1)
+              PING_EXIT=$?
+              if [ $PING_EXIT -eq 0 ]; then
                 echo "[SUCCESS] Can reach database server at $DB_IP via Tailscale"
+                echo "[DEBUG] Ping output: $PING_OUTPUT"
               else
                 echo "[WARN] Cannot reach database server at $DB_IP via Tailscale ping"
-                echo "[WARN] This may indicate routing issues, but SQL connection may still work"
+                echo "[WARN] Ping output: $PING_OUTPUT"
+                echo "[WARN] This may indicate ACL or routing issues"
+                echo "[DEBUG] Checking if this is an ACL issue - testing with tailscale status..."
+                # Check if we can see the database in the peer list
+                if tailscale status | grep -q "$DB_IP"; then
+                  echo "[DEBUG] Database IP found in Tailscale status - may be ACL or firewall issue"
+                fi
               fi
               
               # Test direct TCP connectivity to SQL Server port (1433)
