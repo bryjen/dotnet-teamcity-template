@@ -22,6 +22,8 @@ resource "google_cloud_run_service" "webapi" {
           }
         }
 
+
+
         env {
           name  = "ASPNETCORE_ENVIRONMENT"
           value = var.environment == "prod" ? "Production" : "Development"
@@ -107,8 +109,14 @@ resource "google_cloud_run_service" "webfrontend" {
           value = var.environment == "prod" ? "Production" : "Development"
         }
 
-        # API_BASE_URL is typically baked into the frontend image, but you could
-        # also pass it as an env var here once the WebApi URL is known.
+        # API_BASE_URL - passed as env var and replaced at runtime in appsettings.json
+        # The docker-entrypoint.sh script will replace the value in appsettings.json
+        # before nginx starts. This allows runtime configuration without rebuilding.
+        # If api_base_url variable is set, use it; otherwise auto-detect from WebAPI service URL
+        env {
+          name  = "API_BASE_URL"
+          value = var.api_base_url != "" ? var.api_base_url : google_cloud_run_service.webapi.status[0].url
+        }
       }
 
       container_concurrency = 80

@@ -61,3 +61,9 @@ variable "cors_allowed_origins" {
   type        = string
   default     = ""
 }
+
+variable "api_base_url" {
+  description = "API base URL for frontend configuration. If not set, automatically uses the WebAPI service URL."
+  type        = string
+  default     = ""
+}

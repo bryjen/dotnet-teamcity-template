@@ -30,6 +30,10 @@ services:
       args:
         API_BASE_URL: "${API_BASE_URL:-http://localhost:8080/}"
     container_name: asptemplate-webfrontend
+    environment:
+      # Runtime configuration - replaces appsettings.json values at container startup
+      # This allows changing config without rebuilding the image
+      API_BASE_URL: "${API_BASE_URL:-http://localhost:8080}"
     depends_on:
       - webapi
     ports:

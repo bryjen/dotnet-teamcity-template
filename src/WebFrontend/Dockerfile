@@ -17,9 +17,20 @@ RUN dotnet publish "./src/WebFrontend/WebFrontend.csproj" -c $BUILD_CONFIGURATIO
 # Serve the published wwwroot via nginx
 FROM nginx:alpine AS final
 WORKDIR /usr/share/nginx/html
+
+# Copy published files
 COPY --from=build /app/publish/wwwroot ./
+
+# Copy nginx config
 COPY ./src/WebFrontend/nginx.conf /etc/nginx/conf.d/default.conf
 
+# Copy and set up entrypoint script for runtime config replacement
+COPY ./src/WebFrontend/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 EXPOSE 8080
+
+# Use custom entrypoint that replaces config values at runtime
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 
