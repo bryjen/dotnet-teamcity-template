@@ -5,72 +5,84 @@ echo "=========================================="
 echo "WebApi Container Startup"
 echo "=========================================="
 
+# Always log environment check for debugging
+echo "[DEBUG] Checking for TS_AUTHKEY environment variable..."
+if [ -n "$TS_AUTHKEY" ]; then
+  echo "[DEBUG] TS_AUTHKEY is SET (length: ${#TS_AUTHKEY} chars)"
+  echo "[DEBUG] TS_AUTHKEY prefix: ${TS_AUTHKEY%%-*}-****"
+else
+  echo "[DEBUG] TS_AUTHKEY is NOT SET or is empty"
+  echo "[DEBUG] This means Tailscale will be skipped"
+fi
+
 # Check if Tailscale auth key is provided
 if [ -n "$TS_AUTHKEY" ]; then
   echo "[DEBUG] TS_AUTHKEY is SET (length: ${#TS_AUTHKEY} chars)"
   echo "[DEBUG] TS_AUTHKEY prefix: ${TS_AUTHKEY%%-*}-****"
   echo "[DEBUG] Starting Tailscale setup..."
   
-  # Create all directories Tailscale needs
-  echo "[DEBUG] Creating Tailscale directories..."
-  TS_STATE_DIR="/tmp/tailscale"
-  TS_RUN_DIR="/tmp/tailscale-run"
-  TS_LIB_DIR="/tmp/tailscale-lib"
-  
-  mkdir -p "$TS_STATE_DIR" && echo "[DEBUG] Created $TS_STATE_DIR" || echo "[ERROR] Failed to create $TS_STATE_DIR"
-  mkdir -p "$TS_RUN_DIR" && echo "[DEBUG] Created $TS_RUN_DIR" || echo "[ERROR] Failed to create $TS_RUN_DIR"
-  mkdir -p "$TS_LIB_DIR" && echo "[DEBUG] Created $TS_LIB_DIR" || echo "[ERROR] Failed to create $TS_LIB_DIR"
-  
-  echo "[DEBUG] Starting tailscaled daemon..."
-  echo "[DEBUG] State dir: $TS_STATE_DIR"
-  echo "[DEBUG] Socket dir: $TS_RUN_DIR"
-  
-  # Start tailscaled in userspace networking mode (container-friendly)
-  tailscaled --state="$TS_STATE_DIR/tailscaled.state" \
-             --socket="$TS_RUN_DIR/tailscaled.sock" \
-             --tun=userspace-networking \
-             > /tmp/tailscaled.log 2>&1 &
-  
-  TS_PID=$!
-  echo "[DEBUG] tailscaled started with PID: $TS_PID"
-  
-  # Wait briefly for tailscaled to come up
-  echo "[DEBUG] Waiting for tailscaled to initialize..."
-  sleep 3
-  
-  # Check if tailscaled is still running
-  if ! kill -0 $TS_PID 2>/dev/null; then
-    echo "[ERROR] tailscaled process died! Check logs:"
-    cat /tmp/tailscaled.log || true
-    echo "[WARN] Continuing without Tailscale..."
+  # Check if tailscaled exists
+  if ! command -v tailscaled >/dev/null 2>&1; then
+    echo "[ERROR] tailscaled command not found! Is Tailscale installed?"
+    echo "[ERROR] Continuing without Tailscale"
   else
-    echo "[DEBUG] tailscaled is running, authenticating..."
+    echo "[DEBUG] tailscaled found at: $(which tailscaled)"
     
-    # Authenticate with Tailscale using only the auth key (outbound use-case),
-    # explicitly pointing the CLI at the same socket tailscaled is using.
-    tailscale --socket="$TS_RUN_DIR/tailscaled.sock" up --authkey="$TS_AUTHKEY" 2>&1 | while IFS= read -r line; do
-      echo "[TAILSCALE] $line"
-    done
+    # Start tailscaled in userspace networking mode, using in-memory state
+    # This avoids any filesystem permission issues in Cloud Run.
+    echo "[DEBUG] Starting tailscaled daemon (state=mem)..."
+    tailscaled --tun=userspace-networking --state=mem: > /tmp/tailscaled.log 2>&1 &
     
-    echo "[DEBUG] Waiting for Tailscale to connect..."
-    RETRY_COUNT=0
-    MAX_RETRIES=30
-    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-      if tailscale --socket="$TS_RUN_DIR/tailscaled.sock" status > /dev/null 2>&1; then
-        echo "[DEBUG] Tailscale connected successfully!"
-        echo "[DEBUG] Tailscale status:"
-        tailscale --socket="$TS_RUN_DIR/tailscaled.sock" status
-        break
+    TS_PID=$!
+    echo "[DEBUG] tailscaled started with PID: $TS_PID"
+    echo "[DEBUG] Checking if PID $TS_PID is valid..."
+    
+    # Wait for tailscaled to initialize
+    echo "[DEBUG] Waiting for tailscaled to initialize (3 seconds)..."
+    sleep 3
+    
+    # Check if tailscaled is still running
+    echo "[DEBUG] Checking if tailscaled process is still alive..."
+    if ! kill -0 $TS_PID 2>/dev/null; then
+      echo "[ERROR] tailscaled process died! Check logs:"
+      cat /tmp/tailscaled.log || echo "[ERROR] Could not read tailscaled.log"
+      echo "[ERROR] Tailscale daemon failed to start - continuing without Tailscale"
+    else
+      echo "[DEBUG] tailscaled is still running (PID: $TS_PID)"
+      echo "[DEBUG] tailscaled is running, authenticating with Tailscale..."
+      
+      # Authenticate with Tailscale using the auth key
+      AUTH_OUTPUT=$(tailscale up --authkey="$TS_AUTHKEY" 2>&1)
+      AUTH_EXIT=$?
+      
+      if [ $AUTH_EXIT -ne 0 ]; then
+        echo "[ERROR] Tailscale authentication failed!"
+        echo "[ERROR] tailscale up output: $AUTH_OUTPUT"
+        echo "[ERROR] Continuing without Tailscale connectivity"
+      else
+        echo "[TAILSCALE] Authentication successful"
+        echo "[TAILSCALE] $AUTH_OUTPUT"
+        
+        # Wait a bit for connection to establish
+        echo "[DEBUG] Waiting for Tailscale connection to establish..."
+        sleep 5
+        
+        # Verify Tailscale connection
+        echo "[DEBUG] Verifying Tailscale connection..."
+        if tailscale status > /dev/null 2>&1; then
+          echo "[SUCCESS] Tailscale is connected and working!"
+          echo "[DEBUG] Tailscale status:"
+          tailscale status
+          echo "[DEBUG] Tailscale IP addresses:"
+          tailscale ip -4 || echo "[WARN] Could not get Tailscale IP"
+        else
+          echo "[ERROR] Tailscale connection verification failed!"
+          echo "[ERROR] tailscale status command failed"
+          echo "[ERROR] Check tailscaled logs:"
+          tail -n 20 /tmp/tailscaled.log || true
+          echo "[ERROR] Continuing without Tailscale connectivity"
+        fi
       fi
-      RETRY_COUNT=$((RETRY_COUNT + 1))
-      echo "[DEBUG] Waiting for connection... (attempt $RETRY_COUNT/$MAX_RETRIES)"
-      sleep 1
-    done
-    
-    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-      echo "[WARN] Tailscale did not connect within timeout, continuing anyway..."
-      echo "[DEBUG] tailscaled logs:"
-      cat /tmp/tailscaled.log || true
     fi
   fi
 else

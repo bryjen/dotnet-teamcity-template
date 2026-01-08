@@ -18,7 +18,7 @@ RUN dotnet publish "./src/WebApi/WebApi.csproj" -c $BUILD_CONFIGURATION -o /app/
 
 FROM base AS final
 
-# Install Tailscale (requires root during install, then run app as non-root)
+# Install Tailscale (run as root for simplicity - Tailscale needs proper permissions)
 USER root
 RUN apt-get update && \
     apt-get install -y curl && \
@@ -26,19 +26,18 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Create standard Tailscale directories
+RUN mkdir -p /var/lib/tailscale /var/run/tailscale && \
+    chmod 755 /var/lib/tailscale /var/run/tailscale
+
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Copy entrypoint script that starts Tailscale (if configured) then the app
+# Copy entrypoint script
 COPY src/WebApi/docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Create directories Tailscale might need (though we use /tmp at runtime)
-RUN mkdir -p /tmp/tailscale /tmp/tailscale-run /tmp/tailscale-lib && \
-    chmod 777 /tmp/tailscale /tmp/tailscale-run /tmp/tailscale-lib
-
-# Back to app user for running the service
-USER $APP_UID
+# Keep as root - Tailscale needs it, and we'll drop privileges in the app if needed
 
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
