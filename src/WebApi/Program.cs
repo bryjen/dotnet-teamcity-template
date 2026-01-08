@@ -33,7 +33,29 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
 
 // Add CORS
-var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+// Support both array format (appsettings.json) and single string/comma-separated (env vars)
+// Terraform sets Cors__AllowedOrigins__0 which maps to Cors:AllowedOrigins[0]
+var corsOriginsArray = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+var corsOriginsSingle = builder.Configuration["Cors:AllowedOrigins:0"] ?? builder.Configuration["Cors__AllowedOrigins__0"];
+
+string[] corsOrigins;
+if (corsOriginsArray != null && corsOriginsArray.Length > 0)
+{
+    // Array format from appsettings.json: ["origin1", "origin2"]
+    corsOrigins = corsOriginsArray;
+}
+else if (!string.IsNullOrWhiteSpace(corsOriginsSingle))
+{
+    // Single value or comma-separated from environment variable
+    // Handle both "origin1" and "origin1,origin2,origin3"
+    corsOrigins = corsOriginsSingle.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+}
+else
+{
+    // Empty = allow all origins (permissive mode)
+    corsOrigins = Array.Empty<string>();
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
