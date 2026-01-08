@@ -6,6 +6,7 @@ riderModule.iml
 /_ReSharper.Caches/
 .idea/
 AspTemplate.sln.DotSettings.user
+appsettings.Development.json
 
 
 # Local .terraform directories
