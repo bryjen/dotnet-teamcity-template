@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using WebApi.Data;
@@ -7,6 +8,36 @@ namespace WebApi.Configuration;
 
 public static class ServiceConfiguration
 {
+    /// <summary>
+    /// Resolves CORS allowed origins from configuration.
+    /// Supports both array format (appsettings.json) and single string/comma-separated (env vars).
+    /// Terraform sets Cors__AllowedOrigins__0 as a string, so read it as string first, then split.
+    /// </summary>
+    public static string[] GetCorsAllowedOrigins(IConfiguration configuration)
+    {
+        // Check multiple possible key formats to ensure we catch the env var
+        var corsOriginsString = configuration["Cors:AllowedOrigins:0"] 
+                              ?? configuration["Cors__AllowedOrigins__0"]
+                              ?? configuration["Cors:AllowedOrigins__0"]
+                              ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0");
+
+        if (!string.IsNullOrWhiteSpace(corsOriginsString))
+        {
+            // Environment variable or single string value - split by comma if needed
+            // Handles both "origin1" and "origin1,origin2,origin3"
+            return corsOriginsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
+
+        // Try array format from appsettings.json: ["origin1", "origin2"]
+        var corsOriginsArray = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        if (corsOriginsArray != null && corsOriginsArray.Length > 0)
+        {
+            return corsOriginsArray;
+        }
+
+        // Empty = allow all origins (permissive mode)
+        return Array.Empty<string>();
+    }
     public static void ConfigureDatabase(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
     {
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
