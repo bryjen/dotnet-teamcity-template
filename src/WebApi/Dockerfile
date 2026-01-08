@@ -33,9 +33,9 @@ COPY --from=publish /app/publish .
 COPY src/WebApi/docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Create Tailscale state directory with proper permissions
-RUN mkdir -p /var/lib/tailscale && \
-    chmod 777 /var/lib/tailscale
+# Create directories Tailscale might need (though we use /tmp at runtime)
+RUN mkdir -p /tmp/tailscale /tmp/tailscale-run /tmp/tailscale-lib && \
+    chmod 777 /tmp/tailscale /tmp/tailscale-run /tmp/tailscale-lib
 
 # Back to app user for running the service
 USER $APP_UID
