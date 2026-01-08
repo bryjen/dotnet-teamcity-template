@@ -52,7 +52,8 @@ if [ -n "$TS_AUTHKEY" ]; then
       echo "[DEBUG] tailscaled is running, authenticating with Tailscale..."
       
       # Authenticate with Tailscale using the auth key
-      AUTH_OUTPUT=$(tailscale up --authkey="$TS_AUTHKEY" 2>&1)
+      # Use --accept-routes to ensure we can route to other Tailscale devices
+      AUTH_OUTPUT=$(tailscale up --authkey="$TS_AUTHKEY" --accept-routes 2>&1)
       AUTH_EXIT=$?
       
       if [ $AUTH_EXIT -ne 0 ]; then
@@ -99,6 +100,19 @@ if [ -n "$TS_AUTHKEY" ]; then
           echo "[DEBUG] Waiting additional 3 seconds for routing to stabilize..."
           sleep 3
           
+          # Verify routing is working by checking if we can reach Tailscale IPs
+          echo "[DEBUG] Verifying Tailscale routing is working..."
+          TS_OUR_IP=$(tailscale ip -4 2>/dev/null | head -1)
+          if [ -n "$TS_OUR_IP" ]; then
+            echo "[DEBUG] Our Tailscale IP: $TS_OUR_IP"
+            # Try to ping ourselves via Tailscale (should work if routing is up)
+            if tailscale ping -c 1 -timeout 2s "$TS_OUR_IP" > /dev/null 2>&1; then
+              echo "[DEBUG] Tailscale self-ping succeeded - routing appears to be working"
+            else
+              echo "[WARN] Tailscale self-ping failed - routing may not be fully established"
+            fi
+          fi
+          
           # Test connectivity to database server if connection string is available
           # Check both environment variable formats
           DB_CONN_STR="${ConnectionStrings__DefaultConnection:-${CONNECTIONSTRINGS__DEFAULTCONNECTION:-}}"
@@ -123,15 +137,39 @@ if [ -n "$TS_AUTHKEY" ]; then
                   echo "[SUCCESS] TCP connection to $DB_IP:1433 succeeded"
                 else
                   echo "[ERROR] TCP connection to $DB_IP:1433 failed - database may be unreachable"
+                  echo "[ERROR] This suggests Tailscale userspace networking is not routing traffic correctly"
+                  echo "[DEBUG] Checking Tailscale routing configuration..."
+                  tailscale status --json 2>/dev/null | head -20 || echo "[DEBUG] Could not get Tailscale JSON status"
+                  echo "[DEBUG] Checking tailscaled logs for routing issues..."
+                  tail -n 30 /tmp/tailscaled.log 2>/dev/null || echo "[DEBUG] Could not read tailscaled.log"
+                  echo "[WARN] With userspace networking, applications may need explicit proxy configuration"
+                  echo "[WARN] Consider checking Tailscale ACLs or using kernel networking mode if possible"
+                  echo "[DEBUG] Attempting to find Tailscale SOCKS proxy port..."
+                  # Tailscale userspace networking may expose SOCKS proxy - check common locations
+                  if command -v ss >/dev/null 2>&1; then
+                    echo "[DEBUG] Checking for listening SOCKS proxy ports..."
+                    ss -tlnp | grep -i socks || echo "[DEBUG] No SOCKS proxy found listening"
+                  fi
+                  echo "[DEBUG] Note: With userspace networking, .NET applications may need SOCKS proxy configuration"
+                  echo "[DEBUG] or Tailscale routing may need to be configured differently"
                 fi
               elif command -v telnet >/dev/null 2>&1; then
                 if timeout 5 sh -c "echo > /dev/tcp/$DB_IP/1433" 2>/dev/null; then
                   echo "[SUCCESS] TCP connection to $DB_IP:1433 succeeded"
                 else
                   echo "[ERROR] TCP connection to $DB_IP:1433 failed - database may be unreachable"
+                  echo "[DEBUG] This suggests Tailscale userspace networking is not routing traffic correctly"
                 fi
               else
                 echo "[WARN] No network testing tools available (nc/telnet)"
+              fi
+              
+              # Check if we can resolve the IP through Tailscale
+              echo "[DEBUG] Checking if $DB_IP is reachable via Tailscale routing..."
+              if tailscale status | grep -q "$DB_IP"; then
+                echo "[DEBUG] Database IP $DB_IP found in Tailscale network"
+              else
+                echo "[WARN] Database IP $DB_IP not found in Tailscale status - may indicate routing issue"
               fi
             fi
           fi
