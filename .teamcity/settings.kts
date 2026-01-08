@@ -147,6 +147,10 @@ object LocalDeploy : BuildType({
                 cd ./tf/cloudrun
                 ls -la
                 
+                # validate that we have all declared environment variables from the previous step
+                # (no validation, you just gotta know unfortnately)
+                env | grep TF_VAR
+                
                 # init gcloud cli
                 CREDENTIALS_FILE="/opt/gcp/service_accounts/%gcp.service_account%"
                 export GOOGLE_APPLICATION_CREDENTIALS="${'$'}CREDENTIALS_FILE"
