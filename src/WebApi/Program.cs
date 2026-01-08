@@ -34,26 +34,33 @@ builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
 
 // Add CORS
 // Support both array format (appsettings.json) and single string/comma-separated (env vars)
-// Terraform sets Cors__AllowedOrigins__0 which maps to Cors:AllowedOrigins[0]
-var corsOriginsArray = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
-var corsOriginsSingle = builder.Configuration["Cors:AllowedOrigins:0"] ?? builder.Configuration["Cors__AllowedOrigins__0"];
+// Terraform sets Cors__AllowedOrigins__0 as a string, so read it as string first, then split
+// Check multiple possible key formats to ensure we catch the env var
+var corsOriginsString = builder.Configuration["Cors:AllowedOrigins:0"] 
+                      ?? builder.Configuration["Cors__AllowedOrigins__0"]
+                      ?? builder.Configuration["Cors:AllowedOrigins__0"]
+                      ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins__0");
 
 string[] corsOrigins;
-if (corsOriginsArray != null && corsOriginsArray.Length > 0)
+if (!string.IsNullOrWhiteSpace(corsOriginsString))
 {
-    // Array format from appsettings.json: ["origin1", "origin2"]
-    corsOrigins = corsOriginsArray;
-}
-else if (!string.IsNullOrWhiteSpace(corsOriginsSingle))
-{
-    // Single value or comma-separated from environment variable
-    // Handle both "origin1" and "origin1,origin2,origin3"
-    corsOrigins = corsOriginsSingle.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    // Environment variable or single string value - split by comma if needed
+    // Handles both "origin1" and "origin1,origin2,origin3"
+    corsOrigins = corsOriginsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }
 else
 {
-    // Empty = allow all origins (permissive mode)
-    corsOrigins = Array.Empty<string>();
+    // Try array format from appsettings.json: ["origin1", "origin2"]
+    var corsOriginsArray = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+    if (corsOriginsArray != null && corsOriginsArray.Length > 0)
+    {
+        corsOrigins = corsOriginsArray;
+    }
+    else
+    {
+        // Empty = allow all origins (permissive mode)
+        corsOrigins = Array.Empty<string>();
+    }
 }
 
 builder.Services.AddCors(options =>
