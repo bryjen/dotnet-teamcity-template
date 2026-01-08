@@ -5,11 +5,12 @@ set -e
 if [ -n "$TS_AUTHKEY" ]; then
   echo "Starting Tailscale..."
 
-  # Create state directory if it doesn't exist
-  mkdir -p /var/lib/tailscale
+  # Use /tmp for Tailscale state (writable by any user, ephemeral is fine for containers)
+  TS_STATE_DIR="/tmp/tailscale"
+  mkdir -p "$TS_STATE_DIR"
 
   # Start tailscaled in userspace networking mode (container-friendly)
-  tailscaled --state=/var/lib/tailscale/tailscaled.state --tun=userspace-networking &
+  tailscaled --state="$TS_STATE_DIR/tailscaled.state" --tun=userspace-networking &
 
   # Wait briefly for tailscaled to come up
   sleep 2
