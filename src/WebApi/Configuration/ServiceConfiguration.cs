@@ -75,12 +75,21 @@ public static class ServiceConfiguration
         // Try to test the connection, fall back to in-memory if it fails
         try
         {
+            // Extract server IP from connection string for logging
+            var serverMatch = System.Text.RegularExpressions.Regex.Match(connectionString, @"Server=([^,;]+)");
+            var serverInfo = serverMatch.Success ? serverMatch.Groups[1].Value : "unknown";
+            logger.LogInformation("Attempting to connect to SQL Server at: {ServerInfo}", serverInfo);
+            
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString);
+                .UseSqlServer(connectionString, options => 
+                {
+                    options.CommandTimeout(10); // 10 second timeout for connection test
+                });
             
             using var testContext = new AppDbContext(optionsBuilder.Options);
             
             // Test the connection (synchronous to avoid deadlock in configuration phase)
+            logger.LogInformation("Testing database connection...");
             var canConnect = testContext.Database.CanConnect();
             
             if (canConnect)
@@ -92,15 +101,26 @@ public static class ServiceConfiguration
                 return;
             }
             
-            logger.LogWarning("SQL Server connection test for 'DefaultConnection' returned false. Falling back to in-memory database.");
+            logger.LogWarning("SQL Server connection test for 'DefaultConnection' returned false (CanConnect() = false). Falling back to in-memory database.");
+            logger.LogWarning("This usually means the database server is unreachable, not accepting connections, or authentication failed.");
         }
         catch (Exception ex)
         {
             // Connection failed, will fall back to in-memory below
             logger.LogError(ex, 
                 "Failed to connect to SQL Server database using connection string. " +
-                "Error: {ErrorMessage}. Falling back to in-memory database.", 
-                ex.Message);
+                "Exception Type: {ExceptionType}, Message: {ErrorMessage}, StackTrace: {StackTrace}. Falling back to in-memory database.", 
+                ex.GetType().Name,
+                ex.Message,
+                ex.StackTrace);
+            
+            // Log inner exception if present
+            if (ex.InnerException != null)
+            {
+                logger.LogError("Inner exception: {InnerExceptionType} - {InnerExceptionMessage}", 
+                    ex.InnerException.GetType().Name, 
+                    ex.InnerException.Message);
+            }
         }
 
         // Fall back to in-memory database

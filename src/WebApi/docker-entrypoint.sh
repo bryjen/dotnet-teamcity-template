@@ -75,6 +75,25 @@ if [ -n "$TS_AUTHKEY" ]; then
           tailscale status
           echo "[DEBUG] Tailscale IP addresses:"
           tailscale ip -4 || echo "[WARN] Could not get Tailscale IP"
+          
+          # Test connectivity to database server if connection string is available
+          # Check both environment variable formats
+          DB_CONN_STR="${ConnectionStrings__DefaultConnection:-${CONNECTIONSTRINGS__DEFAULTCONNECTION:-}}"
+          if [ -n "$DB_CONN_STR" ]; then
+            # Extract server IP from connection string (format: Server=IP,PORT or Server=IP:PORT)
+            DB_SERVER=$(echo "$DB_CONN_STR" | sed -n 's/.*Server=\([^,;]*\).*/\1/p' | head -1)
+            if [ -n "$DB_SERVER" ]; then
+              # Extract just the IP (remove port if present)
+              DB_IP=$(echo "$DB_SERVER" | cut -d',' -f1 | cut -d':' -f1)
+              echo "[DEBUG] Testing Tailscale connectivity to database IP: $DB_IP"
+              if tailscale ping -c 1 -timeout 5s "$DB_IP" > /dev/null 2>&1; then
+                echo "[SUCCESS] Can reach database server at $DB_IP via Tailscale"
+              else
+                echo "[WARN] Cannot reach database server at $DB_IP via Tailscale ping"
+                echo "[WARN] This may indicate routing issues, but SQL connection may still work"
+              fi
+            fi
+          fi
         else
           echo "[ERROR] Tailscale connection verification failed!"
           echo "[ERROR] tailscale status command failed"
