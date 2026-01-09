@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using WebApi.Configuration;
 using WebApi.Data;
+using WebApi.Middleware;
 using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,11 +15,15 @@ builder.Services.ConfigureCors(builder.Configuration);
 builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
 
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<ITagService, TagService>();
 
 var app = builder.Build();
+
+// Global exception handling middleware (should be early in pipeline)
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 // no need to hide openapi docs since this is a "test" project anyways
 // in a production environment, just place this in an if statement

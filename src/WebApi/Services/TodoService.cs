@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WebApi.Data;
 using WebApi.DTOs.Tags;
 using WebApi.DTOs.Todos;
+using WebApi.Exceptions;
 using WebApi.Models;
 
 namespace WebApi.Services;
@@ -17,8 +18,10 @@ public class TodoService : ITodoService
 
     public async Task<List<TodoItemDto>> GetAllTodosAsync(Guid userId, string? status = null, Priority? priority = null, Guid? tagId = null)
     {
+        // Only include tags if filtering by tag or if we need tag data
+        var needsTags = tagId.HasValue;
+        
         var query = _context.TodoItems
-            .Include(t => t.Tags)
             .Where(t => t.UserId == userId);
 
         // Filter by status
@@ -46,9 +49,24 @@ public class TodoService : ITodoService
             query = query.Where(t => t.Tags.Any(tag => tag.Id == tagId.Value));
         }
 
+        // Include tags only when needed
+        if (needsTags)
+        {
+            query = query.Include(t => t.Tags);
+        }
+
         var todos = await query
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
+
+        // If we didn't include tags, load them separately for the DTOs
+        if (!needsTags)
+        {
+            foreach (var todo in todos)
+            {
+                await _context.Entry(todo).Collection(t => t.Tags).LoadAsync();
+            }
+        }
 
         return todos.Select(MapToDto).ToList();
     }
@@ -64,10 +82,6 @@ public class TodoService : ITodoService
 
     public async Task<TodoItemDto> CreateTodoAsync(CreateTodoRequest request, Guid userId)
     {
-        if (string.IsNullOrWhiteSpace(request.Title))
-        {
-            throw new InvalidOperationException("Title is required");
-        }
 
         var todo = new TodoItem
         {

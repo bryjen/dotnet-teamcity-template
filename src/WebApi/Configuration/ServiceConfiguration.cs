@@ -62,7 +62,9 @@ public static class ServiceConfiguration
         IConfiguration configuration, 
         IHostEnvironment? environment = null)
     {
-        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        // Create a temporary logger factory for configuration logging
+        // This is acceptable since it's only used during service configuration
+        using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         var logger = loggerFactory.CreateLogger("WebApi.Configuration.ServiceConfiguration");
 
         // Skip PostgreSQL registration if running in test mode (tests swap in an in-memory DbContext).

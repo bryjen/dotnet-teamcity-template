@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WebApi.Data;
 using WebApi.DTOs.Tags;
+using WebApi.Exceptions;
 using WebApi.Models;
 
 namespace WebApi.Services;
@@ -8,8 +9,6 @@ namespace WebApi.Services;
 public class TagService : ITagService
 {
     private readonly AppDbContext _context;
-    private static readonly System.Text.RegularExpressions.Regex HexColorRegex =
-        new(@"^#[0-9A-Fa-f]{6}$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
     public TagService(AppDbContext context)
     {
@@ -19,39 +18,55 @@ public class TagService : ITagService
     public async Task<List<TagDto>> GetAllTagsAsync(Guid userId)
     {
         var tags = await _context.Tags
-            .Include(t => t.TodoItems)
             .Where(t => t.UserId == userId)
             .OrderBy(t => t.Name)
+            .Select(t => new
+            {
+                Tag = t,
+                TodoCount = t.TodoItems.Count
+            })
             .ToListAsync();
 
-        return tags.Select(MapToDto).ToList();
+        return tags.Select(x => new TagDto
+        {
+            Id = x.Tag.Id,
+            Name = x.Tag.Name,
+            Color = x.Tag.Color,
+            TodoCount = x.TodoCount
+        }).ToList();
     }
 
     public async Task<TagDto?> GetTagByIdAsync(Guid tagId, Guid userId)
     {
-        var tag = await _context.Tags
-            .Include(t => t.TodoItems)
-            .FirstOrDefaultAsync(t => t.Id == tagId && t.UserId == userId);
+        var result = await _context.Tags
+            .Where(t => t.Id == tagId && t.UserId == userId)
+            .Select(t => new
+            {
+                Tag = t,
+                TodoCount = t.TodoItems.Count
+            })
+            .FirstOrDefaultAsync();
 
-        return tag == null ? null : MapToDto(tag);
+        if (result == null)
+        {
+            return null;
+        }
+
+        return new TagDto
+        {
+            Id = result.Tag.Id,
+            Name = result.Tag.Name,
+            Color = result.Tag.Color,
+            TodoCount = result.TodoCount
+        };
     }
 
     public async Task<TagDto> CreateTagAsync(CreateTagRequest request, Guid userId)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            throw new InvalidOperationException("Tag name is required");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Color) || !HexColorRegex.IsMatch(request.Color))
-        {
-            throw new InvalidOperationException("Color must be in hex format (#RRGGBB)");
-        }
-
         // Check if tag name already exists for this user
         if (await _context.Tags.AnyAsync(t => t.UserId == userId && t.Name == request.Name))
         {
-            throw new InvalidOperationException("A tag with this name already exists");
+            throw new ConflictException("A tag with this name already exists");
         }
 
         var tag = new Tag
@@ -65,35 +80,31 @@ public class TagService : ITagService
         _context.Tags.Add(tag);
         await _context.SaveChangesAsync();
 
-        return MapToDto(tag);
+        return new TagDto
+        {
+            Id = tag.Id,
+            Name = tag.Name,
+            Color = tag.Color,
+            TodoCount = 0 // New tag has no todos
+        };
     }
 
     public async Task<TagDto?> UpdateTagAsync(Guid tagId, UpdateTagRequest request, Guid userId)
     {
         var tag = await _context.Tags
-            .Include(t => t.TodoItems)
-            .FirstOrDefaultAsync(t => t.Id == tagId && t.UserId == userId);
+            .Where(t => t.Id == tagId && t.UserId == userId)
+            .FirstOrDefaultAsync();
 
         if (tag == null)
         {
             return null;
         }
 
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            throw new InvalidOperationException("Tag name is required");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Color) || !HexColorRegex.IsMatch(request.Color))
-        {
-            throw new InvalidOperationException("Color must be in hex format (#RRGGBB)");
-        }
-
         // Check if new name conflicts with existing tag
         if (tag.Name != request.Name && 
             await _context.Tags.AnyAsync(t => t.UserId == userId && t.Name == request.Name && t.Id != tagId))
         {
-            throw new InvalidOperationException("A tag with this name already exists");
+            throw new ConflictException("A tag with this name already exists");
         }
 
         tag.Name = request.Name;
@@ -101,7 +112,17 @@ public class TagService : ITagService
 
         await _context.SaveChangesAsync();
 
-        return MapToDto(tag);
+        // Get todo count after update
+        var todoCount = await _context.TodoItems
+            .CountAsync(t => t.Tags.Any(tag => tag.Id == tagId));
+
+        return new TagDto
+        {
+            Id = tag.Id,
+            Name = tag.Name,
+            Color = tag.Color,
+            TodoCount = todoCount
+        };
     }
 
     public async Task<bool> DeleteTagAsync(Guid tagId, Guid userId)
@@ -128,17 +149,6 @@ public class TagService : ITagService
         await _context.SaveChangesAsync();
 
         return true;
-    }
-
-    private static TagDto MapToDto(Tag tag)
-    {
-        return new TagDto
-        {
-            Id = tag.Id,
-            Name = tag.Name,
-            Color = tag.Color,
-            TodoCount = tag.TodoItems?.Count ?? 0
-        };
     }
 }
 

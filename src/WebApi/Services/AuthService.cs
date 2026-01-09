@@ -1,11 +1,7 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Net.Mail;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using WebApi.Data;
 using WebApi.DTOs.Auth;
+using WebApi.Exceptions;
 using WebApi.Models;
 
 namespace WebApi.Services;
@@ -13,41 +9,26 @@ namespace WebApi.Services;
 public class AuthService : IAuthService
 {
     private readonly AppDbContext _context;
-    private readonly IConfiguration _configuration;
+    private readonly IJwtTokenService _jwtTokenService;
 
-    public AuthService(AppDbContext context, IConfiguration configuration)
+    public AuthService(AppDbContext context, IJwtTokenService jwtTokenService)
     {
         _context = context;
-        _configuration = configuration;
+        _jwtTokenService = jwtTokenService;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Username))
-        {
-            throw new InvalidOperationException("Username is required");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Email) || !MailAddress.TryCreate(request.Email, out _))
-        {
-            throw new InvalidOperationException("Invalid email address");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
-        {
-            throw new InvalidOperationException("Password must be at least 8 characters long");
-        }
-
         // Check if username already exists
         if (await _context.Users.AnyAsync(u => u.Username == request.Username))
         {
-            throw new InvalidOperationException("Username already exists");
+            throw new ConflictException("Username already exists");
         }
 
         // Check if email already exists
         if (await _context.Users.AnyAsync(u => u.Email == request.Email))
         {
-            throw new InvalidOperationException("Email already exists");
+            throw new ConflictException("Email already exists");
         }
 
         // Hash the password
@@ -68,7 +49,7 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
 
         // Generate JWT token
-        var token = GenerateJwtToken(user);
+        var token = _jwtTokenService.GenerateToken(user);
 
         return new AuthResponse
         {
@@ -91,17 +72,17 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new InvalidOperationException("Invalid username/email or password");
+            throw new ValidationException("Invalid username/email or password");
         }
 
         // Verify password
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            throw new InvalidOperationException("Invalid username/email or password");
+            throw new ValidationException("Invalid username/email or password");
         }
 
         // Generate JWT token
-        var token = GenerateJwtToken(user);
+        var token = _jwtTokenService.GenerateToken(user);
 
         return new AuthResponse
         {
@@ -132,36 +113,6 @@ public class AuthService : IAuthService
             Email = user.Email,
             CreatedAt = user.CreatedAt
         };
-    }
-
-    private string GenerateJwtToken(User user)
-    {
-        var jwtSettings = _configuration.GetSection("Jwt");
-        var secret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
-        var issuer = jwtSettings["Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
-        var audience = jwtSettings["Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
-        var expirationDays = int.Parse(jwtSettings["ExpirationInDays"] ?? "7");
-
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
-        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-        var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddDays(expirationDays),
-            signingCredentials: credentials
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
 

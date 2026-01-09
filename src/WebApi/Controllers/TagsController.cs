@@ -1,7 +1,6 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.DTOs.Tags;
+using WebApi.Exceptions;
 using WebApi.Services;
 
 namespace WebApi.Controllers;
@@ -9,23 +8,15 @@ namespace WebApi.Controllers;
 /// <summary>
 /// Manages tags for categorizing todo items
 /// </summary>
-[Authorize]
-[ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class TagsController : ControllerBase
+public class TagsController : BaseController
 {
     private readonly ITagService _tagService;
 
     public TagsController(ITagService tagService)
     {
         _tagService = tagService;
-    }
-
-    private Guid GetUserId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return Guid.Parse(userIdClaim!);
     }
 
     /// <summary>
@@ -67,7 +58,7 @@ public class TagsController : ControllerBase
 
         if (tag == null)
         {
-            return NotFound(new { message = "Tag not found" });
+            throw new NotFoundException("Tag not found");
         }
 
         return Ok(tag);
@@ -97,19 +88,12 @@ public class TagsController : ControllerBase
     [ProducesResponseType(typeof(TagDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<TagDto>> CreateTag([FromBody] CreateTagRequest request)
     {
         var userId = GetUserId();
-        
-        try
-        {
-            var tag = await _tagService.CreateTagAsync(request, userId);
-            return CreatedAtAction(nameof(GetTagById), new { id = tag.Id }, tag);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var tag = await _tagService.CreateTagAsync(request, userId);
+        return CreatedAtAction(nameof(GetTagById), new { id = tag.Id }, tag);
     }
 
     /// <summary>
@@ -138,25 +122,18 @@ public class TagsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<TagDto>> UpdateTag(Guid id, [FromBody] UpdateTagRequest request)
     {
         var userId = GetUserId();
-        
-        try
-        {
-            var tag = await _tagService.UpdateTagAsync(id, request, userId);
+        var tag = await _tagService.UpdateTagAsync(id, request, userId);
 
-            if (tag == null)
-            {
-                return NotFound(new { message = "Tag not found" });
-            }
-
-            return Ok(tag);
-        }
-        catch (InvalidOperationException ex)
+        if (tag == null)
         {
-            return BadRequest(new { message = ex.Message });
+            throw new NotFoundException("Tag not found");
         }
+
+        return Ok(tag);
     }
 
     /// <summary>
@@ -182,7 +159,7 @@ public class TagsController : ControllerBase
 
         if (!result)
         {
-            return NotFound(new { message = "Tag not found" });
+            throw new NotFoundException("Tag not found");
         }
 
         return NoContent();

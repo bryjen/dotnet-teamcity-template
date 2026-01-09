@@ -1,7 +1,6 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.DTOs.Todos;
+using WebApi.Exceptions;
 using WebApi.Models;
 using WebApi.Services;
 
@@ -10,23 +9,15 @@ namespace WebApi.Controllers;
 /// <summary>
 /// Manages todo items for authenticated users
 /// </summary>
-[Authorize]
-[ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class TodosController : ControllerBase
+public class TodosController : BaseController
 {
     private readonly ITodoService _todoService;
 
     public TodosController(ITodoService todoService)
     {
         _todoService = todoService;
-    }
-
-    private Guid GetUserId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return Guid.Parse(userIdClaim!);
     }
 
     /// <summary>
@@ -103,7 +94,7 @@ public class TodosController : ControllerBase
 
         if (todo == null)
         {
-            return NotFound(new { message = "Todo not found" });
+            throw new NotFoundException("Todo not found");
         }
 
         return Ok(todo);
@@ -138,15 +129,8 @@ public class TodosController : ControllerBase
     public async Task<ActionResult<TodoItemDto>> CreateTodo([FromBody] CreateTodoRequest request)
     {
         var userId = GetUserId();
-        try
-        {
-            var todo = await _todoService.CreateTodoAsync(request, userId);
-            return CreatedAtAction(nameof(GetTodoById), new { id = todo.Id }, todo);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var todo = await _todoService.CreateTodoAsync(request, userId);
+        return CreatedAtAction(nameof(GetTodoById), new { id = todo.Id }, todo);
     }
 
     /// <summary>
@@ -180,22 +164,14 @@ public class TodosController : ControllerBase
     public async Task<ActionResult<TodoItemDto>> UpdateTodo(Guid id, [FromBody] UpdateTodoRequest request)
     {
         var userId = GetUserId();
-        
-        try
-        {
-            var todo = await _todoService.UpdateTodoAsync(id, request, userId);
+        var todo = await _todoService.UpdateTodoAsync(id, request, userId);
 
-            if (todo == null)
-            {
-                return NotFound(new { message = "Todo not found" });
-            }
-
-            return Ok(todo);
-        }
-        catch (InvalidOperationException ex)
+        if (todo == null)
         {
-            return BadRequest(new { message = ex.Message });
+            throw new NotFoundException("Todo not found");
         }
+
+        return Ok(todo);
     }
 
     /// <summary>
@@ -225,7 +201,7 @@ public class TodosController : ControllerBase
 
         if (todo == null)
         {
-            return NotFound(new { message = "Todo not found" });
+            throw new NotFoundException("Todo not found");
         }
 
         return Ok(todo);
@@ -250,7 +226,7 @@ public class TodosController : ControllerBase
 
         if (!result)
         {
-            return NotFound(new { message = "Todo not found" });
+            throw new NotFoundException("Todo not found");
         }
 
         return NoContent();
