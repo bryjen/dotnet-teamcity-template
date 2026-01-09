@@ -1,162 +1,27 @@
 using System.Reflection;
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Trace;
 using WebApi.Configuration;
 using WebApi.Data;
 using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllers();
 
-// Configure Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    // Include XML comments for enhanced documentation
-    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
-    if (File.Exists(xmlPath))
-    {
-        options.IncludeXmlComments(xmlPath);
-    }
-});
-
-// Add DbContext
+builder.Services.ConfigureOpenApi();
 builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
+builder.Services.ConfigureCors(builder.Configuration);
+builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
+builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
 
-// Add CORS
-var corsOrigins = ServiceConfiguration.GetCorsAllowedOrigins(builder.Configuration);
-
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        if (corsOrigins.Length == 0)
-        {
-            // Allow all origins (permissive mode) - cannot use AllowCredentials() with AllowAnyOrigin()
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
-        }
-        else
-        {
-            // Specific origins - can use credentials
-            policy.WithOrigins(corsOrigins)
-                  .AllowAnyMethod()
-                  .AllowAnyHeader()
-                  .AllowCredentials();
-        }
-    });
-});
-
-// Add JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-
-// Tests (WebApplicationFactory) can run before test-specific configuration overrides are applied.
-// Provide a safe default JWT secret in Test environment so the host can start deterministically.
-if (builder.Environment.IsEnvironment("Test") && string.IsNullOrWhiteSpace(jwtSettings["Secret"]))
-{
-    builder.Configuration["Jwt:Secret"] = "TestJwtSecret_ForLocalUnitTests_ChangeMe_1234567890";
-    jwtSettings = builder.Configuration.GetSection("Jwt");
-}
-var secretKey = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-        ClockSkew = TimeSpan.Zero
-    };
-});
-
-builder.Services.AddAuthorization();
-
-// OpenTelemetry (traces) - export via OTLP when OTEL_EXPORTER_OTLP_ENDPOINT is set.
-// This keeps observability optional and avoids test/network coupling by default.
-if (!builder.Environment.IsEnvironment("Test"))
-{
-    var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] ?? "WebApi";
-    var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-    var resourceBuilder = ResourceBuilder.CreateDefault().AddService(serviceName);
-
-    Uri? endpointUri = null;
-    if (!string.IsNullOrWhiteSpace(otlpEndpoint) && Uri.TryCreate(otlpEndpoint, UriKind.Absolute, out var parsed))
-    {
-        endpointUri = parsed;
-    }
-
-    // Logs (structured)
-    builder.Logging.AddOpenTelemetry(logging =>
-    {
-        logging.SetResourceBuilder(resourceBuilder);
-        logging.IncludeFormattedMessage = true;
-        logging.IncludeScopes = true;
-        logging.ParseStateValues = true;
-
-        if (endpointUri != null)
-        {
-            logging.AddOtlpExporter(o => o.Endpoint = endpointUri);
-        }
-    });
-
-    builder.Services.AddOpenTelemetry()
-        .ConfigureResource(r => r.AddService(serviceName))
-        .WithTracing(tracing =>
-        {
-            tracing
-                .SetResourceBuilder(resourceBuilder)
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation();
-
-            if (endpointUri != null)
-            {
-                tracing.AddOtlpExporter(o => o.Endpoint = endpointUri);
-            }
-        })
-        .WithMetrics(metrics =>
-        {
-            metrics
-                .SetResourceBuilder(resourceBuilder)
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddRuntimeInstrumentation();
-
-            if (endpointUri != null)
-            {
-                metrics.AddOtlpExporter(o => o.Endpoint = endpointUri);
-            }
-        });
-}
-
-// Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<ITagService, TagService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 // no need to hide openapi docs since this is a "test" project anyways
+// in a production environment, just place this in an if statement
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
