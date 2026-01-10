@@ -36,7 +36,6 @@ public class AuthControllerTests
         var request = new RegisterRequest
         {
             Username = "newuser",
-            Email = "newuser@example.com",
             Password = "NewPassword123!"
         };
 
@@ -47,10 +46,10 @@ public class AuthControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
         result.Should().NotBeNull();
-        result!.Token.Should().NotBeNullOrEmpty();
+        result!.AccessToken.Should().NotBeNullOrEmpty();
+        result.RefreshToken.Should().NotBeNullOrEmpty();
         result.User.Should().NotBeNull();
         result.User.Username.Should().Be(request.Username);
-        result.User.Email.Should().Be(request.Email);
     }
 
     [Test]
@@ -60,7 +59,6 @@ public class AuthControllerTests
         var request = new RegisterRequest
         {
             Username = "testuser", // Already exists in seed data
-            Email = "unique@example.com",
             Password = "NewPassword123!"
         };
 
@@ -72,32 +70,13 @@ public class AuthControllerTests
     }
 
     [Test]
-    public async Task Register_WithDuplicateEmail_ReturnsBadRequest()
-    {
-        // Arrange
-        var request = new RegisterRequest
-        {
-            Username = "uniqueuser",
-            Email = "test@example.com", // Already exists in seed data
-            Password = "NewPassword123!"
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", request);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Test]
-    public async Task Register_WithInvalidEmail_ReturnsBadRequest()
+    public async Task Register_WithWeakPassword_ReturnsBadRequest()
     {
         // Arrange
         var request = new RegisterRequest
         {
             Username = "newuser",
-            Email = "invalid-email",
-            Password = "NewPassword123!"
+            Password = "weak" // Too short and doesn't meet complexity requirements
         };
 
         // Act
@@ -107,23 +86,6 @@ public class AuthControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Test]
-    public async Task Register_WithShortPassword_ReturnsBadRequest()
-    {
-        // Arrange
-        var request = new RegisterRequest
-        {
-            Username = "newuser",
-            Email = "newuser@example.com",
-            Password = "short"
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", request);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
 
     [Test]
     public async Task Login_WithValidCredentials_ReturnsToken()
@@ -131,7 +93,7 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequest
         {
-            UsernameOrEmail = "testuser",
+            Username = "testuser",
             Password = "TestPassword123!"
         };
 
@@ -142,29 +104,10 @@ public class AuthControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
         result.Should().NotBeNull();
-        result!.Token.Should().NotBeNullOrEmpty();
+        result!.AccessToken.Should().NotBeNullOrEmpty();
+        result.RefreshToken.Should().NotBeNullOrEmpty();
         result.User.Should().NotBeNull();
         result.User.Username.Should().Be("testuser");
-    }
-
-    [Test]
-    public async Task Login_WithEmail_ReturnsToken()
-    {
-        // Arrange
-        var request = new LoginRequest
-        {
-            UsernameOrEmail = "test@example.com",
-            Password = "TestPassword123!"
-        };
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/login", request);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        result.Should().NotBeNull();
-        result!.Token.Should().NotBeNullOrEmpty();
     }
 
     [Test]
@@ -173,7 +116,7 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequest
         {
-            UsernameOrEmail = "testuser",
+            Username = "testuser",
             Password = "WrongPassword123!"
         };
 
@@ -190,7 +133,7 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequest
         {
-            UsernameOrEmail = "nonexistent",
+            Username = "nonexistent",
             Password = "Password123!"
         };
 
@@ -207,14 +150,14 @@ public class AuthControllerTests
         // Arrange - First login to get a valid token
         var loginRequest = new LoginRequest
         {
-            UsernameOrEmail = "testuser",
+            Username = "testuser",
             Password = "TestPassword123!"
         };
         var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
         var loginResult = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
         
         var authenticatedClient = _factory.CreateClient();
-        authenticatedClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {loginResult!.Token}");
+        authenticatedClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {loginResult!.AccessToken}");
 
         // Act
         var response = await authenticatedClient.GetAsync("/api/auth/me");
@@ -224,7 +167,6 @@ public class AuthControllerTests
         var result = await response.Content.ReadFromJsonAsync<UserDto>();
         result.Should().NotBeNull();
         result!.Username.Should().Be("testuser");
-        result.Email.Should().Be("test@example.com");
     }
 
     [Test]

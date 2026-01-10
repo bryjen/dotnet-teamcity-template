@@ -1,10 +1,9 @@
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -266,5 +265,19 @@ public static class ServiceConfiguration
                     metrics.AddOtlpExporter(o => o.Endpoint = endpointUri);
                 }
             });
+    }
+    
+    
+    public static void ConfigureEmail(
+        this IServiceCollection services, 
+        IConfiguration configuration)
+    {
+    }
+    
+    internal static void ConfigureJsonCallback(JsonOptions options)
+    {
+        var jsonSerializerOptions = options.JsonSerializerOptions;
+        jsonSerializerOptions.WriteIndented = true;
+        jsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
     }
 }

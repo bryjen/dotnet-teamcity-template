@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using WebApi.Models;
 
 namespace WebApi.Services;
@@ -7,5 +8,6 @@ namespace WebApi.Services;
 /// </summary>
 public interface IJwtTokenService
 {
-    string GenerateToken(User user);
+    string GenerateAccessToken(User user, out string jti);
+    ClaimsPrincipal? ValidateToken(string token);
 }

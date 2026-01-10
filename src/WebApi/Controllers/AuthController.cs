@@ -10,7 +10,7 @@ namespace WebApi.Controllers;
 /// Handles user authentication and registration
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Produces("application/json")]
 public class AuthController : ControllerBase
 {
@@ -24,17 +24,23 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Register a new user account
     /// </summary>
-    /// <param name="request">User registration information including username, email, and password</param>
-    /// <returns>Authentication response with user details and JWT token</returns>
+    /// <param name="request">User registration information including username and password</param>
+    /// <returns>Authentication response with user details, access token, and refresh token</returns>
     /// <response code="201">User successfully registered</response>
     /// <response code="400">Invalid input or user already exists</response>
     /// <remarks>
+    /// Password requirements:
+    /// - Minimum 12 characters
+    /// - At least one uppercase letter
+    /// - At least one lowercase letter
+    /// - At least one number
+    /// - At least one special character
+    ///
     /// Sample request:
     ///
-    ///     POST /api/auth/register
+    ///     POST /api/v1/auth/register
     ///     {
     ///        "username": "johndoe",
-    ///        "email": "john@example.com",
     ///        "password": "SecurePass123!"
     ///     }
     ///
@@ -52,20 +58,19 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Authenticate an existing user
     /// </summary>
-    /// <param name="request">Login credentials (username or email and password)</param>
-    /// <returns>Authentication response with user details and JWT token</returns>
+    /// <param name="request">Login credentials (username and password)</param>
+    /// <returns>Authentication response with user details, access token, and refresh token</returns>
     /// <response code="200">Login successful</response>
     /// <response code="401">Invalid credentials</response>
     /// <remarks>
     /// Sample request:
     ///
-    ///     POST /api/auth/login
+    ///     POST /api/v1/auth/login
     ///     {
-    ///        "usernameOrEmail": "johndoe",
+    ///        "username": "johndoe",
     ///        "password": "SecurePass123!"
     ///     }
     ///
-    /// You can use either username or email in the usernameOrEmail field.
     /// </remarks>
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
@@ -73,6 +78,31 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
     {
         var response = await _authService.LoginAsync(request);
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Refresh access token using a refresh token
+    /// </summary>
+    /// <param name="request">Refresh token request</param>
+    /// <returns>New authentication response with new access and refresh tokens</returns>
+    /// <response code="200">Token refreshed successfully</response>
+    /// <response code="400">Invalid refresh token</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/v1/auth/refresh
+    ///     {
+    ///        "refreshToken": "base64_encoded_refresh_token"
+    ///     }
+    ///
+    /// </remarks>
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        var response = await _authService.RefreshTokenAsync(request.RefreshToken);
         return Ok(response);
     }
 

@@ -106,7 +106,6 @@ public class DatabaseConfigurationTests
         var registerRequest = new RegisterRequest
         {
             Username = "fallbackuser",
-            Email = "fallback@example.com",
             Password = "Password123!"
         };
 
@@ -116,7 +115,8 @@ public class DatabaseConfigurationTests
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
         result.Should().NotBeNull();
-        result!.Token.Should().NotBeNullOrEmpty();
+        result!.AccessToken.Should().NotBeNullOrEmpty();
+        result.RefreshToken.Should().NotBeNullOrEmpty();
         result.User.Username.Should().Be("fallbackuser");
 
         // Verify the database is in-memory by checking it's not relational

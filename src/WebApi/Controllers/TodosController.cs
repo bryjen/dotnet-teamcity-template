@@ -9,7 +9,7 @@ namespace WebApi.Controllers;
 /// <summary>
 /// Manages todo items for authenticated users
 /// </summary>
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Produces("application/json")]
 public class TodosController : BaseController
 {
@@ -34,13 +34,13 @@ public class TodosController : BaseController
     /// <remarks>
     /// Sample requests:
     ///
-    ///     GET /api/todos
-    ///     GET /api/todos?status=completed
-    ///     GET /api/todos?priority=high
-    ///     GET /api/todos?status=pending&amp;priority=medium
-    ///     GET /api/todos?tag=550e8400-e29b-41d4-a716-446655440000
-    ///     GET /api/todos?isCompleted=false
-    ///     GET /api/todos?tagId=550e8400-e29b-41d4-a716-446655440000
+    ///     GET /api/v1/todos
+    ///     GET /api/v1/todos?status=completed
+    ///     GET /api/v1/todos?priority=high
+    ///     GET /api/v1/todos?status=pending&amp;priority=medium
+    ///     GET /api/v1/todos?tag=550e8400-e29b-41d4-a716-446655440000
+    ///     GET /api/v1/todos?isCompleted=false
+    ///     GET /api/v1/todos?tagId=550e8400-e29b-41d4-a716-446655440000
     ///
     /// </remarks>
     [HttpGet]
@@ -111,7 +111,7 @@ public class TodosController : BaseController
     /// <remarks>
     /// Sample request:
     ///
-    ///     POST /api/todos
+    ///     POST /api/v1/todos
     ///     {
     ///        "title": "Complete project documentation",
     ///        "description": "Write comprehensive API documentation",
@@ -146,7 +146,7 @@ public class TodosController : BaseController
     /// <remarks>
     /// Sample request:
     ///
-    ///     PUT /api/todos/550e8400-e29b-41d4-a716-446655440000
+    ///     PUT /api/v1/todos/550e8400-e29b-41d4-a716-446655440000
     ///     {
     ///        "title": "Updated task title",
     ///        "description": "Updated description",
@@ -187,7 +187,7 @@ public class TodosController : BaseController
     /// 
     /// Sample request:
     ///
-    ///     PATCH /api/todos/550e8400-e29b-41d4-a716-446655440000/complete
+    ///     PATCH /api/v1/todos/550e8400-e29b-41d4-a716-446655440000/complete
     ///
     /// </remarks>
     [HttpPatch("{id}/complete")]

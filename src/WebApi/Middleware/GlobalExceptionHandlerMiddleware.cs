@@ -8,26 +8,19 @@ namespace WebApi.Middleware;
 /// <summary>
 /// Global exception handling middleware for consistent error responses
 /// </summary>
-public class GlobalExceptionHandlerMiddleware
+public class GlobalExceptionHandlerMiddleware(
+    RequestDelegate next, 
+    ILogger<GlobalExceptionHandlerMiddleware> logger)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
-
-    public GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlerMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         try
         {
-            await _next(context);
+            await next(context);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred: {ExceptionType}", ex.GetType().Name);
+            logger.LogError(ex, "An unhandled exception occurred: {ExceptionType}", ex.GetType().Name);
             await HandleExceptionAsync(context, ex);
         }
     }

@@ -8,7 +8,7 @@ namespace WebApi.Controllers;
 /// <summary>
 /// Manages tags for categorizing todo items
 /// </summary>
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Produces("application/json")]
 public class TagsController : BaseController
 {
@@ -75,7 +75,7 @@ public class TagsController : BaseController
     /// <remarks>
     /// Sample request:
     ///
-    ///     POST /api/tags
+    ///     POST /api/v1/tags
     ///     {
     ///        "name": "Work",
     ///        "color": "#FF5733"
@@ -109,7 +109,7 @@ public class TagsController : BaseController
     /// <remarks>
     /// Sample request:
     ///
-    ///     PUT /api/tags/550e8400-e29b-41d4-a716-446655440000
+    ///     PUT /api/v1/tags/550e8400-e29b-41d4-a716-446655440000
     ///     {
     ///        "name": "Personal",
     ///        "color": "#3498DB"

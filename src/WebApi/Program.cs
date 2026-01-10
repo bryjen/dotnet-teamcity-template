@@ -1,4 +1,3 @@
-using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using WebApi.Configuration;
 using WebApi.Data;
@@ -7,7 +6,13 @@ using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(ServiceConfiguration.ConfigureJsonCallback);
+
+builder.Services
+    .AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>();
 
 builder.Services.ConfigureOpenApi();
 builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
@@ -16,6 +21,8 @@ builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
 
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IPasswordValidator, PasswordValidator>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<ITagService, TagService>();
@@ -48,6 +55,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Health check endpoint
+app.MapHealthChecks("/health");
 
 // Apply migrations automatically in container/dev environments (safe no-op if already applied).
 // This is required for docker-compose scenarios where the DB starts empty.

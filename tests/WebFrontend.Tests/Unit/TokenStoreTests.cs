@@ -22,11 +22,21 @@ public class TokenStoreTests
             CreatedAt = DateTime.UtcNow
         };
 
-        await store.SetSessionAsync("token123", user);
+        var authResponse = new AuthResponse
+        {
+            AccessToken = "token123",
+            RefreshToken = "refresh123",
+            User = user,
+            AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15),
+            RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(30)
+        };
+
+        await store.SetSessionAsync(authResponse);
 
         var loaded = await store.GetSessionAsync();
         loaded.Should().NotBeNull();
-        loaded!.Token.Should().Be("token123");
+        loaded!.AccessToken.Should().Be("token123");
+        loaded.RefreshToken.Should().Be("refresh123");
         loaded.User.Username.Should().Be("alice");
 
         await store.ClearAsync();

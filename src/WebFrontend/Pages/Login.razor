@@ -15,8 +15,8 @@
 
 <EditForm Model="_model" OnValidSubmit="HandleSubmit">
     <div class="mb-3">
-        <label class="form-label">Username or email</label>
-        <InputText class="form-control" @bind-Value="_model.UsernameOrEmail" />
+        <label class="form-label">Username</label>
+        <InputText class="form-control" @bind-Value="_model.Username" />
     </div>
 
     <div class="mb-3">
@@ -34,7 +34,7 @@
 @code {
     private LoginRequest _model = new()
     {
-        UsernameOrEmail = "",
+        Username = "",
         Password = ""
     };
 
@@ -53,9 +53,9 @@
     {
         _error = null;
 
-        if (string.IsNullOrWhiteSpace(_model.UsernameOrEmail) || string.IsNullOrWhiteSpace(_model.Password))
+        if (string.IsNullOrWhiteSpace(_model.Username) || string.IsNullOrWhiteSpace(_model.Password))
         {
-            _error = "Please enter your username/email and password.";
+            _error = "Please enter your username and password.";
             return;
         }
 

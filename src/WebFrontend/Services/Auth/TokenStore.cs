@@ -19,7 +19,22 @@ public sealed class TokenStore : ITokenProvider
     public async ValueTask<string?> GetTokenAsync()
     {
         var session = await GetSessionAsync();
-        return session?.Token;
+        // Check if access token is expired or about to expire (within 1 minute)
+        if (session != null && session.AccessTokenExpiresAt > DateTime.UtcNow.AddMinutes(1))
+        {
+            return session.AccessToken;
+        }
+        return null;
+    }
+
+    public async ValueTask<string?> GetRefreshTokenAsync()
+    {
+        var session = await GetSessionAsync();
+        if (session != null && session.RefreshTokenExpiresAt > DateTime.UtcNow)
+        {
+            return session.RefreshToken;
+        }
+        return null;
     }
 
     public async ValueTask<AuthSession?> GetSessionAsync()
@@ -42,9 +57,14 @@ public sealed class TokenStore : ITokenProvider
         }
     }
 
-    public async ValueTask SetSessionAsync(string token, UserDto user)
+    public async ValueTask SetSessionAsync(AuthResponse response)
     {
-        var session = new AuthSession(token, user);
+        var session = new AuthSession(
+            response.AccessToken,
+            response.RefreshToken,
+            response.User,
+            response.AccessTokenExpiresAt,
+            response.RefreshTokenExpiresAt);
         var json = JsonSerializer.Serialize(session, JsonOptions);
         await _localStorage.SetItemAsync(StorageKey, json);
     }

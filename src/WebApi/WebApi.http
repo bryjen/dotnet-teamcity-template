@@ -1,8 +1,12 @@
 @WebApi_HostAddress = http://localhost:5003
 @token = your_jwt_token_here
 
-### Health Check (Old endpoint - can be removed)
-GET {{WebApi_HostAddress}}/weatherforecast/
+### Health Check - Simple endpoint
+GET {{WebApi_HostAddress}}/health
+Accept: application/json
+
+### Health Check - Detailed status
+GET {{WebApi_HostAddress}}/api/v1/health
 Accept: application/json
 
 ###
@@ -12,7 +16,7 @@ Accept: application/json
 ############################################
 
 ### Register a new user
-POST {{WebApi_HostAddress}}/api/auth/register
+POST {{WebApi_HostAddress}}/api/v1/auth/register
 Content-Type: application/json
 
 {
@@ -22,7 +26,7 @@ Content-Type: application/json
 }
 
 ### Login
-POST {{WebApi_HostAddress}}/api/auth/login
+POST {{WebApi_HostAddress}}/api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -31,7 +35,7 @@ Content-Type: application/json
 }
 
 ### Get current user (requires authentication)
-GET {{WebApi_HostAddress}}/api/auth/me
+GET {{WebApi_HostAddress}}/api/v1/auth/me
 Authorization: Bearer {{token}}
 
 ###
@@ -41,31 +45,31 @@ Authorization: Bearer {{token}}
 ############################################
 
 ### Get all todos (with optional filters)
-GET {{WebApi_HostAddress}}/api/todos
+GET {{WebApi_HostAddress}}/api/v1/todos
 Authorization: Bearer {{token}}
 
 ### Get all completed todos
-GET {{WebApi_HostAddress}}/api/todos?status=completed
+GET {{WebApi_HostAddress}}/api/v1/todos?status=completed
 Authorization: Bearer {{token}}
 
 ### Get all pending todos
-GET {{WebApi_HostAddress}}/api/todos?status=pending
+GET {{WebApi_HostAddress}}/api/v1/todos?status=pending
 Authorization: Bearer {{token}}
 
 ### Get todos by priority
-GET {{WebApi_HostAddress}}/api/todos?priority=high
+GET {{WebApi_HostAddress}}/api/v1/todos?priority=high
 Authorization: Bearer {{token}}
 
 ### Get todos by tag
-GET {{WebApi_HostAddress}}/api/todos?tag=tag-guid-here
+GET {{WebApi_HostAddress}}/api/v1/todos?tag=tag-guid-here
 Authorization: Bearer {{token}}
 
 ### Get a specific todo by ID
-GET {{WebApi_HostAddress}}/api/todos/todo-id-here
+GET {{WebApi_HostAddress}}/api/v1/todos/todo-id-here
 Authorization: Bearer {{token}}
 
 ### Create a new todo (without tags)
-POST {{WebApi_HostAddress}}/api/todos
+POST {{WebApi_HostAddress}}/api/v1/todos
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -77,7 +81,7 @@ Content-Type: application/json
 }
 
 ### Create a new todo (with tags)
-POST {{WebApi_HostAddress}}/api/todos
+POST {{WebApi_HostAddress}}/api/v1/todos
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -90,7 +94,7 @@ Content-Type: application/json
 }
 
 ### Update a todo
-PUT {{WebApi_HostAddress}}/api/todos/todo-id-here
+PUT {{WebApi_HostAddress}}/api/v1/todos/todo-id-here
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -103,11 +107,11 @@ Content-Type: application/json
 }
 
 ### Toggle todo completion status
-PATCH {{WebApi_HostAddress}}/api/todos/todo-id-here/complete
+PATCH {{WebApi_HostAddress}}/api/v1/todos/todo-id-here/complete
 Authorization: Bearer {{token}}
 
 ### Delete a todo
-DELETE {{WebApi_HostAddress}}/api/todos/todo-id-here
+DELETE {{WebApi_HostAddress}}/api/v1/todos/todo-id-here
 Authorization: Bearer {{token}}
 
 ###
@@ -117,15 +121,15 @@ Authorization: Bearer {{token}}
 ############################################
 
 ### Get all tags
-GET {{WebApi_HostAddress}}/api/tags
+GET {{WebApi_HostAddress}}/api/v1/tags
 Authorization: Bearer {{token}}
 
 ### Get a specific tag by ID
-GET {{WebApi_HostAddress}}/api/tags/tag-id-here
+GET {{WebApi_HostAddress}}/api/v1/tags/tag-id-here
 Authorization: Bearer {{token}}
 
 ### Create a new tag
-POST {{WebApi_HostAddress}}/api/tags
+POST {{WebApi_HostAddress}}/api/v1/tags
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -135,7 +139,7 @@ Content-Type: application/json
 }
 
 ### Create another tag
-POST {{WebApi_HostAddress}}/api/tags
+POST {{WebApi_HostAddress}}/api/v1/tags
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -145,7 +149,7 @@ Content-Type: application/json
 }
 
 ### Update a tag
-PUT {{WebApi_HostAddress}}/api/tags/tag-id-here
+PUT {{WebApi_HostAddress}}/api/v1/tags/tag-id-here
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -155,7 +159,7 @@ Content-Type: application/json
 }
 
 ### Delete a tag
-DELETE {{WebApi_HostAddress}}/api/tags/tag-id-here
+DELETE {{WebApi_HostAddress}}/api/v1/tags/tag-id-here
 Authorization: Bearer {{token}}
 
 ###
@@ -165,29 +169,29 @@ Authorization: Bearer {{token}}
 ############################################
 
 ### 1. Register a user
-# POST /api/auth/register
+# POST /api/v1/auth/register
 # Copy the token from the response
 
 ### 2. Create some tags
-# POST /api/tags (create "Work" tag)
-# POST /api/tags (create "Personal" tag)
+# POST /api/v1/tags (create "Work" tag)
+# POST /api/v1/tags (create "Personal" tag)
 # Copy the tag IDs from responses
 
 ### 3. Create todos with tags
-# POST /api/todos (use the tag IDs)
+# POST /api/v1/todos (use the tag IDs)
 
 ### 4. Get all todos
-# GET /api/todos
+# GET /api/v1/todos
 
 ### 5. Filter todos
-# GET /api/todos?status=pending
-# GET /api/todos?priority=high
+# GET /api/v1/todos?status=pending
+# GET /api/v1/todos?priority=high
 
 ### 6. Update a todo
-# PUT /api/todos/{id}
+# PUT /api/v1/todos/{id}
 
 ### 7. Toggle completion
-# PATCH /api/todos/{id}/complete
+# PATCH /api/v1/todos/{id}/complete
 
 ### 8. Get current user info
-# GET /api/auth/me
+# GET /api/v1/auth/me

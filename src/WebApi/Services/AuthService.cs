@@ -10,25 +10,37 @@ public class AuthService : IAuthService
 {
     private readonly AppDbContext _context;
     private readonly IJwtTokenService _jwtTokenService;
+    private readonly IRefreshTokenService _refreshTokenService;
+    private readonly IPasswordValidator _passwordValidator;
+    private readonly IConfiguration _configuration;
 
-    public AuthService(AppDbContext context, IJwtTokenService jwtTokenService)
+    public AuthService(
+        AppDbContext context, 
+        IJwtTokenService jwtTokenService,
+        IRefreshTokenService refreshTokenService,
+        IPasswordValidator passwordValidator,
+        IConfiguration configuration)
     {
         _context = context;
         _jwtTokenService = jwtTokenService;
+        _refreshTokenService = refreshTokenService;
+        _passwordValidator = passwordValidator;
+        _configuration = configuration;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
+        // Validate password strength
+        var (isValid, errorMessage) = _passwordValidator.ValidatePassword(request.Password);
+        if (!isValid)
+        {
+            throw new ValidationException(errorMessage ?? "Invalid password");
+        }
+
         // Check if username already exists
         if (await _context.Users.AnyAsync(u => u.Username == request.Username))
         {
             throw new ConflictException("Username already exists");
-        }
-
-        // Check if email already exists
-        if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-        {
-            throw new ConflictException("Email already exists");
         }
 
         // Hash the password
@@ -39,7 +51,7 @@ public class AuthService : IAuthService
         {
             Id = Guid.NewGuid(),
             Username = request.Username,
-            Email = request.Email,
+            Email = null, // Email optional for now
             PasswordHash = passwordHash,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -48,53 +60,50 @@ public class AuthService : IAuthService
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        // Generate JWT token
-        var token = _jwtTokenService.GenerateToken(user);
-
-        return new AuthResponse
-        {
-            User = new UserDto
-            {
-                Id = user.Id,
-                Username = user.Username,
-                Email = user.Email,
-                CreatedAt = user.CreatedAt
-            },
-            Token = token
-        };
+        return await GenerateAuthResponseAsync(user);
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
-        // Find user by username or email
+        // Find user by username
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == request.UsernameOrEmail || u.Email == request.UsernameOrEmail);
+            .FirstOrDefaultAsync(u => u.Username == request.Username);
 
         if (user == null)
         {
-            throw new ValidationException("Invalid username/email or password");
+            // Use same error message to prevent username enumeration
+            throw new ValidationException("Invalid username or password");
         }
 
         // Verify password
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            throw new ValidationException("Invalid username/email or password");
+            throw new ValidationException("Invalid username or password");
         }
 
-        // Generate JWT token
-        var token = _jwtTokenService.GenerateToken(user);
+        return await GenerateAuthResponseAsync(user);
+    }
 
-        return new AuthResponse
+    public async Task<AuthResponse> RefreshTokenAsync(string refreshToken)
+    {
+        // Validate refresh token
+        var isValid = await _refreshTokenService.IsTokenValidAsync(refreshToken);
+        if (!isValid)
         {
-            User = new UserDto
-            {
-                Id = user.Id,
-                Username = user.Username,
-                Email = user.Email,
-                CreatedAt = user.CreatedAt
-            },
-            Token = token
-        };
+            throw new ValidationException("Invalid or expired refresh token");
+        }
+
+        var tokenEntity = await _refreshTokenService.GetRefreshTokenAsync(refreshToken);
+        if (tokenEntity == null || tokenEntity.User == null)
+        {
+            throw new ValidationException("Invalid refresh token");
+        }
+
+        // Revoke the old refresh token (token rotation)
+        await _refreshTokenService.RevokeRefreshTokenAsync(refreshToken, "Token rotated");
+
+        // Generate new tokens
+        return await GenerateAuthResponseAsync(tokenEntity.User);
     }
 
     public async Task<UserDto?> GetUserByIdAsync(Guid userId)
@@ -112,6 +121,31 @@ public class AuthService : IAuthService
             Username = user.Username,
             Email = user.Email,
             CreatedAt = user.CreatedAt
+        };
+    }
+
+    private async Task<AuthResponse> GenerateAuthResponseAsync(User user)
+    {
+        var accessToken = _jwtTokenService.GenerateAccessToken(user, out _);
+        var refreshToken = await _refreshTokenService.GenerateRefreshTokenAsync(user);
+
+        var jwtSettings = _configuration.GetSection("Jwt");
+        var accessTokenExpirationMinutes = int.Parse(jwtSettings["AccessTokenExpirationMinutes"] ?? "15");
+        var refreshTokenExpirationDays = int.Parse(jwtSettings["RefreshTokenExpirationDays"] ?? "30");
+
+        return new AuthResponse
+        {
+            User = new UserDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                CreatedAt = user.CreatedAt
+            },
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(accessTokenExpirationMinutes),
+            RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(refreshTokenExpirationDays)
         };
     }
 }

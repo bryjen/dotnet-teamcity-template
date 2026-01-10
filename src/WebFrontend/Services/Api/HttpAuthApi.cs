@@ -12,13 +12,19 @@ public sealed class HttpAuthApi : IAuthApi
     }
 
     public Task<ApiResult<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
-        => _api.PostAsync<RegisterRequest, AuthResponse>("/api/auth/register", request, ct);
+        => _api.PostAsync<RegisterRequest, AuthResponse>("/api/v1/auth/register", request, ct);
 
     public Task<ApiResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
-        => _api.PostAsync<LoginRequest, AuthResponse>("/api/auth/login", request, ct);
+        => _api.PostAsync<LoginRequest, AuthResponse>("/api/v1/auth/login", request, ct);
+
+    public Task<ApiResult<AuthResponse>> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
+    {
+        var request = new RefreshTokenRequest { RefreshToken = refreshToken };
+        return _api.PostAsync<RefreshTokenRequest, AuthResponse>("/api/v1/auth/refresh", request, ct);
+    }
 
     public Task<ApiResult<UserDto>> GetMeAsync(CancellationToken ct = default)
-        => _api.GetAsync<UserDto>("/api/auth/me", ct);
+        => _api.GetAsync<UserDto>("/api/v1/auth/me", ct);
 }
 
 

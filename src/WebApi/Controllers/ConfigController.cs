@@ -8,7 +8,7 @@ namespace WebApi.Controllers;
 /// Debug endpoint to show configuration values (for troubleshooting)
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Produces("application/json")]
 public class ConfigController : ControllerBase
 {

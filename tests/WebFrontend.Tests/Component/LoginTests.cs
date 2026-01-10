@@ -23,7 +23,7 @@ public class LoginTests
         var cut = ctx.RenderComponent<Login>();
         cut.Find("button[type='submit']").Click();
 
-        cut.Markup.Should().Contain("Please enter your username/email and password.");
+        cut.Markup.Should().Contain("Please enter your username and password.");
     }
 
     [Test]
@@ -34,14 +34,17 @@ public class LoginTests
         {
             LoginHandler = _ => ApiResult<AuthResponse>.Success(new AuthResponse
             {
-                Token = "token",
+                AccessToken = "token",
+                RefreshToken = "refresh",
                 User = new UserDto
                 {
                     Id = Guid.NewGuid(),
                     Username = "alice",
                     Email = "alice@example.com",
                     CreatedAt = DateTime.UtcNow
-                }
+                },
+                AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15),
+                RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(30)
             })
         };
 

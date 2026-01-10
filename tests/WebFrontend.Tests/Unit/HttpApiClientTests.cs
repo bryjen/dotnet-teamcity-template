@@ -34,6 +34,7 @@ public class HttpApiClientTests
     private sealed class StubTokenProvider : ITokenProvider
     {
         public ValueTask<string?> GetTokenAsync() => ValueTask.FromResult<string?>(null);
+        public ValueTask<string?> GetRefreshTokenAsync() => ValueTask.FromResult<string?>(null);
     }
 }
 

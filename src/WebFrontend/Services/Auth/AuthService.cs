@@ -24,8 +24,33 @@ public sealed class AuthService
             return;
         }
 
-        // Optimistic restore; if backend is present later, pages can call /me to validate.
-        _authState.Set(session.Token, session.User);
+        // Check if access token is still valid
+        if (session.AccessTokenExpiresAt > DateTime.UtcNow.AddMinutes(1))
+        {
+            // Optimistic restore; if backend is present later, pages can call /me to validate.
+            _authState.Set(session.AccessToken, session.User);
+        }
+        else if (session.RefreshTokenExpiresAt > DateTime.UtcNow)
+        {
+            // Try to refresh the token
+            var refreshResult = await _authApi.RefreshTokenAsync(session.RefreshToken);
+            if (refreshResult.IsSuccess && refreshResult.Value != null)
+            {
+                await SaveSessionAsync(refreshResult.Value);
+            }
+            else
+            {
+                // Refresh failed, clear session
+                await _tokenStore.ClearAsync();
+                _authState.Clear();
+            }
+        }
+        else
+        {
+            // Both tokens expired, clear session
+            await _tokenStore.ClearAsync();
+            _authState.Clear();
+        }
     }
 
     public async Task<ApiResult<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
@@ -56,8 +81,8 @@ public sealed class AuthService
 
     private async Task SaveSessionAsync(AuthResponse response)
     {
-        await _tokenStore.SetSessionAsync(response.Token, response.User);
-        _authState.Set(response.Token, response.User);
+        await _tokenStore.SetSessionAsync(response);
+        _authState.Set(response.AccessToken, response.User);
     }
 }
 
