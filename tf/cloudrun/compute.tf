@@ -17,12 +17,10 @@ resource "google_cloud_run_service" "webapi" {
 
         resources {
           limits = {
-            cpu    = "1"
-            memory = "1Gi"
+            cpu    = "0.5"   # Reduced from 1 to 0.5 vCPU for cost savings
+            memory = "512Mi" # Reduced from 1Gi to 512Mi (max for 0.5 vCPU)
           }
         }
-
-
 
         env {
           name  = "ASPNETCORE_ENVIRONMENT"
@@ -63,14 +61,14 @@ resource "google_cloud_run_service" "webapi" {
         }
       }
 
-      container_concurrency = 80
-      timeout_seconds       = 300
+      container_concurrency = 1  # Must be 1 when using < 1 vCPU
+      timeout_seconds       = 60 # Reduced from 300s to 60s for cost savings
     }
 
     metadata {
       annotations = {
-        "autoscaling.knative.dev/maxScale" = "10"
-        "autoscaling.knative.dev/minScale" = "1"
+        "autoscaling.knative.dev/maxScale" = "2" # Reduced from 10 to 2 for dev/test
+        "autoscaling.knative.dev/minScale" = "0" # Scale to zero when idle (saves money)
       }
     }
   }
@@ -100,8 +98,8 @@ resource "google_cloud_run_service" "webfrontend" {
 
         resources {
           limits = {
-            cpu    = "1"
-            memory = "512Mi"
+            cpu    = "0.5"   # Reduced from 1 to 0.5 vCPU for cost savings
+            memory = "256Mi" # Reduced from 512Mi to 256Mi (sufficient for static frontend)
           }
         }
 
@@ -120,14 +118,14 @@ resource "google_cloud_run_service" "webfrontend" {
         }
       }
 
-      container_concurrency = 80
-      timeout_seconds       = 300
+      container_concurrency = 1  # Must be 1 when using < 1 vCPU
+      timeout_seconds       = 60 # Reduced from 300s to 60s for cost savings
     }
 
     metadata {
       annotations = {
-        "autoscaling.knative.dev/maxScale" = "10"
-        "autoscaling.knative.dev/minScale" = "1"
+        "autoscaling.knative.dev/maxScale" = "2" # Reduced from 10 to 2 for dev/test
+        "autoscaling.knative.dev/minScale" = "0" # Scale to zero when idle (saves money)
       }
     }
   }
