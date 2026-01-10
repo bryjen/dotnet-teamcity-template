@@ -9,6 +9,6 @@ app/
 AspTemplate.sln.DotSetting.user
 
 # appsettings.json
-# appsettings.Development.json
-# appsettings.Staging.json
-# appsettings.Production.json
+appsettings.Development.json
+appsettings.Staging.json
+appsettings.Production.json

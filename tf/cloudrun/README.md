@@ -92,6 +92,11 @@ webfrontend_min_instances = 1
 
 # CORS (set after first deployment with webfrontend URL)
 # cors_allowed_origins = "https://asptemplate-webfrontend-xxxxx.run.app"
+
+# Frontend and Email configuration
+# frontend_base_url = "https://asptemplate-webfrontend-xxxxx.run.app"
+# email_resend_api_key = "your-resend-api-key"
+# email_resend_domain = "your-domain.com"
 ```
 
 ### 2. Initialize Terraform

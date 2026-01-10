@@ -67,3 +67,22 @@ variable "api_base_url" {
   type        = string
   default     = ""
 }
+
+variable "frontend_base_url" {
+  description = "Frontend base URL (used for password reset links and other frontend redirects)"
+  type        = string
+  default     = ""
+}
+
+variable "email_resend_api_key" {
+  description = "Resend API key for email service"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "email_resend_domain" {
+  description = "Resend domain for email service"
+  type        = string
+  default     = ""
+}

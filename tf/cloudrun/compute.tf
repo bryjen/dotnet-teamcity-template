@@ -59,6 +59,33 @@ resource "google_cloud_run_service" "webapi" {
             value = var.cors_allowed_origins
           }
         }
+
+        # Frontend Base URL (for password reset links, etc.)
+        dynamic "env" {
+          for_each = var.frontend_base_url != "" ? [1] : []
+          content {
+            name  = "Frontend__BaseUrl"
+            value = var.frontend_base_url
+          }
+        }
+
+        # Email Resend API Key
+        dynamic "env" {
+          for_each = var.email_resend_api_key != "" ? [1] : []
+          content {
+            name  = "Email__Resend__ApiKey"
+            value = var.email_resend_api_key
+          }
+        }
+
+        # Email Resend Domain
+        dynamic "env" {
+          for_each = var.email_resend_domain != "" ? [1] : []
+          content {
+            name  = "Email__Resend__Domain"
+            value = var.email_resend_domain
+          }
+        }
       }
 
       container_concurrency = 1  # Must be 1 when using < 1 vCPU
