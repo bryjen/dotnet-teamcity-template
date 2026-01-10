@@ -57,7 +57,6 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
-    <Folder Include="Services\Email\" />
   </ItemGroup>
 
 </Project>

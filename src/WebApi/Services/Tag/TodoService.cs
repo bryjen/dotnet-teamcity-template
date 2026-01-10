@@ -2,26 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using WebApi.Data;
 using WebApi.DTOs.Tags;
 using WebApi.DTOs.Todos;
-using WebApi.Exceptions;
 using WebApi.Models;
+using WebApi.Services.Todo;
 
-namespace WebApi.Services;
+namespace WebApi.Services.Tag;
 
-public class TodoService : ITodoService
+public class TodoService(AppDbContext context) : ITodoService
 {
-    private readonly AppDbContext _context;
-
-    public TodoService(AppDbContext context)
-    {
-        _context = context;
-    }
-
     public async Task<List<TodoItemDto>> GetAllTodosAsync(Guid userId, string? status = null, Priority? priority = null, Guid? tagId = null)
     {
         // Only include tags if filtering by tag or if we need tag data
         var needsTags = tagId.HasValue;
         
-        var query = _context.TodoItems
+        var query = context.TodoItems
             .Where(t => t.UserId == userId);
 
         // Filter by status
@@ -64,7 +57,7 @@ public class TodoService : ITodoService
         {
             foreach (var todo in todos)
             {
-                await _context.Entry(todo).Collection(t => t.Tags).LoadAsync();
+                await context.Entry(todo).Collection(t => t.Tags).LoadAsync();
             }
         }
 
@@ -73,7 +66,7 @@ public class TodoService : ITodoService
 
     public async Task<TodoItemDto?> GetTodoByIdAsync(Guid todoId, Guid userId)
     {
-        var todo = await _context.TodoItems
+        var todo = await context.TodoItems
             .Include(t => t.Tags)
             .FirstOrDefaultAsync(t => t.Id == todoId && t.UserId == userId);
 
@@ -99,7 +92,7 @@ public class TodoService : ITodoService
         // Add tags if specified
         if (request.TagIds != null && request.TagIds.Any())
         {
-            var tags = await _context.Tags
+            var tags = await context.Tags
                 .Where(t => request.TagIds.Contains(t.Id) && t.UserId == userId)
                 .ToListAsync();
             
@@ -109,18 +102,18 @@ public class TodoService : ITodoService
             }
         }
 
-        _context.TodoItems.Add(todo);
-        await _context.SaveChangesAsync();
+        context.TodoItems.Add(todo);
+        await context.SaveChangesAsync();
 
         // Reload with tags
-        await _context.Entry(todo).Collection(t => t.Tags).LoadAsync();
+        await context.Entry(todo).Collection(t => t.Tags).LoadAsync();
 
         return MapToDto(todo);
     }
 
     public async Task<TodoItemDto?> UpdateTodoAsync(Guid todoId, UpdateTodoRequest request, Guid userId)
     {
-        var todo = await _context.TodoItems
+        var todo = await context.TodoItems
             .Include(t => t.Tags)
             .FirstOrDefaultAsync(t => t.Id == todoId && t.UserId == userId);
 
@@ -144,7 +137,7 @@ public class TodoService : ITodoService
             // Add new tags
             if (request.TagIds.Any())
             {
-                var tags = await _context.Tags
+                var tags = await context.Tags
                     .Where(t => request.TagIds.Contains(t.Id) && t.UserId == userId)
                     .ToListAsync();
                 
@@ -155,14 +148,14 @@ public class TodoService : ITodoService
             }
         }
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         return MapToDto(todo);
     }
 
     public async Task<TodoItemDto?> ToggleCompleteAsync(Guid todoId, Guid userId)
     {
-        var todo = await _context.TodoItems
+        var todo = await context.TodoItems
             .Include(t => t.Tags)
             .FirstOrDefaultAsync(t => t.Id == todoId && t.UserId == userId);
 
@@ -174,14 +167,14 @@ public class TodoService : ITodoService
         todo.IsCompleted = !todo.IsCompleted;
         todo.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         return MapToDto(todo);
     }
 
     public async Task<bool> DeleteTodoAsync(Guid todoId, Guid userId)
     {
-        var todo = await _context.TodoItems
+        var todo = await context.TodoItems
             .FirstOrDefaultAsync(t => t.Id == todoId && t.UserId == userId);
 
         if (todo == null)
@@ -189,8 +182,8 @@ public class TodoService : ITodoService
             return false;
         }
 
-        _context.TodoItems.Remove(todo);
-        await _context.SaveChangesAsync();
+        context.TodoItems.Remove(todo);
+        await context.SaveChangesAsync();
 
         return true;
     }

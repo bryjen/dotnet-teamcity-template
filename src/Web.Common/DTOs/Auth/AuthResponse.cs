@@ -1,4 +1,4 @@
-namespace WebApi.DTOs.Auth;
+namespace Web.Common.DTOs.Auth;
 
 public class AuthResponse
 {

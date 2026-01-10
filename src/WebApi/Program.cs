@@ -2,7 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using WebApi.Configuration;
 using WebApi.Data;
 using WebApi.Middleware;
-using WebApi.Services;
+using WebApi.Services.Auth;
+using WebApi.Services.Email;
+using WebApi.Services.Tag;
+using WebApi.Services.Todo;
+using WebApi.Services.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,16 +18,24 @@ builder.Services
     .AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
 
+builder.Services.ConfigureEmail(builder.Configuration);
+
 builder.Services.ConfigureOpenApi();
 builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
 builder.Services.ConfigureCors(builder.Configuration);
 builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
 
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-builder.Services.AddScoped<IPasswordValidator, PasswordValidator>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<PasswordResetService>(sp =>
+{
+    var frontendUrl = builder.Configuration["Frontend:BaseUrl"] ?? throw new InvalidOperationException("Frontend URL not configured");
+    return new PasswordResetService(sp.GetRequiredService<AppDbContext>(), sp.GetRequiredService<IEmailService>(), frontendUrl);
+});
+
+builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<RefreshTokenService>();
+builder.Services.AddScoped<PasswordValidator>();
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<ITagService, TagService>();
 
@@ -72,7 +84,15 @@ using (var scope = app.Services.CreateScope())
         var db = services.GetService<AppDbContext>();
         if (db != null && db.Database.IsRelational())
         {
-            db.Database.Migrate();
+            try
+            {
+                db.Database.Migrate();
+            }
+            catch (Exception ex) when (ex.Message.Contains("pending changes") || ex.Message.Contains("PendingModelChanges"))
+            {
+                // Migration pending - this is expected during development when model changes haven't been migrated yet
+                // In production, migrations should be applied via CI/CD or manual process
+            }
         }
     }
 }

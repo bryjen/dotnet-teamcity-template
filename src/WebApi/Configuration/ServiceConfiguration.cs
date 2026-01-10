@@ -9,7 +9,9 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Resend;
 using WebApi.Data;
+using WebApi.Services.Email;
 
 namespace WebApi.Configuration;
 
@@ -272,6 +274,11 @@ public static class ServiceConfiguration
         this IServiceCollection services, 
         IConfiguration configuration)
     {
+        var resendApiKey = configuration["Email:Resend:ApiKey"] ?? string.Empty;
+        var emailDomain = configuration["Email:Resend:Domain"] ?? string.Empty;
+        services.AddSingleton<IResend>(ResendClient.Create(resendApiKey));
+        services.AddTransient<IEmailService, RenderMjmlEmailService>(sp =>
+            new RenderMjmlEmailService(sp.GetRequiredService<IResend>(), emailDomain));
     }
     
     internal static void ConfigureJsonCallback(JsonOptions options)
@@ -279,5 +286,6 @@ public static class ServiceConfiguration
         var jsonSerializerOptions = options.JsonSerializerOptions;
         jsonSerializerOptions.WriteIndented = true;
         jsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+        jsonSerializerOptions.PropertyNameCaseInsensitive = true;
     }
 }

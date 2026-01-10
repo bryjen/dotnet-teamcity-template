@@ -1,13 +1,12 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using WebApi.Models;
 
-namespace WebApi.Services;
+namespace WebApi.Services.Auth;
 
-public class JwtTokenService : IJwtTokenService
+public class JwtTokenService
 {
     private readonly IConfiguration _configuration;
     private readonly SymmetricSecurityKey _securityKey;
@@ -51,6 +50,7 @@ public class JwtTokenService : IJwtTokenService
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Jti, jti),
             new Claim("token_type", "access")
         };

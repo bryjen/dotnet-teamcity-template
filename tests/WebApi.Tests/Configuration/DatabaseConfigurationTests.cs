@@ -1,6 +1,6 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
+using WebApi.Tests.Helpers;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -9,9 +9,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Web.Common.DTOs.Auth;
 using WebApi.Configuration;
 using WebApi.Data;
-using WebApi.DTOs.Auth;
 
 namespace WebApi.Tests.Configuration;
 
@@ -103,21 +103,23 @@ public class DatabaseConfigurationTests
         using var client = factory.CreateClient();
 
         // Act - Try to use the application (register a user)
+        var uniqueId = Guid.NewGuid().ToString("N")[..8];
         var registerRequest = new RegisterRequest
         {
-            Username = "fallbackuser",
-            Password = "Password123!"
+            Username = $"fallbackuser_{uniqueId}",
+            Email = $"fallback_{uniqueId}@example.com",
+            Password = "SecurePass123!@#"
         };
 
-        var response = await client.PostAsJsonAsync("/api/auth/register", registerRequest);
+        var response = await client.PostAsJsonSnakeCaseAsync("/api/v1/auth/register", registerRequest);
 
         // Assert - Application should work with in-memory database
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<AuthResponse>();
         result.Should().NotBeNull();
         result!.AccessToken.Should().NotBeNullOrEmpty();
         result.RefreshToken.Should().NotBeNullOrEmpty();
-        result.User.Username.Should().Be("fallbackuser");
+        result.User.Username.Should().Be(registerRequest.Username);
 
         // Verify the database is in-memory by checking it's not relational
         using var scope = factory.Services.CreateScope();
@@ -142,10 +144,11 @@ public class DatabaseConfigurationTests
 
             builder.ConfigureAppConfiguration((context, config) =>
             {
-                // Override with an invalid connection string
+                // Override with an invalid connection string and force in-memory database
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:DefaultConnection"] = "Server=192.0.2.1,1433;Database=NonExistentDb;User Id=sa;Password=InvalidPassword123!;TrustServerCertificate=true;Connect Timeout=5",
+                    ["Database:Provider"] = "InMemory", // Force in-memory database
                     ["Jwt:Secret"] = "TestJwtSecret_ForDatabaseFallbackTests_ChangeMe_1234567890",
                     ["Jwt:Issuer"] = "TodoAppApi",
                     ["Jwt:Audience"] = "TodoAppClient",
@@ -153,7 +156,17 @@ public class DatabaseConfigurationTests
                 });
             });
 
-            // Don't override services - let the fallback mechanism work
+            builder.ConfigureServices(services =>
+            {
+                // Remove any existing DbContext registration and force in-memory
+                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+                if (descriptor != null)
+                {
+                    services.Remove(descriptor);
+                }
+                services.AddDbContext<AppDbContext>(options =>
+                    options.UseInMemoryDatabase("FallbackInMemoryDatabase"));
+            });
         }
     }
 }

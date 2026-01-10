@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 
-namespace WebApi.Services;
+namespace WebApi.Services.Validation;
 
-public class PasswordValidator : IPasswordValidator
+public class PasswordValidator
 {
     public (bool IsValid, string? ErrorMessage) ValidatePassword(string password)
     {

@@ -1,5 +1,5 @@
 @page "/register"
-@using WebApi.DTOs.Auth
+@using Web.Common.DTOs.Auth
 @inject AuthService AuthService
 @inject AuthState AuthState
 @inject NavigationManager Nav
@@ -21,6 +21,11 @@
     </div>
 
     <div class="mb-3">
+        <label class="form-label">Email</label>
+        <InputText class="form-control" type="email" @bind-Value="_model.Email" />
+    </div>
+
+    <div class="mb-3">
         <label class="form-label">Password</label>
         <InputText class="form-control" type="password" @bind-Value="_model.Password" />
         <div class="form-text">Minimum 12 characters. Must include uppercase, lowercase, number, and special character.</div>
@@ -37,6 +42,7 @@
     private RegisterRequest _model = new()
     {
         Username = "",
+        Email = "",
         Password = ""
     };
 
@@ -56,6 +62,7 @@
         _error = null;
 
         if (string.IsNullOrWhiteSpace(_model.Username) ||
+            string.IsNullOrWhiteSpace(_model.Email) ||
             string.IsNullOrWhiteSpace(_model.Password))
         {
             _error = "Please fill out all fields.";

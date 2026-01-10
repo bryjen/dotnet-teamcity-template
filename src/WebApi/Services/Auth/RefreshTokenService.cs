@@ -1,24 +1,14 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using WebApi.Data;
 using WebApi.Models;
 
-namespace WebApi.Services;
+namespace WebApi.Services.Auth;
 
-public class RefreshTokenService : IRefreshTokenService
+public class RefreshTokenService(AppDbContext context, IConfiguration configuration)
 {
-    private readonly AppDbContext _context;
-    private readonly IConfiguration _configuration;
-
-    public RefreshTokenService(AppDbContext context, IConfiguration configuration)
-    {
-        _context = context;
-        _configuration = configuration;
-    }
-
     public async Task<string> GenerateRefreshTokenAsync(User user)
     {
-        var jwtSettings = _configuration.GetSection("Jwt");
+        var jwtSettings = configuration.GetSection("Jwt");
         var refreshTokenExpirationDays = int.Parse(jwtSettings["RefreshTokenExpirationDays"] ?? "30");
         
         // Revoke all existing refresh tokens for this user (token rotation)
@@ -36,15 +26,15 @@ public class RefreshTokenService : IRefreshTokenService
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.RefreshTokens.Add(refreshToken);
-        await _context.SaveChangesAsync();
+        context.RefreshTokens.Add(refreshToken);
+        await context.SaveChangesAsync();
 
         return token;
     }
 
     public async Task<RefreshToken?> GetRefreshTokenAsync(string token)
     {
-        return await _context.RefreshTokens
+        return await context.RefreshTokens
             .Include(rt => rt.User)
             .FirstOrDefaultAsync(rt => rt.Token == token);
     }
@@ -56,13 +46,13 @@ public class RefreshTokenService : IRefreshTokenService
         {
             refreshToken.RevokedAt = DateTime.UtcNow;
             refreshToken.RevocationReason = reason;
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
     }
 
     public async Task RevokeAllUserTokensAsync(Guid userId, string? reason = null)
     {
-        var activeTokens = await _context.RefreshTokens
+        var activeTokens = await context.RefreshTokens
             .Where(rt => rt.UserId == userId && rt.RevokedAt == null && rt.ExpiresAt > DateTime.UtcNow)
             .ToListAsync();
 
@@ -72,7 +62,7 @@ public class RefreshTokenService : IRefreshTokenService
             token.RevocationReason = reason;
         }
 
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
     public async Task<bool> IsTokenValidAsync(string token)

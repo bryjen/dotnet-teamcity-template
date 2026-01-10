@@ -1,6 +1,6 @@
 using WebApi.DTOs.Tags;
 
-namespace WebApi.Services;
+namespace WebApi.Services.Todo;
 
 public interface ITagService
 {

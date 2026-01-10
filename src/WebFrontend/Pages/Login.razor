@@ -1,5 +1,5 @@
 @page "/login"
-@using WebApi.DTOs.Auth
+@using Web.Common.DTOs.Auth
 @inject AuthService AuthService
 @inject AuthState AuthState
 @inject NavigationManager Nav
@@ -15,8 +15,8 @@
 
 <EditForm Model="_model" OnValidSubmit="HandleSubmit">
     <div class="mb-3">
-        <label class="form-label">Username</label>
-        <InputText class="form-control" @bind-Value="_model.Username" />
+        <label class="form-label">Username or Email</label>
+        <InputText class="form-control" @bind-Value="_model.UsernameOrEmail" />
     </div>
 
     <div class="mb-3">
@@ -34,7 +34,7 @@
 @code {
     private LoginRequest _model = new()
     {
-        Username = "",
+        UsernameOrEmail = "",
         Password = ""
     };
 
@@ -53,9 +53,9 @@
     {
         _error = null;
 
-        if (string.IsNullOrWhiteSpace(_model.Username) || string.IsNullOrWhiteSpace(_model.Password))
+        if (string.IsNullOrWhiteSpace(_model.UsernameOrEmail) || string.IsNullOrWhiteSpace(_model.Password))
         {
-            _error = "Please enter your username and password.";
+            _error = "Please enter your username/email and password.";
             return;
         }
 

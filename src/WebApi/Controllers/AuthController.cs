@@ -1,8 +1,9 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WebApi.DTOs.Auth;
+using Web.Common.DTOs.Auth;
 using WebApi.Services;
+using WebApi.Services.Auth;
 
 namespace WebApi.Controllers;
 
@@ -12,19 +13,15 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
-public class AuthController : ControllerBase
+public class AuthController(
+    AuthService authService, 
+    PasswordResetService passwordResetService) 
+    : ControllerBase
 {
-    private readonly IAuthService _authService;
-
-    public AuthController(IAuthService authService)
-    {
-        _authService = authService;
-    }
-
     /// <summary>
     /// Register a new user account
     /// </summary>
-    /// <param name="request">User registration information including username and password</param>
+    /// <param name="request">User registration information including username, email, and password</param>
     /// <returns>Authentication response with user details, access token, and refresh token</returns>
     /// <response code="201">User successfully registered</response>
     /// <response code="400">Invalid input or user already exists</response>
@@ -41,6 +38,7 @@ public class AuthController : ControllerBase
     ///     POST /api/v1/auth/register
     ///     {
     ///        "username": "johndoe",
+    ///        "email": "john@example.com",
     ///        "password": "SecurePass123!"
     ///     }
     ///
@@ -51,14 +49,14 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
     {
-        var response = await _authService.RegisterAsync(request);
+        var response = await authService.RegisterAsync(request);
         return CreatedAtAction(nameof(GetCurrentUser), response);
     }
 
     /// <summary>
     /// Authenticate an existing user
     /// </summary>
-    /// <param name="request">Login credentials (username and password)</param>
+    /// <param name="request">Login credentials (username or email and password)</param>
     /// <returns>Authentication response with user details, access token, and refresh token</returns>
     /// <response code="200">Login successful</response>
     /// <response code="401">Invalid credentials</response>
@@ -67,17 +65,18 @@ public class AuthController : ControllerBase
     ///
     ///     POST /api/v1/auth/login
     ///     {
-    ///        "username": "johndoe",
+    ///        "usernameOrEmail": "johndoe",
     ///        "password": "SecurePass123!"
     ///     }
     ///
+    /// You can use either username or email in the usernameOrEmail field.
     /// </remarks>
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
     {
-        var response = await _authService.LoginAsync(request);
+        var response = await authService.LoginAsync(request);
         return Ok(response);
     }
 
@@ -102,7 +101,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
     {
-        var response = await _authService.RefreshTokenAsync(request.RefreshToken);
+        var response = await authService.RefreshTokenAsync(request.RefreshToken);
         return Ok(response);
     }
 
@@ -133,7 +132,7 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Invalid token" });
         }
 
-        var user = await _authService.GetUserByIdAsync(userId);
+        var user = await authService.GetUserByIdAsync(userId);
         
         if (user == null)
         {
@@ -142,5 +141,19 @@ public class AuthController : ControllerBase
 
         return Ok(user);
     }
-}
 
+    public record PasswordResetRequest(string Email);
+    
+    [HttpPost("password-reset/request")]
+    public async Task<ActionResult<UserDto>> CreatePasswordResetRequest([FromBody] PasswordResetRequest passwordResetRequest)
+    {
+        await passwordResetService.CreatePasswordResetRequest(passwordResetRequest.Email);
+        return Ok();
+    }
+    
+    [HttpPost("password-reset/confirm")]
+    public async Task<ActionResult<UserDto>> ConfirmPasswordReset()
+    {
+        throw new NotImplementedException();
+    }
+}

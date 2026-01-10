@@ -1,5 +1,5 @@
 using System.Text.Json;
-using WebApi.DTOs.Auth;
+using Web.Common.DTOs.Auth;
 using WebFrontend.Services.Storage;
 
 namespace WebFrontend.Services.Auth;

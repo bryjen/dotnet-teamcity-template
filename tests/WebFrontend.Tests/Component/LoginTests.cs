@@ -2,7 +2,7 @@ using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
-using WebApi.DTOs.Auth;
+using Web.Common.DTOs.Auth;
 using WebFrontend.Pages;
 using WebFrontend.Services.Api;
 using WebFrontend.Services.Auth;
@@ -23,7 +23,7 @@ public class LoginTests
         var cut = ctx.RenderComponent<Login>();
         cut.Find("button[type='submit']").Click();
 
-        cut.Markup.Should().Contain("Please enter your username and password.");
+        cut.Markup.Should().Contain("Please enter your username/email and password.");
     }
 
     [Test]

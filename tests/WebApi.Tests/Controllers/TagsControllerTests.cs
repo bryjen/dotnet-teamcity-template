@@ -1,11 +1,11 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using WebApi.Data;
 using WebApi.DTOs.Tags;
 using WebApi.DTOs.Todos;
 using WebApi.Models;
+using WebApi.Tests.Helpers;
 
 namespace WebApi.Tests.Controllers;
 
@@ -35,11 +35,11 @@ public class TagsControllerTests
     public async Task GetAllTags_ReturnsOkWithTags()
     {
         // Act
-        var response = await _client.GetAsync("/api/tags");
+        var response = await _client.GetAsync("/api/v1/tags");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<List<TagDto>>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<List<TagDto>>();
         result.Should().NotBeNull();
         result.Should().HaveCountGreaterThanOrEqualTo(2); // Should have at least 2 tags from seed data
     }
@@ -53,11 +53,11 @@ public class TagsControllerTests
         var tag = context.Tags.First(t => t.UserId == _testUserId);
 
         // Act
-        var response = await _client.GetAsync($"/api/tags/{tag.Id}");
+        var response = await _client.GetAsync($"/api/v1/tags/{tag.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<TagDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<TagDto>();
         result.Should().NotBeNull();
         result!.Id.Should().Be(tag.Id);
         result.Name.Should().Be(tag.Name);
@@ -71,7 +71,7 @@ public class TagsControllerTests
         var nonExistentId = Guid.NewGuid();
 
         // Act
-        var response = await _client.GetAsync($"/api/tags/{nonExistentId}");
+        var response = await _client.GetAsync($"/api/v1/tags/{nonExistentId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -87,7 +87,7 @@ public class TagsControllerTests
         var otherUserTag = context.Tags.First(t => t.UserId == otherUser.Id);
 
         // Act
-        var response = await _client.GetAsync($"/api/tags/{otherUserTag.Id}");
+        var response = await _client.GetAsync($"/api/v1/tags/{otherUserTag.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -104,11 +104,11 @@ public class TagsControllerTests
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/tags", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/tags", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var result = await response.Content.ReadFromJsonAsync<TagDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<TagDto>();
         result.Should().NotBeNull();
         result!.Name.Should().Be(request.Name);
         result.Color.Should().Be(request.Color);
@@ -125,10 +125,10 @@ public class TagsControllerTests
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/tags", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/tags", request);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     [Test]
@@ -142,7 +142,7 @@ public class TagsControllerTests
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/tags", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/tags", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -159,7 +159,7 @@ public class TagsControllerTests
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/tags", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/tags", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -180,11 +180,11 @@ public class TagsControllerTests
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/tags/{tag.Id}", request);
+        var response = await _client.PutAsJsonSnakeCaseAsync($"/api/v1/tags/{tag.Id}", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<TagDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<TagDto>();
         result.Should().NotBeNull();
         result!.Name.Should().Be(request.Name);
         result.Color.Should().Be(request.Color);
@@ -202,7 +202,7 @@ public class TagsControllerTests
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/tags/{nonExistentId}", request);
+        var response = await _client.PutAsJsonSnakeCaseAsync($"/api/v1/tags/{nonExistentId}", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -224,7 +224,7 @@ public class TagsControllerTests
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/tags/{otherUserTag.Id}", request);
+        var response = await _client.PutAsJsonSnakeCaseAsync($"/api/v1/tags/{otherUserTag.Id}", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -245,10 +245,10 @@ public class TagsControllerTests
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/tags/{tags[0].Id}", request);
+        var response = await _client.PutAsJsonSnakeCaseAsync($"/api/v1/tags/{tags[0].Id}", request);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     [Test]
@@ -260,17 +260,17 @@ public class TagsControllerTests
             Name = "Tag to delete",
             Color = "#FF00FF"
         };
-        var createResponse = await _client.PostAsJsonAsync("/api/tags", createRequest);
-        var createdTag = await createResponse.Content.ReadFromJsonAsync<TagDto>();
+        var createResponse = await _client.PostAsJsonSnakeCaseAsync("/api/v1/tags", createRequest);
+        var createdTag = await createResponse.Content.ReadFromJsonSnakeCaseAsync<TagDto>();
 
         // Act
-        var response = await _client.DeleteAsync($"/api/tags/{createdTag!.Id}");
+        var response = await _client.DeleteAsync($"/api/v1/tags/{createdTag!.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // Verify it's deleted
-        var getResponse = await _client.GetAsync($"/api/tags/{createdTag.Id}");
+        var getResponse = await _client.GetAsync($"/api/v1/tags/{createdTag.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -281,7 +281,7 @@ public class TagsControllerTests
         var nonExistentId = Guid.NewGuid();
 
         // Act
-        var response = await _client.DeleteAsync($"/api/tags/{nonExistentId}");
+        var response = await _client.DeleteAsync($"/api/v1/tags/{nonExistentId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -297,7 +297,7 @@ public class TagsControllerTests
         var otherUserTag = context.Tags.First(t => t.UserId == otherUser.Id);
 
         // Act
-        var response = await _client.DeleteAsync($"/api/tags/{otherUserTag.Id}");
+        var response = await _client.DeleteAsync($"/api/v1/tags/{otherUserTag.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -320,11 +320,11 @@ public class TagsControllerTests
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/todos", todoRequest);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/todos", todoRequest);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var result = await response.Content.ReadFromJsonAsync<TodoItemDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<TodoItemDto>();
         result.Should().NotBeNull();
         result!.Tags.Should().HaveCount(2);
         result.Tags.Select(t => t.Id).Should().Contain(tags[0].Id);
@@ -340,8 +340,8 @@ public class TagsControllerTests
             Name = "TempTag",
             Color = "#123456"
         };
-        var tagResponse = await _client.PostAsJsonAsync("/api/tags", tagRequest);
-        var createdTag = await tagResponse.Content.ReadFromJsonAsync<TagDto>();
+        var tagResponse = await _client.PostAsJsonSnakeCaseAsync("/api/v1/tags", tagRequest);
+        var createdTag = await tagResponse.Content.ReadFromJsonSnakeCaseAsync<TagDto>();
 
         var todoRequest = new CreateTodoRequest
         {
@@ -349,18 +349,18 @@ public class TagsControllerTests
             Priority = Priority.Low,
             TagIds = new List<Guid> { createdTag!.Id }
         };
-        var todoResponse = await _client.PostAsJsonAsync("/api/todos", todoRequest);
-        var createdTodo = await todoResponse.Content.ReadFromJsonAsync<TodoItemDto>();
+        var todoResponse = await _client.PostAsJsonSnakeCaseAsync("/api/v1/todos", todoRequest);
+        var createdTodo = await todoResponse.Content.ReadFromJsonSnakeCaseAsync<TodoItemDto>();
 
         // Act - Delete the tag
-        var deleteResponse = await _client.DeleteAsync($"/api/tags/{createdTag.Id}");
+        var deleteResponse = await _client.DeleteAsync($"/api/v1/tags/{createdTag.Id}");
 
         // Assert
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // Verify the todo no longer has the tag
-        var getTodoResponse = await _client.GetAsync($"/api/todos/{createdTodo!.Id}");
-        var updatedTodo = await getTodoResponse.Content.ReadFromJsonAsync<TodoItemDto>();
+        var getTodoResponse = await _client.GetAsync($"/api/v1/todos/{createdTodo!.Id}");
+        var updatedTodo = await getTodoResponse.Content.ReadFromJsonSnakeCaseAsync<TodoItemDto>();
         updatedTodo!.Tags.Should().NotContain(t => t.Id == createdTag.Id);
     }
 }

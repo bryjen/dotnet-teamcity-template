@@ -1,10 +1,10 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Web.Common.DTOs.Auth;
 using WebApi.Data;
-using WebApi.DTOs.Auth;
 using WebApi.Models;
+using WebApi.Tests.Helpers;
 
 namespace WebApi.Tests.Controllers;
 
@@ -36,15 +36,16 @@ public class AuthControllerTests
         var request = new RegisterRequest
         {
             Username = "newuser",
+            Email = "newuser@example.com",
             Password = "NewPassword123!"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/auth/register", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<AuthResponse>();
         result.Should().NotBeNull();
         result!.AccessToken.Should().NotBeNullOrEmpty();
         result.RefreshToken.Should().NotBeNullOrEmpty();
@@ -53,20 +54,21 @@ public class AuthControllerTests
     }
 
     [Test]
-    public async Task Register_WithDuplicateUsername_ReturnsBadRequest()
+    public async Task Register_WithDuplicateUsername_ReturnsConflict()
     {
         // Arrange
         var request = new RegisterRequest
         {
             Username = "testuser", // Already exists in seed data
+            Email = "unique@example.com",
             Password = "NewPassword123!"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/auth/register", request);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
     [Test]
@@ -76,11 +78,12 @@ public class AuthControllerTests
         var request = new RegisterRequest
         {
             Username = "newuser",
+            Email = "newuser@example.com",
             Password = "weak" // Too short and doesn't meet complexity requirements
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/register", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/auth/register", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -93,16 +96,16 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequest
         {
-            Username = "testuser",
+            UsernameOrEmail = "testuser",
             Password = "TestPassword123!"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/login", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/auth/login", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<AuthResponse>();
         result.Should().NotBeNull();
         result!.AccessToken.Should().NotBeNullOrEmpty();
         result.RefreshToken.Should().NotBeNullOrEmpty();
@@ -116,12 +119,12 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequest
         {
-            Username = "testuser",
+            UsernameOrEmail = "testuser",
             Password = "WrongPassword123!"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/login", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/auth/login", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -133,12 +136,12 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequest
         {
-            Username = "nonexistent",
+            UsernameOrEmail = "nonexistent",
             Password = "Password123!"
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/auth/login", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/auth/login", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -150,21 +153,21 @@ public class AuthControllerTests
         // Arrange - First login to get a valid token
         var loginRequest = new LoginRequest
         {
-            Username = "testuser",
+            UsernameOrEmail = "testuser",
             Password = "TestPassword123!"
         };
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
-        var loginResult = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        var loginResponse = await _client.PostAsJsonSnakeCaseAsync("/api/v1/auth/login", loginRequest);
+        var loginResult = await loginResponse.Content.ReadFromJsonSnakeCaseAsync<AuthResponse>();
         
         var authenticatedClient = _factory.CreateClient();
         authenticatedClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {loginResult!.AccessToken}");
 
         // Act
-        var response = await authenticatedClient.GetAsync("/api/auth/me");
+        var response = await authenticatedClient.GetAsync("/api/v1/auth/me");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<UserDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<UserDto>();
         result.Should().NotBeNull();
         result!.Username.Should().Be("testuser");
     }
@@ -173,7 +176,7 @@ public class AuthControllerTests
     public async Task GetCurrentUser_WithoutToken_ReturnsUnauthorized()
     {
         // Act
-        var response = await _client.GetAsync("/api/auth/me");
+        var response = await _client.GetAsync("/api/v1/auth/me");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -187,7 +190,7 @@ public class AuthControllerTests
         authenticatedClient.DefaultRequestHeaders.Add("Authorization", "Bearer invalid-token");
 
         // Act
-        var response = await authenticatedClient.GetAsync("/api/auth/me");
+        var response = await authenticatedClient.GetAsync("/api/v1/auth/me");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);

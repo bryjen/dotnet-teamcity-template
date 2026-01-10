@@ -1,7 +1,7 @@
 using WebApi.DTOs.Todos;
 using WebApi.Models;
 
-namespace WebApi.Services;
+namespace WebApi.Services.Todo;
 
 public interface ITodoService
 {

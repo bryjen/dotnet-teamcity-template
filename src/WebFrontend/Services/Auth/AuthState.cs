@@ -1,4 +1,4 @@
-using WebApi.DTOs.Auth;
+using Web.Common.DTOs.Auth;
 
 namespace WebFrontend.Services.Auth;
 

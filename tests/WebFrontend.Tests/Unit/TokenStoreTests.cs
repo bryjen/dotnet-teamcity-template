@@ -1,5 +1,5 @@
 using FluentAssertions;
-using WebApi.DTOs.Auth;
+using Web.Common.DTOs.Auth;
 using WebFrontend.Services.Auth;
 using WebFrontend.Tests.Helpers;
 

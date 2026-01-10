@@ -1,10 +1,10 @@
 using System.Net;
-using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using WebApi.Data;
 using WebApi.DTOs.Todos;
 using WebApi.Models;
+using WebApi.Tests.Helpers;
 
 namespace WebApi.Tests.Controllers;
 
@@ -34,11 +34,11 @@ public class TodosControllerTests
     public async Task GetAllTodos_ReturnsOkWithTodos()
     {
         // Act
-        var response = await _client.GetAsync("/api/todos");
+        var response = await _client.GetAsync("/api/v1/todos");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<List<TodoItemDto>>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<List<TodoItemDto>>();
         result.Should().NotBeNull();
         result.Should().HaveCountGreaterThanOrEqualTo(2); // Should have at least 2 todos from seed data
     }
@@ -47,11 +47,11 @@ public class TodosControllerTests
     public async Task GetAllTodos_FilterByCompleted_ReturnsOnlyCompletedTodos()
     {
         // Act
-        var response = await _client.GetAsync("/api/todos?isCompleted=true");
+        var response = await _client.GetAsync("/api/v1/todos?isCompleted=true");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<List<TodoItemDto>>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<List<TodoItemDto>>();
         result.Should().NotBeNull();
         result.Should().OnlyContain(t => t.IsCompleted == true);
     }
@@ -60,11 +60,11 @@ public class TodosControllerTests
     public async Task GetAllTodos_FilterByPending_ReturnsOnlyPendingTodos()
     {
         // Act
-        var response = await _client.GetAsync("/api/todos?isCompleted=false");
+        var response = await _client.GetAsync("/api/v1/todos?isCompleted=false");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<List<TodoItemDto>>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<List<TodoItemDto>>();
         result.Should().NotBeNull();
         result.Should().OnlyContain(t => t.IsCompleted == false);
     }
@@ -73,11 +73,11 @@ public class TodosControllerTests
     public async Task GetAllTodos_FilterByPriority_ReturnsOnlyMatchingPriority()
     {
         // Act
-        var response = await _client.GetAsync("/api/todos?priority=2"); // High priority
+        var response = await _client.GetAsync("/api/v1/todos?priority=2"); // High priority
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<List<TodoItemDto>>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<List<TodoItemDto>>();
         result.Should().NotBeNull();
         result.Should().OnlyContain(t => t.Priority == Priority.High);
     }
@@ -91,11 +91,11 @@ public class TodosControllerTests
         var workTag = context.Tags.First(t => t.Name == "Work" && t.UserId == _testUserId);
 
         // Act
-        var response = await _client.GetAsync($"/api/todos?tagId={workTag.Id}");
+        var response = await _client.GetAsync($"/api/v1/todos?tagId={workTag.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<List<TodoItemDto>>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<List<TodoItemDto>>();
         result.Should().NotBeNull();
         result.Should().NotBeEmpty();
         result.Should().OnlyContain(t => t.Tags.Any(tag => tag.Id == workTag.Id));
@@ -110,11 +110,11 @@ public class TodosControllerTests
         var todo = context.TodoItems.First(t => t.UserId == _testUserId);
 
         // Act
-        var response = await _client.GetAsync($"/api/todos/{todo.Id}");
+        var response = await _client.GetAsync($"/api/v1/todos/{todo.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<TodoItemDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<TodoItemDto>();
         result.Should().NotBeNull();
         result!.Id.Should().Be(todo.Id);
         result.Title.Should().Be(todo.Title);
@@ -127,7 +127,7 @@ public class TodosControllerTests
         var nonExistentId = Guid.NewGuid();
 
         // Act
-        var response = await _client.GetAsync($"/api/todos/{nonExistentId}");
+        var response = await _client.GetAsync($"/api/v1/todos/{nonExistentId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -142,7 +142,7 @@ public class TodosControllerTests
         var otherUserTodo = context.TodoItems.First(t => t.UserId != _testUserId);
 
         // Act
-        var response = await _client.GetAsync($"/api/todos/{otherUserTodo.Id}");
+        var response = await _client.GetAsync($"/api/v1/todos/{otherUserTodo.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -161,11 +161,11 @@ public class TodosControllerTests
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/todos", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/todos", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var result = await response.Content.ReadFromJsonAsync<TodoItemDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<TodoItemDto>();
         result.Should().NotBeNull();
         result!.Title.Should().Be(request.Title);
         result.Description.Should().Be(request.Description);
@@ -190,11 +190,11 @@ public class TodosControllerTests
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/todos", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/todos", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var result = await response.Content.ReadFromJsonAsync<TodoItemDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<TodoItemDto>();
         result.Should().NotBeNull();
         result!.Tags.Should().HaveCount(2);
     }
@@ -211,7 +211,7 @@ public class TodosControllerTests
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/todos", request);
+        var response = await _client.PostAsJsonSnakeCaseAsync("/api/v1/todos", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -234,11 +234,11 @@ public class TodosControllerTests
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/todos/{todo.Id}", request);
+        var response = await _client.PutAsJsonSnakeCaseAsync($"/api/v1/todos/{todo.Id}", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<TodoItemDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<TodoItemDto>();
         result.Should().NotBeNull();
         result!.Title.Should().Be(request.Title);
         result.Description.Should().Be(request.Description);
@@ -257,7 +257,7 @@ public class TodosControllerTests
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/todos/{nonExistentId}", request);
+        var response = await _client.PutAsJsonSnakeCaseAsync($"/api/v1/todos/{nonExistentId}", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -278,7 +278,7 @@ public class TodosControllerTests
         };
 
         // Act
-        var response = await _client.PutAsJsonAsync($"/api/todos/{otherUserTodo.Id}", request);
+        var response = await _client.PutAsJsonSnakeCaseAsync($"/api/v1/todos/{otherUserTodo.Id}", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -294,11 +294,11 @@ public class TodosControllerTests
         var originalCompletionStatus = todo.IsCompleted;
 
         // Act
-        var response = await _client.PatchAsync($"/api/todos/{todo.Id}/complete", null);
+        var response = await _client.PatchAsync($"/api/v1/todos/{todo.Id}/complete", null);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<TodoItemDto>();
+        var result = await response.Content.ReadFromJsonSnakeCaseAsync<TodoItemDto>();
         result.Should().NotBeNull();
         result!.IsCompleted.Should().Be(!originalCompletionStatus);
     }
@@ -310,7 +310,7 @@ public class TodosControllerTests
         var nonExistentId = Guid.NewGuid();
 
         // Act
-        var response = await _client.PatchAsync($"/api/todos/{nonExistentId}/toggle", null);
+        var response = await _client.PatchAsync($"/api/v1/todos/{nonExistentId}/complete", null);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -325,17 +325,17 @@ public class TodosControllerTests
             Title = "Todo to delete",
             Priority = Priority.Low
         };
-        var createResponse = await _client.PostAsJsonAsync("/api/todos", createRequest);
-        var createdTodo = await createResponse.Content.ReadFromJsonAsync<TodoItemDto>();
+        var createResponse = await _client.PostAsJsonSnakeCaseAsync("/api/v1/todos", createRequest);
+        var createdTodo = await createResponse.Content.ReadFromJsonSnakeCaseAsync<TodoItemDto>();
 
         // Act
-        var response = await _client.DeleteAsync($"/api/todos/{createdTodo!.Id}");
+        var response = await _client.DeleteAsync($"/api/v1/todos/{createdTodo!.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // Verify it's deleted
-        var getResponse = await _client.GetAsync($"/api/todos/{createdTodo.Id}");
+        var getResponse = await _client.GetAsync($"/api/v1/todos/{createdTodo.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -346,7 +346,7 @@ public class TodosControllerTests
         var nonExistentId = Guid.NewGuid();
 
         // Act
-        var response = await _client.DeleteAsync($"/api/todos/{nonExistentId}");
+        var response = await _client.DeleteAsync($"/api/v1/todos/{nonExistentId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -361,7 +361,7 @@ public class TodosControllerTests
         var otherUserTodo = context.TodoItems.First(t => t.UserId != _testUserId);
 
         // Act
-        var response = await _client.DeleteAsync($"/api/todos/{otherUserTodo.Id}");
+        var response = await _client.DeleteAsync($"/api/v1/todos/{otherUserTodo.Id}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
