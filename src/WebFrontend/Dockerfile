@@ -21,6 +21,9 @@ WORKDIR /usr/share/nginx/html
 # Copy published files
 COPY --from=build /app/publish/wwwroot ./
 
+# Remove development configuration file if present
+RUN rm -f appsettings.Development.json || true
+
 # Copy nginx config
 COPY ./src/WebFrontend/nginx.conf /etc/nginx/conf.d/default.conf
 
