@@ -1,11 +1,18 @@
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using WebFrontend.Services.Auth;
 
 namespace WebFrontend.Services.Api;
 
 public sealed class HttpApiClient
 {
+    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly HttpClient _http;
     private readonly ITokenProvider _tokenProvider;
     private readonly BackendStatus _backendStatus;
@@ -48,7 +55,7 @@ public sealed class HttpApiClient
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, path)
             {
-                Content = JsonContent.Create(body)
+                Content = JsonContent.Create(body, options: SnakeCaseOptions)
             };
             await AttachAuthHeaderAsync(request);
             using var response = await _http.SendAsync(request, ct);
@@ -76,7 +83,7 @@ public sealed class HttpApiClient
         {
             using var request = new HttpRequestMessage(HttpMethod.Put, path)
             {
-                Content = JsonContent.Create(body)
+                Content = JsonContent.Create(body, options: SnakeCaseOptions)
             };
             await AttachAuthHeaderAsync(request);
             using var response = await _http.SendAsync(request, ct);
@@ -158,7 +165,7 @@ public sealed class HttpApiClient
     {
         if (response.IsSuccessStatusCode)
         {
-            var value = await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+            var value = await response.Content.ReadFromJsonAsync<T>(SnakeCaseOptions, ct);
             if (value == null)
             {
                 return ApiResult<T>.Failure("Empty response body", response.StatusCode);
