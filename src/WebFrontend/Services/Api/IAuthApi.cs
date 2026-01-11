@@ -8,6 +8,10 @@ public interface IAuthApi
     Task<ApiResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default);
     Task<ApiResult<AuthResponse>> RefreshTokenAsync(string refreshToken, CancellationToken ct = default);
     Task<ApiResult<UserDto>> GetMeAsync(CancellationToken ct = default);
+    Task<ApiResult<PasswordResetResponse>> RequestPasswordResetAsync(string email, CancellationToken ct = default);
+    Task<ApiResult<PasswordResetResponse>> ConfirmPasswordResetAsync(string token, string newPassword, CancellationToken ct = default);
 }
+
+public record PasswordResetResponse(string Message);
 
 

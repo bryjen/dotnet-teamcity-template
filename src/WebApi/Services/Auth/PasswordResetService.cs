@@ -1,14 +1,16 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using WebApi.Data;
 using WebApi.Models;
 using WebApi.Services.Email;
+using WebApi.Services.Validation;
 
 namespace WebApi.Services.Auth;
 
 public class PasswordResetService(
     AppDbContext context,
     IEmailService emailService,
+    PasswordValidator passwordValidator,
     string frontendBaseUrl)
 {
     public async Task CreatePasswordResetRequest(string email)
@@ -16,7 +18,7 @@ public class PasswordResetService(
         var emailProcessed = email.Trim();
         var user = await context.Users.FirstOrDefaultAsync(u => u.Email == emailProcessed);
         if (user is null)
-            return;
+            return; // Don't reveal if email exists for security
         
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var created = DateTime.UtcNow;
@@ -33,15 +35,53 @@ public class PasswordResetService(
         };
 
         await context.PasswordResetRequests.AddAsync(passwordResetRequest);
-        var _ = await context.SaveChangesAsync();
+        await context.SaveChangesAsync();
         
         var baseUri = new Uri(frontendBaseUrl);
-        var resetUrl = new Uri(baseUri, "/auth/password-reset?token=" + token).ToString();
+        var resetUrl = new Uri(baseUri, "/auth/password-reset?token=" + Uri.EscapeDataString(token)).ToString();
         await emailService.SendPasswordResetEmailAsync(email, resetUrl, CancellationToken.None);
     }
     
-    public Task PerformPasswordResetRequest()
+    public async Task<PasswordResetResult> PerformPasswordResetRequest(string token, string newPassword)
     {
-        throw new NotImplementedException();
+        // Validate password first
+        var (isValid, errorMessage) = passwordValidator.ValidatePassword(newPassword);
+        if (!isValid)
+        {
+            return PasswordResetResult.Failure(errorMessage ?? "Invalid password");
+        }
+
+        var prr = await context.PasswordResetRequests
+            .AsTracking()
+            .Include(prr => prr.User)
+            .FirstOrDefaultAsync(prr => prr.Token == token);
+        
+        if (prr is null)
+        {
+            return PasswordResetResult.Failure("Invalid or expired reset token");
+        }
+
+        if (prr.ExpiresAt < DateTime.UtcNow)
+        {
+            context.PasswordResetRequests.Remove(prr);
+            await context.SaveChangesAsync();
+            return PasswordResetResult.Failure("Reset token has expired");
+        }
+
+        var user = prr.User;
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(newPassword, workFactor: 12);
+        user.PasswordHash = passwordHash;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        context.PasswordResetRequests.Remove(prr);
+        await context.SaveChangesAsync();
+        
+        return PasswordResetResult.Success();
     }
+}
+
+public record PasswordResetResult(bool IsSuccess, string? ErrorMessage)
+{
+    public static PasswordResetResult Success() => new(true, null);
+    public static PasswordResetResult Failure(string errorMessage) => new(false, errorMessage);
 }

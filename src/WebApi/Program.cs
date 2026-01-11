@@ -29,7 +29,11 @@ builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, 
 builder.Services.AddScoped<PasswordResetService>(sp =>
 {
     var frontendUrl = builder.Configuration["Frontend:BaseUrl"] ?? throw new InvalidOperationException("Frontend URL not configured");
-    return new PasswordResetService(sp.GetRequiredService<AppDbContext>(), sp.GetRequiredService<IEmailService>(), frontendUrl);
+    return new PasswordResetService(
+        sp.GetRequiredService<AppDbContext>(), 
+        sp.GetRequiredService<IEmailService>(),
+        sp.GetRequiredService<PasswordValidator>(),
+        frontendUrl);
 });
 
 builder.Services.AddScoped<JwtTokenService>();

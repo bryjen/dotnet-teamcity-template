@@ -25,6 +25,29 @@ public sealed class HttpAuthApi : IAuthApi
 
     public Task<ApiResult<UserDto>> GetMeAsync(CancellationToken ct = default)
         => _api.GetAsync<UserDto>("/api/v1/auth/me", ct);
+
+    public Task<ApiResult<PasswordResetResponse>> RequestPasswordResetAsync(string email, CancellationToken ct = default)
+    {
+        var request = new PasswordResetRequestDto { Email = email };
+        return _api.PostAsync<PasswordResetRequestDto, PasswordResetResponse>("/api/v1/auth/password-reset/request", request, ct);
+    }
+
+    public Task<ApiResult<PasswordResetResponse>> ConfirmPasswordResetAsync(string token, string newPassword, CancellationToken ct = default)
+    {
+        var request = new ConfirmPasswordResetRequestDto { Token = token, NewPassword = newPassword };
+        return _api.PostAsync<ConfirmPasswordResetRequestDto, PasswordResetResponse>("/api/v1/auth/password-reset/confirm", request, ct);
+    }
+}
+
+public class PasswordResetRequestDto
+{
+    public string Email { get; set; } = string.Empty;
+}
+
+public class ConfirmPasswordResetRequestDto
+{
+    public string Token { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }
 
 

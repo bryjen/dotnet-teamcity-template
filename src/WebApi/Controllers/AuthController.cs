@@ -142,18 +142,87 @@ public class AuthController(
         return Ok(user);
     }
 
-    public record PasswordResetRequest(string Email);
-    
+    /// <summary>
+    /// Request a password reset email
+    /// </summary>
+    /// <param name="request">Email address for password reset</param>
+    /// <returns>Success response (always returns 200 for security reasons)</returns>
+    /// <response code="200">Password reset email sent if email exists</response>
+    /// <remarks>
+    /// For security reasons, this endpoint always returns 200 OK even if the email doesn't exist.
+    /// This prevents email enumeration attacks.
+    ///
+    /// Sample request:
+    ///
+    ///     POST /api/v1/auth/password-reset/request
+    ///     {
+    ///        "email": "user@example.com"
+    ///     }
+    ///
+    /// </remarks>
     [HttpPost("password-reset/request")]
-    public async Task<ActionResult<UserDto>> CreatePasswordResetRequest([FromBody] PasswordResetRequest passwordResetRequest)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> RequestPasswordReset([FromBody] PasswordResetRequestDto request)
     {
-        await passwordResetService.CreatePasswordResetRequest(passwordResetRequest.Email);
-        return Ok();
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return BadRequest(new { message = "Email is required" });
+        }
+
+        await passwordResetService.CreatePasswordResetRequest(request.Email);
+        return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
     }
     
+    /// <summary>
+    /// Confirm password reset with token and new password
+    /// </summary>
+    /// <param name="request">Password reset confirmation with token and new password</param>
+    /// <returns>Success response</returns>
+    /// <response code="200">Password reset successful</response>
+    /// <response code="400">Invalid token or password validation failed</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/v1/auth/password-reset/confirm
+    ///     {
+    ///        "token": "base64_encoded_token",
+    ///        "newPassword": "NewSecurePass123!"
+    ///     }
+    ///
+    /// Password requirements:
+    /// - Minimum 12 characters
+    /// - At least one uppercase letter
+    /// - At least one lowercase letter
+    /// - At least one number
+    /// - At least one special character
+    ///
+    /// </remarks>
     [HttpPost("password-reset/confirm")]
-    public async Task<ActionResult<UserDto>> ConfirmPasswordReset()
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> ConfirmPasswordReset([FromBody] ConfirmPasswordResetRequestDto request)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(request.Token))
+        {
+            return BadRequest(new { message = "Token is required" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            return BadRequest(new { message = "New password is required" });
+        }
+
+        var result = await passwordResetService.PerformPasswordResetRequest(request.Token, request.NewPassword);
+        
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { message = result.ErrorMessage ?? "Invalid or expired token" });
+        }
+
+        return Ok(new { message = "Password has been reset successfully. You can now log in with your new password." });
     }
+
+    public record PasswordResetRequestDto(string Email);
+    public record ConfirmPasswordResetRequestDto(string Token, string NewPassword);
 }

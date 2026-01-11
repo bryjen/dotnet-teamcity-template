@@ -28,7 +28,10 @@
         @(_isSubmitting ? "Signing in..." : "Sign in")
     </button>
 
-    <a class="btn btn-link" href="/register">Create account</a>
+    <div class="mt-3 d-flex justify-content-between">
+        <a class="btn btn-link" href="/register">Create account</a>
+        <a class="btn btn-link" href="/auth/forgot-password">Forgot password?</a>
+    </div>
 </EditForm>
 
 @code {
