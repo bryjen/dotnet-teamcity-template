@@ -6,6 +6,10 @@ resource "google_cloud_run_service" "webapi" {
   name     = "${var.project_name}-webapi"
   location = local.cloud_run_location
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   template {
     spec {
       containers {
@@ -113,6 +117,10 @@ resource "google_cloud_run_service" "webapi" {
 resource "google_cloud_run_service" "webfrontend" {
   name     = "${var.project_name}-webfrontend"
   location = local.cloud_run_location
+
+  lifecycle {
+    prevent_destroy = true
+  }
 
   template {
     spec {
