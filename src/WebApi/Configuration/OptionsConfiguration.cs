@@ -42,11 +42,11 @@ public static class OptionsConfiguration
         this IServiceCollection services, 
         IConfiguration configuration)
     {
-        // Register request validators (scoped - used during request processing)
+        // register request validators (scoped - used during request processing)
         services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
         
-        // Register configuration validators as Singleton (stateless, used at startup)
-        // These need to be Singleton because IValidateOptions<T> is Singleton and resolves them
+        // register configuration validators as Singleton (stateless, used at startup)
+        // these need to be Singleton because IValidateOptions<T> is a singleton and resolves them
         services.AddSingleton<IValidator<JwtSettings>, JwtSettingsValidator>();
         services.AddSingleton<IValidator<EmailSettings>, EmailSettingsValidator>();
         services.AddSingleton<IValidator<FrontendSettings>, FrontendSettingsValidator>();
@@ -122,7 +122,6 @@ public static class OptionsConfiguration
         IConfiguration configuration,
         bool hasValidator = true) where T : class
     {
-        // SectionName is defined as a const field, not a property, so we need to use GetField
         var sectionName = typeof(T).GetField("SectionName", 
             BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string ?? typeof(T).Name;
         

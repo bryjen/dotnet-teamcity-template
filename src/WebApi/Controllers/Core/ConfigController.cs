@@ -10,7 +10,8 @@ namespace WebApi.Controllers.Core;
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
 public class ConfigController(
-    IConfiguration configuration) 
+    IConfiguration configuration,
+    IHostEnvironment environment) 
     : ControllerBase
 {
     /// <summary>
@@ -52,6 +53,66 @@ public class ConfigController(
         };
 
         return Ok(response);
+    }
+
+#if DEBUG
+    /// <summary>
+    /// Returns all configuration values as JSON (development only)
+    /// </summary>
+    /// <returns>Complete configuration as JSON</returns>
+    /// <response code="200">Returns all configuration values</response>
+    /// <response code="404">Not available in production</response>
+    [HttpGet("all")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult GetAllConfig()
+    {
+        if (environment.IsProduction())
+        {
+            return NotFound("Configuration endpoint is only available in development");
+        }
+
+        var configDict = GetConfigurationAsDictionary(configuration);
+        return Ok(configDict);
+    }
+#endif
+
+    private static Dictionary<string, object?> GetConfigurationAsDictionary(IConfiguration configuration)
+    {
+        var result = new Dictionary<string, object?>();
+
+        foreach (var child in configuration.GetChildren())
+        {
+            result[child.Key] = GetConfigurationValue(child);
+        }
+
+        return result;
+    }
+
+    private static object? GetConfigurationValue(IConfigurationSection section)
+    {
+        var children = section.GetChildren().ToList();
+        
+        if (children.Count == 0)
+        {
+            // Leaf node - return the value
+            return section.Value;
+        }
+
+        // Has children - return as dictionary
+        var dict = new Dictionary<string, object?>();
+        foreach (var child in children)
+        {
+            dict[child.Key] = GetConfigurationValue(child);
+        }
+
+        // If there's also a value at this level, include it
+        if (!string.IsNullOrEmpty(section.Value))
+        {
+            dict["_value"] = section.Value;
+        }
+
+        return dict;
     }
 }
 
