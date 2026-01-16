@@ -15,12 +15,6 @@
 
 <EditForm Model="_model" OnValidSubmit="HandleSubmit">
     <div class="mb-3">
-        <label class="form-label">Username</label>
-        <InputText class="form-control" @bind-Value="_model.Username" />
-        <div class="form-text">3-50 characters, letters, numbers, and underscores only.</div>
-    </div>
-
-    <div class="mb-3">
         <label class="form-label">Email</label>
         <InputText class="form-control" type="email" @bind-Value="_model.Email" />
     </div>
@@ -41,7 +35,6 @@
 @code {
     private RegisterRequest _model = new()
     {
-        Username = "",
         Email = "",
         Password = ""
     };
@@ -61,8 +54,7 @@
     {
         _error = null;
 
-        if (string.IsNullOrWhiteSpace(_model.Username) ||
-            string.IsNullOrWhiteSpace(_model.Email) ||
+        if (string.IsNullOrWhiteSpace(_model.Email) ||
             string.IsNullOrWhiteSpace(_model.Password))
         {
             _error = "Please fill out all fields.";

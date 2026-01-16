@@ -23,12 +23,19 @@ public class AppDbContext(
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.Username).IsUnique();
-            entity.HasIndex(e => e.Email).IsUnique();
             
-            entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
+            // Composite unique indexes - allows same email across different providers
+            entity.HasIndex(e => new { e.Provider, e.Email }).IsUnique();
+            
+            // Unique constraint for external provider user IDs
+            entity.HasIndex(e => new { e.Provider, e.ProviderUserId })
+                .IsUnique()
+                .HasFilter("\"ProviderUserId\" IS NOT NULL");
+            
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
-            entity.Property(e => e.PasswordHash).IsRequired();
+            entity.Property(e => e.PasswordHash).IsRequired(false); // Now nullable
+            entity.Property(e => e.Provider).IsRequired().HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.ProviderUserId).HasMaxLength(255);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 

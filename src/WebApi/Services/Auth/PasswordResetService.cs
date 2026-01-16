@@ -16,7 +16,9 @@ public class PasswordResetService(
     public async Task CreatePasswordResetRequest(string email)
     {
         var emailProcessed = email.Trim();
-        var user = await context.Users.FirstOrDefaultAsync(u => u.Email == emailProcessed);
+        // Only allow password reset for Local provider users
+        var user = await context.Users.FirstOrDefaultAsync(u => 
+            u.Provider == AuthProvider.Local && u.Email == emailProcessed);
         if (user is null)
             return; // Don't reveal if email exists for security
         
@@ -69,6 +71,15 @@ public class PasswordResetService(
         }
 
         var user = prr.User;
+        
+        // Only allow password reset for Local provider users
+        if (user.Provider != AuthProvider.Local)
+        {
+            context.PasswordResetRequests.Remove(prr);
+            await context.SaveChangesAsync();
+            return PasswordResetResult.Failure("Password reset is not available for this account type");
+        }
+        
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(newPassword, workFactor: 12);
         user.PasswordHash = passwordHash;
         user.UpdatedAt = DateTime.UtcNow;

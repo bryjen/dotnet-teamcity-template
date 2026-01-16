@@ -10,17 +10,11 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
-public class HealthController : ControllerBase
+public class HealthController(
+    AppDbContext context, 
+    ILogger<HealthController> logger) 
+    : ControllerBase
 {
-    private readonly AppDbContext _context;
-    private readonly ILogger<HealthController> _logger;
-
-    public HealthController(AppDbContext context, ILogger<HealthController> logger)
-    {
-        _context = context;
-        _logger = logger;
-    }
-
     /// <summary>
     /// Get detailed health status of the API and its dependencies
     /// </summary>
@@ -42,13 +36,13 @@ public class HealthController : ControllerBase
         // Check database connectivity
         try
         {
-            if (_context.Database.IsRelational())
+            if (context.Database.IsRelational())
             {
-                var canConnect = await _context.Database.CanConnectAsync();
+                var canConnect = await context.Database.CanConnectAsync();
                 health.Database = new DatabaseHealth
                 {
                     Status = canConnect ? "Connected" : "Disconnected",
-                    Provider = _context.Database.ProviderName ?? "Unknown"
+                    Provider = context.Database.ProviderName ?? "Unknown"
                 };
             }
             else
@@ -62,11 +56,11 @@ public class HealthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Database health check failed");
+            logger.LogError(ex, "Database health check failed");
             health.Database = new DatabaseHealth
             {
                 Status = "Error",
-                Provider = _context.Database.ProviderName ?? "Unknown",
+                Provider = context.Database.ProviderName ?? "Unknown",
                 Error = ex.Message
             };
             health.Status = "Unhealthy";

@@ -17,7 +17,6 @@ public class TokenStoreTests
         var user = new UserDto
         {
             Id = Guid.NewGuid(),
-            Username = "alice",
             Email = "alice@example.com",
             CreatedAt = DateTime.UtcNow
         };
@@ -37,7 +36,7 @@ public class TokenStoreTests
         loaded.Should().NotBeNull();
         loaded!.AccessToken.Should().Be("token123");
         loaded.RefreshToken.Should().Be("refresh123");
-        loaded.User.Username.Should().Be("alice");
+        loaded.User.Email.Should().Be("alice@example.com");
 
         await store.ClearAsync();
 

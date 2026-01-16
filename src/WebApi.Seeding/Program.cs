@@ -78,9 +78,10 @@ Console.WriteLine("=== Todo App Database Seeding ===\n");
 var user1 = new User
 {
     Id = Guid.NewGuid(),
-    Username = "alice",
     Email = "alice@example.com",
     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!", workFactor: 12),
+    Provider = AuthProvider.Local,
+    ProviderUserId = null,
     CreatedAt = DateTime.UtcNow.AddDays(-30),
     UpdatedAt = DateTime.UtcNow.AddDays(-30)
 };
@@ -88,9 +89,10 @@ var user1 = new User
 var user2 = new User
 {
     Id = Guid.NewGuid(),
-    Username = "bob",
     Email = "bob@example.com",
     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!", workFactor: 12),
+    Provider = AuthProvider.Local,
+    ProviderUserId = null,
     CreatedAt = DateTime.UtcNow.AddDays(-20),
     UpdatedAt = DateTime.UtcNow.AddDays(-20)
 };
@@ -98,9 +100,10 @@ var user2 = new User
 var user3 = new User
 {
     Id = Guid.NewGuid(),
-    Username = "charlie",
     Email = "charlie@example.com",
     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!", workFactor: 12),
+    Provider = AuthProvider.Local,
+    ProviderUserId = null,
     CreatedAt = DateTime.UtcNow.AddDays(-10),
     UpdatedAt = DateTime.UtcNow.AddDays(-10)
 };

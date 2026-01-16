@@ -23,14 +23,8 @@ public class AuthService(
             throw new ValidationException(errorMessage ?? "Invalid password");
         }
 
-        // Check if username already exists
-        if (await context.Users.AnyAsync(u => u.Username == request.Username))
-        {
-            throw new ConflictException("Username already exists");
-        }
-
-        // Check if email already exists
-        if (await context.Users.AnyAsync(u => u.Email == request.Email))
+        // Check if email already exists for Local provider
+        if (await context.Users.AnyAsync(u => u.Provider == AuthProvider.Local && u.Email == request.Email))
         {
             throw new ConflictException("Email already exists");
         }
@@ -42,9 +36,10 @@ public class AuthService(
         var user = new User
         {
             Id = Guid.NewGuid(),
-            Username = request.Username,
             Email = request.Email,
             PasswordHash = passwordHash,
+            Provider = AuthProvider.Local,
+            ProviderUserId = null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -57,20 +52,54 @@ public class AuthService(
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
-        // Find user by username or email
+        // Find user by email and Local provider
         var user = await context.Users
-            .FirstOrDefaultAsync(u => u.Username == request.UsernameOrEmail || u.Email == request.UsernameOrEmail);
+            .FirstOrDefaultAsync(u => u.Provider == AuthProvider.Local && u.Email == request.Email);
 
         if (user == null)
         {
-            // Use same error message to prevent username enumeration
-            throw new UnauthorizedAccessException("Invalid username or password");
+            // Use same error message to prevent email enumeration
+            throw new UnauthorizedAccessException("Invalid email or password");
         }
 
         // Verify password
-        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user.PasswordHash == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            throw new UnauthorizedAccessException("Invalid username or password");
+            throw new UnauthorizedAccessException("Invalid email or password");
+        }
+
+        return await GenerateAuthResponseAsync(user);
+    }
+
+    public async Task<AuthResponse> LoginWithGoogleAsync(string googleUserId, string email)
+    {
+        // Find existing Google account
+        var user = await context.Users
+            .FirstOrDefaultAsync(u => 
+                u.Provider == AuthProvider.Google && 
+                u.ProviderUserId == googleUserId);
+
+        if (user == null)
+        {
+            // Check if email already exists for Google provider
+            if (await context.Users.AnyAsync(u => u.Provider == AuthProvider.Google && u.Email == email))
+            {
+                throw new ConflictException("A Google account with this email already exists");
+            }
+
+            // Create new Google account
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                PasswordHash = null,
+                Provider = AuthProvider.Google,
+                ProviderUserId = googleUserId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            context.Users.Add(user);
+            await context.SaveChangesAsync();
         }
 
         return await GenerateAuthResponseAsync(user);
@@ -110,7 +139,6 @@ public class AuthService(
         return new UserDto
         {
             Id = user.Id,
-            Username = user.Username,
             Email = user.Email,
             CreatedAt = user.CreatedAt
         };
@@ -130,7 +158,6 @@ public class AuthService(
             User = new UserDto
             {
                 Id = user.Id,
-                Username = user.Username,
                 Email = user.Email,
                 CreatedAt = user.CreatedAt
             },

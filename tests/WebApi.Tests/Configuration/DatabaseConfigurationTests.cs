@@ -106,7 +106,6 @@ public class DatabaseConfigurationTests
         var uniqueId = Guid.NewGuid().ToString("N")[..8];
         var registerRequest = new RegisterRequest
         {
-            Username = $"fallbackuser_{uniqueId}",
             Email = $"fallback_{uniqueId}@example.com",
             Password = "SecurePass123!@#"
         };
@@ -119,7 +118,7 @@ public class DatabaseConfigurationTests
         result.Should().NotBeNull();
         result!.AccessToken.Should().NotBeNullOrEmpty();
         result.RefreshToken.Should().NotBeNullOrEmpty();
-        result.User.Username.Should().Be(registerRequest.Username);
+        result.User.Email.Should().Be(registerRequest.Email);
 
         // Verify the database is in-memory by checking it's not relational
         using var scope = factory.Services.CreateScope();

@@ -23,7 +23,7 @@ public class LoginTests
         var cut = ctx.RenderComponent<Login>();
         cut.Find("button[type='submit']").Click();
 
-        cut.Markup.Should().Contain("Please enter your username/email and password.");
+        cut.Markup.Should().Contain("Please enter your email and password.");
     }
 
     [Test]
@@ -39,7 +39,6 @@ public class LoginTests
                 User = new UserDto
                 {
                     Id = Guid.NewGuid(),
-                    Username = "alice",
                     Email = "alice@example.com",
                     CreatedAt = DateTime.UtcNow
                 },
@@ -57,7 +56,7 @@ public class LoginTests
         var cut = ctx.RenderComponent<Login>();
 
         var inputs = cut.FindAll("input");
-        inputs[0].Change("alice");
+        inputs[0].Change("alice@example.com");
         inputs = cut.FindAll("input"); // re-query after re-render
         inputs[1].Change("password");
 

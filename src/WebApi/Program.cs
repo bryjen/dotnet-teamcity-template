@@ -50,6 +50,8 @@ builder.Services.ConfigureEmail(builder.Configuration);
 builder.Services.ConfigureOpenApi();
 builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
 builder.Services.ConfigureCors(builder.Configuration);
+// Configure Data Protection for cookie encryption (required for OAuth state)
+builder.Services.AddDataProtection();
 builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureRateLimiting(builder.Configuration);
 builder.Services.ConfigureSecurityHeaders(builder.Configuration, builder.Environment);
@@ -113,7 +115,11 @@ app.UseSwaggerUI(options =>
     options.DisplayRequestDuration();
 });
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection in production
+if (app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
 
 // Routing must come before response caching
 app.UseRouting();

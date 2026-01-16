@@ -35,7 +35,6 @@ public class AuthControllerTests
         // Arrange
         var request = new RegisterRequest
         {
-            Username = "newuser",
             Email = "newuser@example.com",
             Password = "NewPassword123!"
         };
@@ -50,17 +49,16 @@ public class AuthControllerTests
         result!.AccessToken.Should().NotBeNullOrEmpty();
         result.RefreshToken.Should().NotBeNullOrEmpty();
         result.User.Should().NotBeNull();
-        result.User.Username.Should().Be(request.Username);
+        result.User.Email.Should().Be(request.Email);
     }
 
     [Test]
-    public async Task Register_WithDuplicateUsername_ReturnsConflict()
+    public async Task Register_WithDuplicateEmail_ReturnsConflict()
     {
         // Arrange
         var request = new RegisterRequest
         {
-            Username = "testuser", // Already exists in seed data
-            Email = "unique@example.com",
+            Email = "test@example.com", // Already exists in seed data
             Password = "NewPassword123!"
         };
 
@@ -77,7 +75,6 @@ public class AuthControllerTests
         // Arrange
         var request = new RegisterRequest
         {
-            Username = "newuser",
             Email = "newuser@example.com",
             Password = "weak" // Too short and doesn't meet complexity requirements
         };
@@ -96,7 +93,7 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequest
         {
-            UsernameOrEmail = "testuser",
+            Email = "test@example.com",
             Password = "TestPassword123!"
         };
 
@@ -110,7 +107,7 @@ public class AuthControllerTests
         result!.AccessToken.Should().NotBeNullOrEmpty();
         result.RefreshToken.Should().NotBeNullOrEmpty();
         result.User.Should().NotBeNull();
-        result.User.Username.Should().Be("testuser");
+        result.User.Email.Should().Be("test@example.com");
     }
 
     [Test]
@@ -119,7 +116,7 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequest
         {
-            UsernameOrEmail = "testuser",
+            Email = "test@example.com",
             Password = "WrongPassword123!"
         };
 
@@ -136,7 +133,7 @@ public class AuthControllerTests
         // Arrange
         var request = new LoginRequest
         {
-            UsernameOrEmail = "nonexistent",
+            Email = "nonexistent@example.com",
             Password = "Password123!"
         };
 
@@ -153,7 +150,7 @@ public class AuthControllerTests
         // Arrange - First login to get a valid token
         var loginRequest = new LoginRequest
         {
-            UsernameOrEmail = "testuser",
+            Email = "test@example.com",
             Password = "TestPassword123!"
         };
         var loginResponse = await _client.PostAsJsonSnakeCaseAsync("/api/v1/auth/login", loginRequest);
@@ -169,7 +166,7 @@ public class AuthControllerTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonSnakeCaseAsync<UserDto>();
         result.Should().NotBeNull();
-        result!.Username.Should().Be("testuser");
+        result!.Email.Should().Be("test@example.com");
     }
 
     [Test]

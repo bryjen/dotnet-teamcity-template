@@ -79,7 +79,7 @@ public sealed class AuthService
         _authState.Clear();
     }
 
-    private async Task SaveSessionAsync(AuthResponse response)
+    public async Task SaveSessionAsync(AuthResponse response)
     {
         await _tokenStore.SetSessionAsync(response);
         _authState.Set(response.AccessToken, response.User);

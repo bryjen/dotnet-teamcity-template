@@ -136,9 +136,10 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         var user1 = new User
         {
             Id = _testUserId,
-            Username = "testuser",
             Email = "test@example.com",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPassword123!", workFactor: 12),
+            Provider = AuthProvider.Local,
+            ProviderUserId = null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -146,9 +147,10 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         var user2 = new User
         {
             Id = Guid.NewGuid(),
-            Username = "otheruser",
             Email = "other@example.com",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPassword123!", workFactor: 12),
+            Provider = AuthProvider.Local,
+            ProviderUserId = null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

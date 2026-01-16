@@ -19,13 +19,14 @@ namespace WebApi.Controllers;
 [EnableRateLimiting("auth")]
 public class AuthController(
     AuthService authService, 
-    PasswordResetService passwordResetService) 
+    PasswordResetService passwordResetService,
+    IConfiguration configuration) 
     : ControllerBase
 {
     /// <summary>
     /// Register a new user account
     /// </summary>
-    /// <param name="request">User registration information including username, email, and password</param>
+    /// <param name="request">User registration information including email and password</param>
     /// <returns>Authentication response with user details, access token, and refresh token</returns>
     /// <response code="201">User successfully registered</response>
     /// <response code="400">Invalid input or user already exists</response>
@@ -41,7 +42,6 @@ public class AuthController(
     ///
     ///     POST /api/v1/auth/register
     ///     {
-    ///        "username": "johndoe",
     ///        "email": "john@example.com",
     ///        "password": "SecurePass123!"
     ///     }
@@ -71,7 +71,7 @@ public class AuthController(
     /// <summary>
     /// Authenticate an existing user
     /// </summary>
-    /// <param name="request">Login credentials (username or email and password)</param>
+    /// <param name="request">Login credentials (email and password)</param>
     /// <returns>Authentication response with user details, access token, and refresh token</returns>
     /// <response code="200">Login successful</response>
     /// <response code="401">Invalid credentials</response>
@@ -80,11 +80,10 @@ public class AuthController(
     ///
     ///     POST /api/v1/auth/login
     ///     {
-    ///        "usernameOrEmail": "johndoe",
+    ///        "email": "john@example.com",
     ///        "password": "SecurePass123!"
     ///     }
     ///
-    /// You can use either username or email in the usernameOrEmail field.
     /// </remarks>
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
