@@ -4,7 +4,8 @@ using WebApi.Controllers;
 
 namespace WebApi.Validators;
 
-public class ConfirmPasswordResetRequestDtoValidator : AbstractValidator<AuthController.ConfirmPasswordResetRequestDto>
+public class ConfirmPasswordResetRequestDtoValidator 
+    : AbstractValidator<AuthController.ConfirmPasswordResetRequestDto>
 {
     public ConfirmPasswordResetRequestDtoValidator()
     {
@@ -22,25 +23,17 @@ public class ConfirmPasswordResetRequestDtoValidator : AbstractValidator<AuthCon
             .Must(NotBeCommonPassword).WithMessage("Password is too common. Please choose a more unique password");
     }
 
-    private static bool ContainUppercase(string password)
-    {
-        return Regex.IsMatch(password, @"[A-Z]");
-    }
+    private static bool ContainUppercase(string password) 
+        => Regex.IsMatch(password, @"[A-Z]");
 
     private static bool ContainLowercase(string password)
-    {
-        return Regex.IsMatch(password, @"[a-z]");
-    }
+        => Regex.IsMatch(password, @"[a-z]");
 
     private static bool ContainDigit(string password)
-    {
-        return Regex.IsMatch(password, @"[0-9]");
-    }
+        => Regex.IsMatch(password, @"[0-9]");
 
     private static bool ContainSpecialCharacter(string password)
-    {
-        return Regex.IsMatch(password, @"[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]");
-    }
+        => Regex.IsMatch(password, @"[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]");
 
     private static bool NotBeCommonPassword(string password)
     {

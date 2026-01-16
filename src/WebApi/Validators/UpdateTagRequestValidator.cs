@@ -4,7 +4,8 @@ using WebApi.DTOs.Tags;
 
 namespace WebApi.Validators;
 
-public class UpdateTagRequestValidator : AbstractValidator<UpdateTagRequest>
+public class UpdateTagRequestValidator 
+    : AbstractValidator<UpdateTagRequest>
 {
     public UpdateTagRequestValidator()
     {

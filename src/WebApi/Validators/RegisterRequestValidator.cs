@@ -4,7 +4,8 @@ using Web.Common.DTOs.Auth;
 
 namespace WebApi.Validators;
 
-public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
+public class RegisterRequestValidator 
+    : AbstractValidator<RegisterRequest>
 {
     public RegisterRequestValidator()
     {
@@ -25,24 +26,16 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
     }
 
     private static bool ContainUppercase(string password)
-    {
-        return Regex.IsMatch(password, @"[A-Z]");
-    }
+        => Regex.IsMatch(password, @"[A-Z]");
 
     private static bool ContainLowercase(string password)
-    {
-        return Regex.IsMatch(password, @"[a-z]");
-    }
+        => Regex.IsMatch(password, @"[a-z]");
 
     private static bool ContainDigit(string password)
-    {
-        return Regex.IsMatch(password, @"[0-9]");
-    }
+        => Regex.IsMatch(password, @"[0-9]");
 
     private static bool ContainSpecialCharacter(string password)
-    {
-        return Regex.IsMatch(password, @"[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]");
-    }
+        => Regex.IsMatch(password, @"[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]");
 
     private static bool NotBeCommonPassword(string password)
     {

@@ -1,15 +1,14 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Web.Common.DTOs;
 using WebApi.DTOs;
 using WebApi.Exceptions;
 
 namespace WebApi.Middleware;
 
 /// <summary>
-/// Global exception handling middleware for truly unexpected exceptions only.
-/// Domain exceptions (ValidationException, NotFoundException, ConflictException, UnauthorizedAccessException)
-/// should be handled by controllers and returned as standardized ErrorResponse.
+/// Last resort global exception handling middleware intended for uncaught errors that propagate through user code.
 /// </summary>
 public class GlobalExceptionHandlerMiddleware(
     RequestDelegate next, 
@@ -25,11 +24,11 @@ public class GlobalExceptionHandlerMiddleware(
         }
         catch (Exception ex)
         {
-            // Check if this is a domain exception that should have been handled by controllers
+            // in the case of an uncaught "domain" exception (user-defined error that could have been but wasn't handled)
+            // add an extra warning log
+            // indicates that it should be handled by the controller
             if (ex is ValidationException or NotFoundException or ConflictException or UnauthorizedAccessException)
             {
-                // Domain exceptions should be caught by controllers, but handle them here as a safety net
-                // Log a warning to indicate controllers should handle these
                 logger.LogWarning(
                     "Domain exception {ExceptionType} reached middleware. Controllers should handle this: {Message}",
                     ex.GetType().Name,
@@ -38,7 +37,6 @@ public class GlobalExceptionHandlerMiddleware(
                 return;
             }
 
-            // Handle truly unexpected exceptions (NullReferenceException, database failures, etc.)
             logger.LogError(ex, "An unhandled exception occurred: {ExceptionType}", ex.GetType().Name);
             await HandleExceptionAsync(context, ex);
         }
@@ -48,17 +46,15 @@ public class GlobalExceptionHandlerMiddleware(
     {
         var response = context.Response;
         
-        // Check if response has already started - if so, we can't modify it
         if (response.HasStarted)
         {
             logger.LogWarning("Cannot write error response - response has already started");
             return;
         }
 
-        // Clear any existing response content
         response.Clear();
 
-        // Apply CORS headers before writing the response
+        // apply CORS headers before writing the response
         var policy = await corsPolicyProvider.GetPolicyAsync(context, null);
         if (policy != null)
         {
@@ -106,18 +102,15 @@ public class GlobalExceptionHandlerMiddleware(
     {
         var response = context.Response;
         
-        // Check if response has already started - if so, we can't modify it
         if (response.HasStarted)
         {
             logger.LogWarning("Cannot write error response - response has already started");
             return;
         }
 
-        // Clear any existing response content
         response.Clear();
 
-        // Apply CORS headers before writing the response
-        // This ensures error responses include CORS headers so the browser doesn't block them
+        // apply CORS headers before writing the response
         var policy = await corsPolicyProvider.GetPolicyAsync(context, null);
         if (policy != null)
         {
@@ -128,7 +121,6 @@ public class GlobalExceptionHandlerMiddleware(
         response.ContentType = "application/json";
         response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-        // Always mask internal error details in production
         var errorResponse = new ErrorResponse
         {
             Message = "An error occurred while processing your request."
@@ -139,7 +131,6 @@ public class GlobalExceptionHandlerMiddleware(
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
-        // Ensure we can write to the response
         try
         {
             await response.WriteAsync(jsonResponse);
@@ -148,7 +139,7 @@ public class GlobalExceptionHandlerMiddleware(
         catch (Exception writeEx)
         {
             logger.LogError(writeEx, "Failed to write error response to client");
-            // If we can't write, at least try to set the status code if it hasn't been set
+            // if we're unable to write, atl try to set the status code if it hasn't been set yet
             if (!response.HasStarted)
             {
                 response.StatusCode = (int)HttpStatusCode.InternalServerError;

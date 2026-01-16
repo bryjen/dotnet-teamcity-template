@@ -16,6 +16,12 @@ public sealed class FakeAuthApi : IAuthApi
     public Task<ApiResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
         => Task.FromResult(LoginHandler?.Invoke(request) ?? ApiResult<AuthResponse>.Failure("Not configured"));
 
+    public Task<ApiResult<AuthResponse>> LoginWithOAuthAsync(string provider, string? idToken = null, string? authorizationCode = null,
+        string? redirectUri = null, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<ApiResult<AuthResponse>> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
         => Task.FromResult(RefreshTokenHandler?.Invoke(refreshToken) ?? ApiResult<AuthResponse>.Failure("Not configured"));
 

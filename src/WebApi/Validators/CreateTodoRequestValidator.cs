@@ -4,7 +4,8 @@ using WebApi.Models;
 
 namespace WebApi.Validators;
 
-public class CreateTodoRequestValidator : AbstractValidator<CreateTodoRequest>
+public class CreateTodoRequestValidator 
+    : AbstractValidator<CreateTodoRequest>
 {
     public CreateTodoRequestValidator()
     {
@@ -28,8 +29,6 @@ public class CreateTodoRequestValidator : AbstractValidator<CreateTodoRequest>
             .When(x => x.TagIds != null && x.TagIds.Any());
     }
 
-    private static bool BeValidGuids(List<Guid>? tagIds)
-    {
-        return tagIds == null || tagIds.All(id => id != Guid.Empty);
-    }
+    private static bool BeValidGuids(List<Guid>? tagIds) 
+        => tagIds == null || tagIds.All(id => id != Guid.Empty);
 }

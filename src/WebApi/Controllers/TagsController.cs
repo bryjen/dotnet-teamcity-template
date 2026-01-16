@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Web.Common.DTOs;
 using WebApi.DTOs;
 using WebApi.DTOs.Tags;
 using WebApi.Exceptions;
 using WebApi.Services;
-using WebApi.Services.Todo;
+using WebApi.Services.Tag;
 
 namespace WebApi.Controllers;
 
@@ -12,15 +13,10 @@ namespace WebApi.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
-public class TagsController : BaseController
+public class TagsController(
+    ITagService tagService) 
+    : BaseController
 {
-    private readonly ITagService _tagService;
-
-    public TagsController(ITagService tagService)
-    {
-        _tagService = tagService;
-    }
-
     /// <summary>
     /// Get all tags for the authenticated user
     /// </summary>
@@ -37,7 +33,7 @@ public class TagsController : BaseController
     public async Task<ActionResult<List<TagDto>>> GetAllTags()
     {
         var userId = GetUserId();
-        var tags = await _tagService.GetAllTagsAsync(userId);
+        var tags = await tagService.GetAllTagsAsync(userId);
         return Ok(tags);
     }
 
@@ -56,7 +52,7 @@ public class TagsController : BaseController
     public async Task<ActionResult<TagDto>> GetTagById(Guid id)
     {
         var userId = GetUserId();
-        var tag = await _tagService.GetTagByIdAsync(id, userId);
+        var tag = await tagService.GetTagByIdAsync(id, userId);
 
         if (tag == null)
         {
@@ -96,7 +92,7 @@ public class TagsController : BaseController
         try
         {
             var userId = GetUserId();
-            var tag = await _tagService.CreateTagAsync(request, userId);
+            var tag = await tagService.CreateTagAsync(request, userId);
             return CreatedAtAction(nameof(GetTagById), new { id = tag.Id }, tag);
         }
         catch (ValidationException ex)
@@ -141,7 +137,7 @@ public class TagsController : BaseController
         try
         {
             var userId = GetUserId();
-            var tag = await _tagService.UpdateTagAsync(id, request, userId);
+            var tag = await tagService.UpdateTagAsync(id, request, userId);
 
             if (tag == null)
             {
@@ -179,7 +175,7 @@ public class TagsController : BaseController
     public async Task<IActionResult> DeleteTag(Guid id)
     {
         var userId = GetUserId();
-        var result = await _tagService.DeleteTagAsync(id, userId);
+        var result = await tagService.DeleteTagAsync(id, userId);
 
         if (!result)
         {

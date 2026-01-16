@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.IO.Compression;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -20,7 +19,9 @@ using OpenTelemetry.Trace;
 using Resend;
 using WebApi.Configuration.Options;
 using WebApi.Data;
+using WebApi.Services.Auth;
 using WebApi.Services.Email;
+using WebApi.Services.Validation;
 
 namespace WebApi.Configuration;
 
@@ -557,6 +558,35 @@ public static class ServiceConfiguration
         services.Configure<IISServerOptions>(options =>
         {
             options.MaxRequestBodySize = maxRequestBodySizeBytes;
+        });
+    }
+    
+    /// <summary>
+    /// Configures authentication-related services.
+    /// </summary>
+    public static void ConfigureAuthServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddHttpClient(); // Required for GitHubTokenValidationService
+        services.AddScoped<JwtTokenService>();
+        services.AddScoped<RefreshTokenService>();
+        services.AddScoped<PasswordValidator>();
+        services.AddScoped<GoogleTokenValidationService>();
+        services.AddScoped<MicrosoftTokenValidationService>();
+        services.AddScoped<GitHubTokenValidationService>();
+        services.AddScoped<TokenValidationServiceFactory>();
+        services.AddScoped<IAuthService, AuthService>();
+        
+        // Configure PasswordResetService
+        services.AddScoped<PasswordResetService>(sp =>
+        {
+            var frontendUrl = configuration["Frontend:BaseUrl"] ?? throw new InvalidOperationException("Frontend URL not configured");
+            return new PasswordResetService(
+                sp.GetRequiredService<AppDbContext>(), 
+                sp.GetRequiredService<IEmailService>(),
+                sp.GetRequiredService<PasswordValidator>(),
+                frontendUrl);
         });
     }
     

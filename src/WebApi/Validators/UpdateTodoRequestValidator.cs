@@ -3,7 +3,8 @@ using WebApi.DTOs.Todos;
 
 namespace WebApi.Validators;
 
-public class UpdateTodoRequestValidator : AbstractValidator<UpdateTodoRequest>
+public class UpdateTodoRequestValidator 
+    : AbstractValidator<UpdateTodoRequest>
 {
     public UpdateTodoRequestValidator()
     {
@@ -28,7 +29,5 @@ public class UpdateTodoRequestValidator : AbstractValidator<UpdateTodoRequest>
     }
 
     private static bool BeValidGuids(List<Guid>? tagIds)
-    {
-        return tagIds == null || tagIds.All(id => id != Guid.Empty);
-    }
+        => tagIds == null || tagIds.All(id => id != Guid.Empty);
 }

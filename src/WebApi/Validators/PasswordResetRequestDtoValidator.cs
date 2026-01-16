@@ -3,7 +3,8 @@ using WebApi.Controllers;
 
 namespace WebApi.Validators;
 
-public class PasswordResetRequestDtoValidator : AbstractValidator<AuthController.PasswordResetRequestDto>
+public class PasswordResetRequestDtoValidator 
+    : AbstractValidator<AuthController.PasswordResetRequestDto>
 {
     public PasswordResetRequestDtoValidator()
     {

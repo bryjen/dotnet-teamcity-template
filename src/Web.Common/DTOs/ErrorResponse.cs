@@ -1,4 +1,4 @@
-namespace WebApi.DTOs;
+namespace Web.Common.DTOs;
 
 /// <summary>
 /// Standard error response format for API errors

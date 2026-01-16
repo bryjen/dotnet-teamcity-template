@@ -5,12 +5,12 @@ using System.Text;
 namespace WebApi.Middleware;
 
 /// <summary>
-/// Middleware to log HTTP requests and responses with timing, correlation IDs, and context
+/// Middleware to log HTTP requests and responses with timing, correlation IDs, and context.
 /// </summary>
-public class RequestLoggingMiddleware
+public class RequestLoggingMiddleware(
+    RequestDelegate next, 
+    ILogger<RequestLoggingMiddleware> logger)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<RequestLoggingMiddleware> _logger;
     private static readonly HashSet<string> SensitiveHeaders = new(StringComparer.OrdinalIgnoreCase)
     {
         "Authorization",
@@ -18,12 +18,6 @@ public class RequestLoggingMiddleware
         "X-API-Key",
         "X-Auth-Token"
     };
-
-    public RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -43,7 +37,7 @@ public class RequestLoggingMiddleware
         
         try
         {
-            await _next(context);
+            await next(context);
         }
         finally
         {
@@ -91,7 +85,7 @@ public class RequestLoggingMiddleware
             ["Headers"] = GetSafeHeaders(request.Headers)
         };
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "HTTP Request: {Method} {Path} | CorrelationId: {CorrelationId} | IP: {IP} | UserId: {UserId}",
             request.Method,
             request.Path.Value,
@@ -133,7 +127,7 @@ public class RequestLoggingMiddleware
             logData["ResponseBody"] = responseBodyText;
         }
 
-        _logger.Log(
+        logger.Log(
             logLevel,
             "HTTP Response: {StatusCode} | Duration: {Duration}ms | CorrelationId: {CorrelationId} | UserId: {UserId} | Size: {ResponseSize} bytes",
             statusCode,
@@ -145,7 +139,7 @@ public class RequestLoggingMiddleware
         // Log response body for errors
         if (!string.IsNullOrEmpty(responseBodyText))
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Response body for error: {ResponseBody} | CorrelationId: {CorrelationId}",
                 responseBodyText,
                 correlationId);

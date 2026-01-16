@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using WebApi.Models;
 
 namespace WebApi.Data;
@@ -13,21 +14,62 @@ public class AppDbContext(
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<PasswordResetRequest> PasswordResetRequests { get; set; }
 
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        NormalizeDateTimeValues();
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    public override int SaveChanges()
+    {
+        NormalizeDateTimeValues();
+        return base.SaveChanges();
+    }
+
+    private void NormalizeDateTimeValues()
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+        foreach (var entry in entries)
+        {
+            foreach (var property in entry.Properties)
+            {
+                if (property.Metadata.ClrType == typeof(DateTime) || property.Metadata.ClrType == typeof(DateTime?))
+                {
+                    if (property.CurrentValue is DateTime dateTime)
+                    {
+                        if (dateTime.Kind == DateTimeKind.Unspecified)
+                        {
+                            // Treat Unspecified as UTC (assume incoming dates are already in UTC)
+                            property.CurrentValue = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+                        }
+                        else if (dateTime.Kind == DateTimeKind.Local)
+                        {
+                            // Convert Local to UTC
+                            property.CurrentValue = dateTime.ToUniversalTime();
+                        }
+                        // Already UTC, no change needed
+                    }
+                }
+            }
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Set default schema for PostgreSQL
+        // sets the default schema for PostgreSQL
+        // re-set when actually using the template
         modelBuilder.HasDefaultSchema("asp_template");
 
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id);
             
-            // Composite unique indexes - allows same email across different providers
             entity.HasIndex(e => new { e.Provider, e.Email }).IsUnique();
             
-            // Unique constraint for external provider user IDs
             entity.HasIndex(e => new { e.Provider, e.ProviderUserId })
                 .IsUnique()
                 .HasFilter("\"ProviderUserId\" IS NOT NULL");
@@ -96,7 +138,6 @@ public class AppDbContext(
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            // Many-to-many relationship with Tags
             entity.HasMany(e => e.Tags)
                 .WithMany(e => e.TodoItems)
                 .UsingEntity<Dictionary<string, object>>(
@@ -116,7 +157,6 @@ public class AppDbContext(
             entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Color).IsRequired().HasMaxLength(7); // #RRGGBB format
 
-            // Unique constraint: Name must be unique per user
             entity.HasIndex(e => new { e.UserId, e.Name }).IsUnique();
         });
     }

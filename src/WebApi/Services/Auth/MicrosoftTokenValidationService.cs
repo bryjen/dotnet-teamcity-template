@@ -1,8 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using WebApi.Configuration.Options;
 
 namespace WebApi.Services.Auth;
 
@@ -11,12 +13,12 @@ namespace WebApi.Services.Auth;
 /// </summary>
 public class MicrosoftTokenValidationService : ITokenValidationService
 {
-    private readonly IConfiguration _configuration;
+    private readonly OAuthSettings _oauthSettings;
     private readonly ILogger<MicrosoftTokenValidationService> _logger;
 
-    public MicrosoftTokenValidationService(IConfiguration configuration, ILogger<MicrosoftTokenValidationService> logger)
+    public MicrosoftTokenValidationService(IOptions<OAuthSettings> oauthSettings, ILogger<MicrosoftTokenValidationService> logger)
     {
-        _configuration = configuration;
+        _oauthSettings = oauthSettings.Value;
         _logger = logger;
     }
 
@@ -49,7 +51,7 @@ public class MicrosoftTokenValidationService : ITokenValidationService
 
         try
         {
-            var tenantId = _configuration["OAuth:Microsoft:TenantId"] ?? "common";
+            var tenantId = _oauthSettings.Microsoft.TenantId;
             
             // First, decode the token to get the issuer (without full validation)
             var handler = new JwtSecurityTokenHandler();

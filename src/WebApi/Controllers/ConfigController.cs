@@ -10,15 +10,10 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
-public class ConfigController : ControllerBase
+public class ConfigController(
+    IConfiguration configuration) 
+    : ControllerBase
 {
-    private readonly IConfiguration _configuration;
-
-    public ConfigController(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
-
     /// <summary>
     /// Shows the CORS configuration that's actually being used
     /// </summary>
@@ -26,13 +21,13 @@ public class ConfigController : ControllerBase
     public IActionResult GetCorsConfig()
     {
         // Use the exact same logic as Program.cs
-        var resolvedOrigins = ServiceConfiguration.GetCorsAllowedOrigins(_configuration);
+        var resolvedOrigins = ServiceConfiguration.GetCorsAllowedOrigins(configuration);
 
         // Check configuration key for debugging
-        var corsOriginsString = _configuration["Cors__AllowedOrigins"]
+        var corsOriginsString = configuration["Cors__AllowedOrigins"]
                              ?? Environment.GetEnvironmentVariable("Cors__AllowedOrigins");
 
-        var corsOriginsArray = _configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        var corsOriginsArray = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
 
         // Get all environment variables that start with "Cors" for debugging
         var allCorsEnvVars = Environment.GetEnvironmentVariables()
@@ -50,7 +45,7 @@ public class ConfigController : ControllerBase
             allCorsEnvironmentVariables = allCorsEnvVars,
             allConfigKeys = new
             {
-                corsAllowedOrigins = _configuration["Cors__AllowedOrigins"] ?? "(null)",
+                corsAllowedOrigins = configuration["Cors__AllowedOrigins"] ?? "(null)",
             },
             resolvedOrigins = resolvedOrigins,
             resolvedOriginsCount = resolvedOrigins.Length,

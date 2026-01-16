@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Web.Common.DTOs.Auth;
+using WebApi.Configuration.Options;
 using WebApi.Data;
 using WebApi.Exceptions;
 using WebApi.Models;
@@ -13,7 +15,8 @@ public class AuthService(
     RefreshTokenService refreshTokenService,
     PasswordValidator passwordValidator,
     TokenValidationServiceFactory tokenValidationFactory,
-    IConfiguration configuration)
+    IOptions<JwtSettings> jwtSettings,
+    IOptions<OAuthSettings> oauthSettings) : IAuthService
 {
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
@@ -77,19 +80,32 @@ public class AuthService(
         // Get validator for the provider
         var validator = tokenValidationFactory.GetValidator(provider);
 
-        // Get client ID and secret from configuration
-        var (clientIdKey, clientSecretKey) = provider switch
-        {
-            AuthProvider.Google => ("OAuth:Google:ClientId", (string?)null),
-            AuthProvider.Microsoft => ("OAuth:Microsoft:ClientId", (string?)null),
-            AuthProvider.GitHub => ("OAuth:GitHub:ClientId", "OAuth:GitHub:ClientSecret"),
-            _ => throw new NotSupportedException($"OAuth provider '{provider}' is not supported")
-        };
+        // Get client ID and secret from options
+        string clientId;
+        string? clientSecret = null;
 
-        var clientId = configuration[clientIdKey];
-        if (string.IsNullOrWhiteSpace(clientId))
+        switch (provider)
         {
-            throw new InvalidOperationException($"{provider} Client ID is not configured");
+            case AuthProvider.Google:
+                clientId = oauthSettings.Value.Google.ClientId;
+                if (string.IsNullOrWhiteSpace(clientId))
+                    throw new InvalidOperationException("Google Client ID is not configured");
+                break;
+            case AuthProvider.Microsoft:
+                clientId = oauthSettings.Value.Microsoft.ClientId;
+                if (string.IsNullOrWhiteSpace(clientId))
+                    throw new InvalidOperationException("Microsoft Client ID is not configured");
+                break;
+            case AuthProvider.GitHub:
+                clientId = oauthSettings.Value.GitHub.ClientId;
+                clientSecret = oauthSettings.Value.GitHub.ClientSecret;
+                if (string.IsNullOrWhiteSpace(clientId))
+                    throw new InvalidOperationException("GitHub Client ID is not configured");
+                if (string.IsNullOrWhiteSpace(clientSecret))
+                    throw new InvalidOperationException("GitHub Client Secret is not configured");
+                break;
+            default:
+                throw new NotSupportedException($"OAuth provider '{provider}' is not supported");
         }
 
         TokenValidationResult validationResult;
@@ -102,16 +118,7 @@ public class AuthService(
                 throw new InvalidOperationException("Redirect URI is required for authorization code flow");
             }
 
-            var clientSecret = !string.IsNullOrWhiteSpace(clientSecretKey) 
-                ? configuration[clientSecretKey] 
-                : null;
-
-            if (string.IsNullOrWhiteSpace(clientSecret))
-            {
-                throw new InvalidOperationException($"{provider} Client Secret is not configured");
-            }
-
-            validationResult = await validator.ValidateAuthorizationCodeAsync(authorizationCode, redirectUri, clientId, clientSecret);
+            validationResult = await validator.ValidateAuthorizationCodeAsync(authorizationCode, redirectUri, clientId, clientSecret!);
         }
         // Handle ID token flow (Google, Microsoft)
         else if (!string.IsNullOrWhiteSpace(idToken))
@@ -206,9 +213,8 @@ public class AuthService(
         var accessToken = jwtTokenService.GenerateAccessToken(user, out _);
         var refreshToken = await refreshTokenService.GenerateRefreshTokenAsync(user);
 
-        var jwtSettings = configuration.GetSection("Jwt");
-        var accessTokenExpirationMinutes = int.Parse(jwtSettings["AccessTokenExpirationMinutes"] ?? "15");
-        var refreshTokenExpirationDays = int.Parse(jwtSettings["RefreshTokenExpirationDays"] ?? "30");
+        var accessTokenExpirationMinutes = jwtSettings.Value.AccessTokenExpirationMinutes;
+        var refreshTokenExpirationDays = jwtSettings.Value.RefreshTokenExpirationDays;
 
         return new AuthResponse
         {

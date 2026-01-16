@@ -1,6 +1,6 @@
 using WebApi.DTOs.Tags;
 
-namespace WebApi.Services.Todo;
+namespace WebApi.Services.Tag;
 
 public interface ITagService
 {
@@ -10,4 +10,3 @@ public interface ITagService
     Task<TagDto?> UpdateTagAsync(Guid tagId, UpdateTagRequest request, Guid userId);
     Task<bool> DeleteTagAsync(Guid tagId, Guid userId);
 }
-

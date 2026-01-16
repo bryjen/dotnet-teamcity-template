@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace WebApi.Services.Auth;
@@ -12,16 +11,13 @@ namespace WebApi.Services.Auth;
 public class GitHubTokenValidationService : ITokenValidationService
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
     private readonly ILogger<GitHubTokenValidationService> _logger;
 
     public GitHubTokenValidationService(
         IHttpClientFactory httpClientFactory,
-        IConfiguration configuration,
         ILogger<GitHubTokenValidationService> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
         _logger = logger;
     }
 

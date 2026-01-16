@@ -1,15 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using WebApi.Configuration.Options;
 using WebApi.Data;
 using WebApi.Models;
 
 namespace WebApi.Services.Auth;
 
-public class RefreshTokenService(AppDbContext context, IConfiguration configuration)
+public class RefreshTokenService(AppDbContext context, IOptions<JwtSettings> jwtSettings)
 {
     public async Task<string> GenerateRefreshTokenAsync(User user)
     {
-        var jwtSettings = configuration.GetSection("Jwt");
-        var refreshTokenExpirationDays = int.Parse(jwtSettings["RefreshTokenExpirationDays"] ?? "30");
+        var refreshTokenExpirationDays = jwtSettings.Value.RefreshTokenExpirationDays;
         
         // Revoke all existing refresh tokens for this user (token rotation)
         await RevokeAllUserTokensAsync(user.Id, "New token issued");

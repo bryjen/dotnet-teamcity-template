@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using WebApi.Data;
 using WebApi.DTOs.Tags;
 using WebApi.Exceptions;
-using WebApi.Services.Todo;
 
 namespace WebApi.Services.Tag;
 

@@ -3,7 +3,8 @@ using Web.Common.DTOs.Auth;
 
 namespace WebApi.Validators;
 
-public class RefreshTokenRequestValidator : AbstractValidator<RefreshTokenRequest>
+public class RefreshTokenRequestValidator 
+    : AbstractValidator<RefreshTokenRequest>
 {
     public RefreshTokenRequestValidator()
     {

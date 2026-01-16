@@ -3,9 +3,8 @@ using WebApi.Data;
 using WebApi.DTOs.Tags;
 using WebApi.DTOs.Todos;
 using WebApi.Models;
-using WebApi.Services.Todo;
 
-namespace WebApi.Services.Tag;
+namespace WebApi.Services.Todo;
 
 public class TodoService(AppDbContext context) : ITodoService
 {
@@ -64,6 +63,28 @@ public class TodoService(AppDbContext context) : ITodoService
         return todos.Select(MapToDto).ToList();
     }
 
+    private static DateTime? NormalizeToUtc(DateTime? dateTime)
+    {
+        if (!dateTime.HasValue)
+            return null;
+        
+        var dt = dateTime.Value;
+        if (dt.Kind == DateTimeKind.Unspecified)
+        {
+            // Treat Unspecified as UTC (assume incoming dates are already in UTC)
+            return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+        }
+        
+        if (dt.Kind == DateTimeKind.Local)
+        {
+            // Convert Local to UTC
+            return dt.ToUniversalTime();
+        }
+        
+        // Already UTC
+        return dt;
+    }
+
     public async Task<TodoItemDto?> GetTodoByIdAsync(Guid todoId, Guid userId)
     {
         var todo = await context.TodoItems
@@ -82,7 +103,7 @@ public class TodoService(AppDbContext context) : ITodoService
             Title = request.Title,
             Description = request.Description,
             Priority = request.Priority,
-            DueDate = request.DueDate,
+            DueDate = NormalizeToUtc(request.DueDate),
             IsCompleted = false,
             UserId = userId,
             CreatedAt = DateTime.UtcNow,
@@ -125,7 +146,7 @@ public class TodoService(AppDbContext context) : ITodoService
         todo.Title = request.Title;
         todo.Description = request.Description;
         todo.Priority = request.Priority;
-        todo.DueDate = request.DueDate;
+        todo.DueDate = NormalizeToUtc(request.DueDate);
         todo.UpdatedAt = DateTime.UtcNow;
 
         // Update tags
@@ -210,4 +231,3 @@ public class TodoService(AppDbContext context) : ITodoService
         };
     }
 }
-

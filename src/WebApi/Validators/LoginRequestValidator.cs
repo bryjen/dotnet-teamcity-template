@@ -3,7 +3,8 @@ using Web.Common.DTOs.Auth;
 
 namespace WebApi.Validators;
 
-public class LoginRequestValidator : AbstractValidator<LoginRequest>
+public class LoginRequestValidator 
+    : AbstractValidator<LoginRequest>
 {
     public LoginRequestValidator()
     {

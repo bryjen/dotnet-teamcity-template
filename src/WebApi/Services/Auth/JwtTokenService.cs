@@ -1,28 +1,35 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using WebApi.Configuration.Options;
 using WebApi.Models;
 
 namespace WebApi.Services.Auth;
 
 public class JwtTokenService
 {
-    private readonly IConfiguration _configuration;
+    private readonly JwtSettings _jwtSettings;
     private readonly SymmetricSecurityKey _securityKey;
     private readonly string _issuer;
     private readonly string _audience;
     private readonly TokenValidationParameters _validationParameters;
 
-    public JwtTokenService(IConfiguration configuration)
+    public JwtTokenService(IOptions<JwtSettings> jwtSettings)
     {
-        _configuration = configuration;
-        var jwtSettings = configuration.GetSection("Jwt");
-        var secret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
-        _issuer = jwtSettings["Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
-        _audience = jwtSettings["Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
+        _jwtSettings = jwtSettings.Value;
         
-        _securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        if (string.IsNullOrWhiteSpace(_jwtSettings.Secret))
+            throw new InvalidOperationException("JWT Secret not configured");
+        if (string.IsNullOrWhiteSpace(_jwtSettings.Issuer))
+            throw new InvalidOperationException("JWT Issuer not configured");
+        if (string.IsNullOrWhiteSpace(_jwtSettings.Audience))
+            throw new InvalidOperationException("JWT Audience not configured");
+        
+        _issuer = _jwtSettings.Issuer;
+        _audience = _jwtSettings.Audience;
+        _securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
         
         _validationParameters = new TokenValidationParameters
         {
@@ -39,9 +46,8 @@ public class JwtTokenService
 
     public string GenerateAccessToken(User user, out string jti)
     {
-        var jwtSettings = _configuration.GetSection("Jwt");
-        // Access tokens expire in 15 minutes (configurable)
-        var accessTokenExpirationMinutes = int.Parse(jwtSettings["AccessTokenExpirationMinutes"] ?? "15");
+        // Access tokens expire in configured minutes
+        var accessTokenExpirationMinutes = _jwtSettings.AccessTokenExpirationMinutes;
         
         jti = Guid.NewGuid().ToString();
         var credentials = new SigningCredentials(_securityKey, SecurityAlgorithms.HmacSha256);

@@ -11,7 +11,8 @@ namespace WebApi.Controllers;
 [Authorize]
 [ApiController]
 [EnableRateLimiting("authenticated")]
-public abstract class BaseController : ControllerBase
+public abstract class BaseController 
+    : ControllerBase
 {
     /// <summary>
     /// Gets the current user's ID from the JWT token claims

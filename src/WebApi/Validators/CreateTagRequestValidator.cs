@@ -4,7 +4,8 @@ using WebApi.DTOs.Tags;
 
 namespace WebApi.Validators;
 
-public class CreateTagRequestValidator : AbstractValidator<CreateTagRequest>
+public class CreateTagRequestValidator 
+    : AbstractValidator<CreateTagRequest>
 {
     public CreateTagRequestValidator()
     {

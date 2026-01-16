@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Web.Common.DTOs;
 using Web.Common.DTOs.Auth;
 using WebApi.DTOs;
 using WebApi.Exceptions;
@@ -19,9 +20,8 @@ namespace WebApi.Controllers;
 [Produces("application/json")]
 [EnableRateLimiting("auth")]
 public class AuthController(
-    AuthService authService, 
-    PasswordResetService passwordResetService,
-    IConfiguration configuration) 
+    IAuthService authService, 
+    PasswordResetService passwordResetService) 
     : ControllerBase
 {
     /// <summary>
@@ -335,41 +335,6 @@ public class AuthController(
             return this.BadRequestError(ex.Message);
         }
         catch (NotSupportedException ex)
-        {
-            return this.BadRequestError(ex.Message);
-        }
-    }
-
-    /// <summary>
-    /// Authenticate with Google using ID token (deprecated - use /oauth endpoint instead)
-    /// </summary>
-    [Obsolete("Use /api/v1/auth/oauth endpoint with provider='Google' instead")]
-    [HttpPost("google")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<AuthResponse>> GoogleLogin([FromBody] GoogleLoginRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.IdToken))
-        {
-            return this.BadRequestError("ID token is required");
-        }
-
-        try
-        {
-            var oauthRequest = new OAuthLoginRequest { Provider = "Google", IdToken = request.IdToken };
-            return await OAuthLogin(oauthRequest);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return this.UnauthorizedError(ex.Message);
-        }
-        catch (ConflictException ex)
-        {
-            return this.ConflictError(ex.Message);
-        }
-        catch (InvalidOperationException ex)
         {
             return this.BadRequestError(ex.Message);
         }

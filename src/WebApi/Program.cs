@@ -33,6 +33,9 @@ builder.Services.Configure<RateLimitingSettings>(
     builder.Configuration.GetSection(RateLimitingSettings.SectionName));
 builder.Services.AddSingleton<IValidateOptions<RateLimitingSettings>, RateLimitingSettingsValidator>();
 
+builder.Services.Configure<OAuthSettings>(
+    builder.Configuration.GetSection(OAuthSettings.SectionName));
+
 builder.Services
     .AddControllers()
     .AddJsonOptions(ServiceConfiguration.ConfigureJsonCallback);
@@ -59,26 +62,7 @@ builder.Services.ConfigureRequestLimits(builder.Configuration);
 builder.Services.ConfigureResponseCompression(builder.Environment);
 builder.Services.ConfigureResponseCaching(builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
-
-builder.Services.AddScoped<PasswordResetService>(sp =>
-{
-    var frontendUrl = builder.Configuration["Frontend:BaseUrl"] ?? throw new InvalidOperationException("Frontend URL not configured");
-    return new PasswordResetService(
-        sp.GetRequiredService<AppDbContext>(), 
-        sp.GetRequiredService<IEmailService>(),
-        sp.GetRequiredService<PasswordValidator>(),
-        frontendUrl);
-});
-
-builder.Services.AddHttpClient(); // Required for GitHubTokenValidationService
-builder.Services.AddScoped<JwtTokenService>();
-builder.Services.AddScoped<RefreshTokenService>();
-builder.Services.AddScoped<PasswordValidator>();
-builder.Services.AddScoped<GoogleTokenValidationService>();
-builder.Services.AddScoped<MicrosoftTokenValidationService>();
-builder.Services.AddScoped<GitHubTokenValidationService>();
-builder.Services.AddScoped<TokenValidationServiceFactory>();
-builder.Services.AddScoped<AuthService>();
+builder.Services.ConfigureAuthServices(builder.Configuration);
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<ITagService, TagService>();
 

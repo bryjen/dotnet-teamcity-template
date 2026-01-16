@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Web.Common.DTOs;
 using WebApi.DTOs;
 using WebApi.DTOs.Todos;
 using WebApi.Exceptions;
@@ -13,15 +14,10 @@ namespace WebApi.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
-public class TodosController : BaseController
+public class TodosController(
+    ITodoService todoService) 
+    : BaseController
 {
-    private readonly ITodoService _todoService;
-
-    public TodosController(ITodoService todoService)
-    {
-        _todoService = todoService;
-    }
-
     /// <summary>
     /// Get all todos for the authenticated user with optional filtering
     /// </summary>
@@ -73,7 +69,7 @@ public class TodosController : BaseController
             priorityEnum = parsedPriority;
         }
 
-        var todos = await _todoService.GetAllTodosAsync(userId, status, priorityEnum, tag);
+        var todos = await todoService.GetAllTodosAsync(userId, status, priorityEnum, tag);
         return Ok(todos);
     }
 
@@ -92,7 +88,7 @@ public class TodosController : BaseController
     public async Task<ActionResult<TodoItemDto>> GetTodoById(Guid id)
     {
         var userId = GetUserId();
-        var todo = await _todoService.GetTodoByIdAsync(id, userId);
+        var todo = await todoService.GetTodoByIdAsync(id, userId);
 
         if (todo == null)
         {
@@ -133,7 +129,7 @@ public class TodosController : BaseController
         try
         {
             var userId = GetUserId();
-            var todo = await _todoService.CreateTodoAsync(request, userId);
+            var todo = await todoService.CreateTodoAsync(request, userId);
             return CreatedAtAction(nameof(GetTodoById), new { id = todo.Id }, todo);
         }
         catch (ValidationException ex)
@@ -179,7 +175,7 @@ public class TodosController : BaseController
         try
         {
             var userId = GetUserId();
-            var todo = await _todoService.UpdateTodoAsync(id, request, userId);
+            var todo = await todoService.UpdateTodoAsync(id, request, userId);
 
             if (todo == null)
             {
@@ -221,7 +217,7 @@ public class TodosController : BaseController
     public async Task<ActionResult<TodoItemDto>> ToggleComplete(Guid id)
     {
         var userId = GetUserId();
-        var todo = await _todoService.ToggleCompleteAsync(id, userId);
+        var todo = await todoService.ToggleCompleteAsync(id, userId);
 
         if (todo == null)
         {
@@ -246,7 +242,7 @@ public class TodosController : BaseController
     public async Task<IActionResult> DeleteTodo(Guid id)
     {
         var userId = GetUserId();
-        var result = await _todoService.DeleteTodoAsync(id, userId);
+        var result = await todoService.DeleteTodoAsync(id, userId);
 
         if (!result)
         {
