@@ -183,6 +183,19 @@ public sealed class HttpApiClient
             var text = await response.Content.ReadAsStringAsync(ct);
             if (!string.IsNullOrWhiteSpace(text))
             {
+                // Try to parse as JSON to extract the message field
+                try
+                {
+                    using var doc = JsonDocument.Parse(text);
+                    if (doc.RootElement.TryGetProperty("message", out var messageElement))
+                    {
+                        return messageElement.GetString() ?? text;
+                    }
+                }
+                catch
+                {
+                    // If JSON parsing fails, return the raw text
+                }
                 return text;
             }
         }

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using WebApi.DTOs;
 using WebApi.Exceptions;
 
@@ -10,7 +11,9 @@ namespace WebApi.Middleware;
 /// </summary>
 public class GlobalExceptionHandlerMiddleware(
     RequestDelegate next, 
-    ILogger<GlobalExceptionHandlerMiddleware> logger)
+    ILogger<GlobalExceptionHandlerMiddleware> logger,
+    ICorsService corsService,
+    ICorsPolicyProvider corsPolicyProvider)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -25,8 +28,17 @@ public class GlobalExceptionHandlerMiddleware(
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        // Apply CORS headers before writing the response
+        // This ensures error responses include CORS headers so the browser doesn't block them
+        var policy = await corsPolicyProvider.GetPolicyAsync(context, null);
+        if (policy != null)
+        {
+            var corsResult = corsService.EvaluatePolicy(context, policy);
+            corsService.ApplyResult(corsResult, context.Response);
+        }
+
         var response = context.Response;
         response.ContentType = "application/json";
 
@@ -55,6 +67,6 @@ public class GlobalExceptionHandlerMiddleware(
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
-        return response.WriteAsync(jsonResponse);
+        await response.WriteAsync(jsonResponse);
     }
 }
