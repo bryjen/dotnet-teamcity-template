@@ -253,27 +253,37 @@ public class AuthController(
     }
 
     /// <summary>
-    /// Authenticate with OAuth provider using ID token
+    /// Authenticate with OAuth provider using ID token or authorization code
     /// </summary>
-    /// <param name="request">OAuth login request with provider name and ID token</param>
+    /// <param name="request">OAuth login request with provider name and either ID token or authorization code</param>
     /// <returns>Authentication response with user details, access token, and refresh token</returns>
     /// <response code="200">Login successful</response>
     /// <response code="400">Invalid request (missing or invalid parameters)</response>
     /// <response code="401">Token validation failed</response>
     /// <response code="409">Account conflict</response>
     /// <remarks>
-    /// This endpoint validates an OAuth ID token from various providers (Google, Microsoft, etc.).
-    /// The frontend should obtain the ID token from the OAuth provider and send it here.
-    ///
-    /// Sample request:
-    ///
+    /// This endpoint validates OAuth tokens from various providers.
+    /// 
+    /// For Google and Microsoft (ID token flow):
+    /// - The frontend should obtain the ID token from the OAuth provider and send it here.
+    /// - Sample request:
     ///     POST /api/v1/auth/oauth
     ///     {
     ///        "provider": "Google",
     ///        "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
     ///     }
     ///
-    /// Supported providers: Google, Microsoft
+    /// For GitHub (authorization code flow):
+    /// - The frontend should send the authorization code received from GitHub.
+    /// - Sample request:
+    ///     POST /api/v1/auth/oauth
+    ///     {
+    ///        "provider": "GitHub",
+    ///        "authorizationCode": "abc123...",
+    ///        "redirectUri": "https://localhost:5000/login?provider=GitHub"
+    ///     }
+    ///
+    /// Supported providers: Google, Microsoft, GitHub
     ///
     /// </remarks>
     [HttpPost("oauth")]
@@ -288,9 +298,9 @@ public class AuthController(
             return this.BadRequestError("Provider is required");
         }
 
-        if (string.IsNullOrWhiteSpace(request.IdToken))
+        if (string.IsNullOrWhiteSpace(request.IdToken) && string.IsNullOrWhiteSpace(request.AuthorizationCode))
         {
-            return this.BadRequestError("ID token is required");
+            return this.BadRequestError("Either IdToken or AuthorizationCode is required");
         }
 
         if (!Enum.TryParse<AuthProvider>(request.Provider, ignoreCase: true, out var provider))
@@ -305,7 +315,11 @@ public class AuthController(
 
         try
         {
-            var response = await authService.LoginWithOAuthAsync(provider, request.IdToken);
+            var response = await authService.LoginWithOAuthAsync(
+                provider, 
+                idToken: request.IdToken, 
+                authorizationCode: request.AuthorizationCode, 
+                redirectUri: request.RedirectUri);
             return Ok(response);
         }
         catch (UnauthorizedAccessException ex)

@@ -6,7 +6,7 @@ public interface IAuthApi
 {
     Task<ApiResult<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
     Task<ApiResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default);
-    Task<ApiResult<AuthResponse>> LoginWithOAuthAsync(string provider, string idToken, CancellationToken ct = default);
+    Task<ApiResult<AuthResponse>> LoginWithOAuthAsync(string provider, string? idToken = null, string? authorizationCode = null, string? redirectUri = null, CancellationToken ct = default);
     Task<ApiResult<AuthResponse>> RefreshTokenAsync(string refreshToken, CancellationToken ct = default);
     Task<ApiResult<UserDto>> GetMeAsync(CancellationToken ct = default);
     Task<ApiResult<PasswordResetResponse>> RequestPasswordResetAsync(string email, CancellationToken ct = default);

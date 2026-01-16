@@ -36,8 +36,10 @@ builder.Services.AddScoped<AuthService>();
 // OAuth providers
 builder.Services.AddScoped<GoogleOAuthProvider>();
 builder.Services.AddScoped<MicrosoftOAuthProvider>();
+builder.Services.AddScoped<GitHubOAuthProvider>();
 builder.Services.AddScoped<IOAuthProvider>(sp => sp.GetRequiredService<GoogleOAuthProvider>());
 builder.Services.AddScoped<IOAuthProvider>(sp => sp.GetRequiredService<MicrosoftOAuthProvider>());
+builder.Services.AddScoped<IOAuthProvider>(sp => sp.GetRequiredService<GitHubOAuthProvider>());
 builder.Services.AddScoped<OAuthProviderRegistry>(sp =>
 {
     var providers = sp.GetServices<IOAuthProvider>();

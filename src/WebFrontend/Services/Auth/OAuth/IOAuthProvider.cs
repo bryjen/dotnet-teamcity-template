@@ -42,6 +42,7 @@ public interface IOAuthProvider
 public record OAuthCallbackResult
 {
     public string? IdToken { get; init; }
+    public string? AuthorizationCode { get; init; }
     public string? Error { get; init; }
     public string? ErrorDescription { get; init; }
 }

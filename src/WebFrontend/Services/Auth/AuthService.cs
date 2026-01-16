@@ -73,9 +73,9 @@ public sealed class AuthService
         return result;
     }
 
-    public async Task<ApiResult<AuthResponse>> LoginWithOAuthAsync(string provider, string idToken, CancellationToken ct = default)
+    public async Task<ApiResult<AuthResponse>> LoginWithOAuthAsync(string provider, string? idToken = null, string? authorizationCode = null, string? redirectUri = null, CancellationToken ct = default)
     {
-        var result = await _authApi.LoginWithOAuthAsync(provider, idToken, ct);
+        var result = await _authApi.LoginWithOAuthAsync(provider, idToken, authorizationCode, redirectUri, ct);
         if (result.IsSuccess)
         {
             await SaveSessionAsync(result.Value!);

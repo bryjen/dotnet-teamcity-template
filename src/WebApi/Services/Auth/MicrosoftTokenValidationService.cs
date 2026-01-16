@@ -21,6 +21,14 @@ public class MicrosoftTokenValidationService : ITokenValidationService
     }
 
     /// <summary>
+    /// Microsoft doesn't use authorization code flow in this implementation, so this method throws NotSupportedException
+    /// </summary>
+    public Task<TokenValidationResult> ValidateAuthorizationCodeAsync(string code, string redirectUri, string expectedClientId, string? clientSecret)
+    {
+        throw new NotSupportedException("Microsoft OAuth uses ID token flow, not authorization code flow");
+    }
+
+    /// <summary>
     /// Validates a Microsoft/Azure AD ID token and returns the user information
     /// </summary>
     /// <param name="idToken">The Microsoft ID token to validate</param>

@@ -72,16 +72,17 @@ public class AuthService(
         return await GenerateAuthResponseAsync(user);
     }
 
-    public async Task<AuthResponse> LoginWithOAuthAsync(AuthProvider provider, string idToken)
+    public async Task<AuthResponse> LoginWithOAuthAsync(AuthProvider provider, string? idToken = null, string? authorizationCode = null, string? redirectUri = null)
     {
         // Get validator for the provider
         var validator = tokenValidationFactory.GetValidator(provider);
 
-        // Get client ID from configuration
-        var clientIdKey = provider switch
+        // Get client ID and secret from configuration
+        var (clientIdKey, clientSecretKey) = provider switch
         {
-            AuthProvider.Google => "OAuth:Google:ClientId",
-            AuthProvider.Microsoft => "OAuth:Microsoft:ClientId",
+            AuthProvider.Google => ("OAuth:Google:ClientId", (string?)null),
+            AuthProvider.Microsoft => ("OAuth:Microsoft:ClientId", (string?)null),
+            AuthProvider.GitHub => ("OAuth:GitHub:ClientId", "OAuth:GitHub:ClientSecret"),
             _ => throw new NotSupportedException($"OAuth provider '{provider}' is not supported")
         };
 
@@ -91,8 +92,36 @@ public class AuthService(
             throw new InvalidOperationException($"{provider} Client ID is not configured");
         }
 
-        // Validate the ID token
-        var validationResult = await validator.ValidateIdTokenAsync(idToken, clientId);
+        TokenValidationResult validationResult;
+
+        // Handle authorization code flow (GitHub)
+        if (!string.IsNullOrWhiteSpace(authorizationCode))
+        {
+            if (string.IsNullOrWhiteSpace(redirectUri))
+            {
+                throw new InvalidOperationException("Redirect URI is required for authorization code flow");
+            }
+
+            var clientSecret = !string.IsNullOrWhiteSpace(clientSecretKey) 
+                ? configuration[clientSecretKey] 
+                : null;
+
+            if (string.IsNullOrWhiteSpace(clientSecret))
+            {
+                throw new InvalidOperationException($"{provider} Client Secret is not configured");
+            }
+
+            validationResult = await validator.ValidateAuthorizationCodeAsync(authorizationCode, redirectUri, clientId, clientSecret);
+        }
+        // Handle ID token flow (Google, Microsoft)
+        else if (!string.IsNullOrWhiteSpace(idToken))
+        {
+            validationResult = await validator.ValidateIdTokenAsync(idToken, clientId);
+        }
+        else
+        {
+            throw new InvalidOperationException("Either IdToken or AuthorizationCode must be provided");
+        }
 
         // Use generic OAuth login method
         return await LoginWithOAuthAsync(provider, validationResult.UserId, validationResult.Email);

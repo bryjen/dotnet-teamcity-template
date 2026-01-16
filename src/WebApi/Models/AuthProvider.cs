@@ -4,5 +4,6 @@ public enum AuthProvider
 {
     Local,
     Google,
-    Microsoft
+    Microsoft,
+    GitHub
 }

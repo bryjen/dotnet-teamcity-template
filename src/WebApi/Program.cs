@@ -69,11 +69,13 @@ builder.Services.AddScoped<PasswordResetService>(sp =>
         frontendUrl);
 });
 
+builder.Services.AddHttpClient(); // Required for GitHubTokenValidationService
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<PasswordValidator>();
 builder.Services.AddScoped<GoogleTokenValidationService>();
 builder.Services.AddScoped<MicrosoftTokenValidationService>();
+builder.Services.AddScoped<GitHubTokenValidationService>();
 builder.Services.AddScoped<TokenValidationServiceFactory>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ITodoService, TodoService>();

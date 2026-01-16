@@ -17,9 +17,15 @@ public sealed class HttpAuthApi : IAuthApi
     public Task<ApiResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
         => _api.PostAsync<LoginRequest, AuthResponse>("/api/v1/auth/login", request, ct);
 
-    public Task<ApiResult<AuthResponse>> LoginWithOAuthAsync(string provider, string idToken, CancellationToken ct = default)
+    public Task<ApiResult<AuthResponse>> LoginWithOAuthAsync(string provider, string? idToken = null, string? authorizationCode = null, string? redirectUri = null, CancellationToken ct = default)
     {
-        var request = new OAuthLoginRequest { Provider = provider, IdToken = idToken };
+        var request = new OAuthLoginRequest 
+        { 
+            Provider = provider, 
+            IdToken = idToken,
+            AuthorizationCode = authorizationCode,
+            RedirectUri = redirectUri
+        };
         return _api.PostAsync<OAuthLoginRequest, AuthResponse>("/api/v1/auth/oauth", request, ct);
     }
 

@@ -8,6 +8,14 @@ namespace WebApi.Services.Auth;
 public class GoogleTokenValidationService : ITokenValidationService
 {
     /// <summary>
+    /// Google doesn't use authorization code flow in this implementation, so this method throws NotSupportedException
+    /// </summary>
+    public Task<TokenValidationResult> ValidateAuthorizationCodeAsync(string code, string redirectUri, string expectedClientId, string? clientSecret)
+    {
+        throw new NotSupportedException("Google OAuth uses ID token flow, not authorization code flow");
+    }
+
+    /// <summary>
     /// Validates a Google ID token and returns the user information
     /// </summary>
     /// <param name="idToken">The Google ID token to validate</param>

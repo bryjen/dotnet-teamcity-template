@@ -11,12 +11,14 @@ public class TokenValidationServiceFactory
 
     public TokenValidationServiceFactory(
         GoogleTokenValidationService googleValidator,
-        MicrosoftTokenValidationService microsoftValidator)
+        MicrosoftTokenValidationService microsoftValidator,
+        GitHubTokenValidationService githubValidator)
     {
         _validators = new Dictionary<AuthProvider, ITokenValidationService>
         {
             { AuthProvider.Google, googleValidator },
-            { AuthProvider.Microsoft, microsoftValidator }
+            { AuthProvider.Microsoft, microsoftValidator },
+            { AuthProvider.GitHub, githubValidator }
         };
     }
 

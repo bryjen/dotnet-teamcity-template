@@ -69,12 +69,47 @@ public class OAuthService
             return ApiResult<AuthResponse>.Failure(errorMessage);
         }
 
-        if (string.IsNullOrWhiteSpace(result.IdToken))
+        // Handle authorization code flow (GitHub)
+        if (!string.IsNullOrWhiteSpace(result.AuthorizationCode))
         {
-            return ApiResult<AuthResponse>.Failure("No ID token received from OAuth provider");
-        }
+            // Reconstruct redirect URI without the code/state parameters (what was sent to GitHub)
+            var baseUri = new Uri(callbackUri.GetLeftPart(UriPartial.Path));
+            var queryParams = new List<string> { $"provider={Uri.EscapeDataString(providerName)}" };
+            var returnUrl = GetQueryParam(callbackUri, "returnUrl");
+            if (!string.IsNullOrWhiteSpace(returnUrl))
+            {
+                queryParams.Add($"returnUrl={Uri.EscapeDataString(returnUrl)}");
+            }
+            var redirectUriForBackend = queryParams.Count > 0 
+                ? $"{baseUri}?{string.Join("&", queryParams)}"
+                : baseUri.ToString();
 
-        // Send ID token to backend for validation and save session
-        return await _authService.LoginWithOAuthAsync(providerName, result.IdToken);
+            // Send authorization code to backend for validation and save session
+            return await _authService.LoginWithOAuthAsync(providerName, authorizationCode: result.AuthorizationCode, redirectUri: redirectUriForBackend);
+        }
+        // Handle ID token flow (Google, Microsoft)
+        else if (!string.IsNullOrWhiteSpace(result.IdToken))
+        {
+            // Send ID token to backend for validation and save session
+            return await _authService.LoginWithOAuthAsync(providerName, idToken: result.IdToken);
+        }
+        else
+        {
+            return ApiResult<AuthResponse>.Failure("No authorization code or ID token received from OAuth provider");
+        }
+    }
+
+    private static string? GetQueryParam(Uri uri, string key)
+    {
+        var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in query)
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && string.Equals(kv[0], key, StringComparison.OrdinalIgnoreCase))
+            {
+                return Uri.UnescapeDataString(kv[1]);
+            }
+        }
+        return null;
     }
 }
