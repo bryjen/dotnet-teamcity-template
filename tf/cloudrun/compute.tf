@@ -90,6 +90,49 @@ resource "google_cloud_run_service" "webapi" {
             value = var.email_resend_domain
           }
         }
+
+        # OAuth - Google
+        dynamic "env" {
+          for_each = var.oauth_google_client_id != "" ? [1] : []
+          content {
+            name  = "OAuth__Google__ClientId"
+            value = var.oauth_google_client_id
+          }
+        }
+
+        # OAuth - Microsoft
+        dynamic "env" {
+          for_each = var.oauth_microsoft_client_id != "" ? [1] : []
+          content {
+            name  = "OAuth__Microsoft__ClientId"
+            value = var.oauth_microsoft_client_id
+          }
+        }
+
+        dynamic "env" {
+          for_each = var.oauth_microsoft_tenant_id != "" ? [1] : []
+          content {
+            name  = "OAuth__Microsoft__TenantId"
+            value = var.oauth_microsoft_tenant_id
+          }
+        }
+
+        # OAuth - GitHub
+        dynamic "env" {
+          for_each = var.oauth_github_client_id != "" ? [1] : []
+          content {
+            name  = "OAuth__GitHub__ClientId"
+            value = var.oauth_github_client_id
+          }
+        }
+
+        dynamic "env" {
+          for_each = var.oauth_github_client_secret != "" ? [1] : []
+          content {
+            name  = "OAuth__GitHub__ClientSecret"
+            value = var.oauth_github_client_secret
+          }
+        }
       }
 
       container_concurrency = 1  # Must be 1 when using < 1 vCPU
@@ -150,6 +193,42 @@ resource "google_cloud_run_service" "webfrontend" {
         env {
           name  = "API_BASE_URL"
           value = var.api_base_url != "" ? var.api_base_url : google_cloud_run_service.webapi.status[0].url
+        }
+
+        # OAuth - Google Client ID
+        dynamic "env" {
+          for_each = var.oauth_google_client_id != "" ? [1] : []
+          content {
+            name  = "OAUTH_GOOGLE_CLIENT_ID"
+            value = var.oauth_google_client_id
+          }
+        }
+
+        # OAuth - Microsoft Client ID
+        dynamic "env" {
+          for_each = var.oauth_microsoft_client_id != "" ? [1] : []
+          content {
+            name  = "OAUTH_MICROSOFT_CLIENT_ID"
+            value = var.oauth_microsoft_client_id
+          }
+        }
+
+        # OAuth - Microsoft Tenant ID
+        dynamic "env" {
+          for_each = var.oauth_microsoft_tenant_id != "" ? [1] : []
+          content {
+            name  = "OAUTH_MICROSOFT_TENANT_ID"
+            value = var.oauth_microsoft_tenant_id
+          }
+        }
+
+        # OAuth - GitHub Client ID
+        dynamic "env" {
+          for_each = var.oauth_github_client_id != "" ? [1] : []
+          content {
+            name  = "OAUTH_GITHUB_CLIENT_ID"
+            value = var.oauth_github_client_id
+          }
         }
       }
 

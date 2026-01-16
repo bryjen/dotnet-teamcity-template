@@ -26,8 +26,37 @@ if [ -n "$API_BASE_URL" ]; then
     echo "Replaced Api:BaseUrl with $API_BASE_URL"
 fi
 
-# You can add more replacements here as needed
-# Example: if [ -n "$OTHER_CONFIG" ]; then ...
+# Replace OAuth:Google:ClientId if OAUTH_GOOGLE_CLIENT_ID env var is set
+if [ -n "$OAUTH_GOOGLE_CLIENT_ID" ]; then
+    escaped_value=$(echo "$OAUTH_GOOGLE_CLIENT_ID" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    # Replace within the Google object
+    sed -i "/\"Google\":\\s*{/,/}/ s|\"ClientId\"\\s*:\\s*\"[^\"]*\"|\"ClientId\": \"$escaped_value\"|g" "$CONFIG_FILE"
+    echo "Replaced OAuth:Google:ClientId with value from environment"
+fi
+
+# Replace OAuth:Microsoft:ClientId if OAUTH_MICROSOFT_CLIENT_ID env var is set
+if [ -n "$OAUTH_MICROSOFT_CLIENT_ID" ]; then
+    escaped_value=$(echo "$OAUTH_MICROSOFT_CLIENT_ID" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    # Replace within the Microsoft object
+    sed -i "/\"Microsoft\":\\s*{/,/}/ s|\"ClientId\"\\s*:\\s*\"[^\"]*\"|\"ClientId\": \"$escaped_value\"|g" "$CONFIG_FILE"
+    echo "Replaced OAuth:Microsoft:ClientId with value from environment"
+fi
+
+# Replace OAuth:Microsoft:TenantId if OAUTH_MICROSOFT_TENANT_ID env var is set
+if [ -n "$OAUTH_MICROSOFT_TENANT_ID" ]; then
+    escaped_value=$(echo "$OAUTH_MICROSOFT_TENANT_ID" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    # Replace within the Microsoft object
+    sed -i "/\"Microsoft\":\\s*{/,/}/ s|\"TenantId\"\\s*:\\s*\"[^\"]*\"|\"TenantId\": \"$escaped_value\"|g" "$CONFIG_FILE"
+    echo "Replaced OAuth:Microsoft:TenantId with value from environment"
+fi
+
+# Replace OAuth:GitHub:ClientId if OAUTH_GITHUB_CLIENT_ID env var is set
+if [ -n "$OAUTH_GITHUB_CLIENT_ID" ]; then
+    escaped_value=$(echo "$OAUTH_GITHUB_CLIENT_ID" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    # Replace within the GitHub object
+    sed -i "/\"GitHub\":\\s*{/,/}/ s|\"ClientId\"\\s*:\\s*\"[^\"]*\"|\"ClientId\": \"$escaped_value\"|g" "$CONFIG_FILE"
+    echo "Replaced OAuth:GitHub:ClientId with value from environment"
+fi
 
 # Start nginx
 exec nginx -g 'daemon off;'

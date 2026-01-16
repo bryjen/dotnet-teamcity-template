@@ -86,3 +86,42 @@ variable "email_resend_domain" {
   type        = string
   default     = ""
 }
+
+########################################
+# OAuth configuration
+########################################
+
+variable "oauth_google_client_id" {
+  description = "Google OAuth Client ID"
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
+variable "oauth_microsoft_client_id" {
+  description = "Microsoft OAuth Client ID"
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
+variable "oauth_microsoft_tenant_id" {
+  description = "Microsoft OAuth Tenant ID (default: 'common')"
+  type        = string
+  sensitive   = false
+  default     = "common"
+}
+
+variable "oauth_github_client_id" {
+  description = "GitHub OAuth Client ID"
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
+variable "oauth_github_client_secret" {
+  description = "GitHub OAuth Client Secret"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
