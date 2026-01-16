@@ -1,6 +1,7 @@
 using FluentValidation;
 using System.Text.RegularExpressions;
 using WebApi.Controllers;
+using WebApi.Controllers.Core;
 
 namespace WebApi.Validators;
 

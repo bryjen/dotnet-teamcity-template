@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using WebApi.Configuration;
 
-namespace WebApi.Controllers;
+namespace WebApi.Controllers.Core;
 
 /// <summary>
 /// Debug endpoint to show configuration values (for troubleshooting)

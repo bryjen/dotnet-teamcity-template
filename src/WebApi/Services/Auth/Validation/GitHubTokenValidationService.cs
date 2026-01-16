@@ -1,26 +1,16 @@
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
 
-namespace WebApi.Services.Auth;
+namespace WebApi.Services.Auth.Validation;
 
 /// <summary>
 /// Service for validating GitHub OAuth authorization codes and fetching user information
 /// </summary>
-public class GitHubTokenValidationService : ITokenValidationService
+public class GitHubTokenValidationService(
+    IHttpClientFactory httpClientFactory,
+    ILogger<GitHubTokenValidationService> logger)
+    : ITokenValidationService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<GitHubTokenValidationService> _logger;
-
-    public GitHubTokenValidationService(
-        IHttpClientFactory httpClientFactory,
-        ILogger<GitHubTokenValidationService> logger)
-    {
-        _httpClientFactory = httpClientFactory;
-        _logger = logger;
-    }
-
     /// <summary>
     /// GitHub doesn't use ID tokens, so this method throws NotSupportedException
     /// </summary>
@@ -79,19 +69,19 @@ public class GitHubTokenValidationService : ITokenValidationService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "GitHub API request failed");
+            logger.LogWarning(ex, "GitHub API request failed");
             throw new UnauthorizedAccessException("Failed to communicate with GitHub API", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to validate GitHub authorization code");
+            logger.LogError(ex, "Failed to validate GitHub authorization code");
             throw new UnauthorizedAccessException("Failed to validate GitHub authorization code", ex);
         }
     }
 
     private async Task<string> ExchangeCodeForTokenAsync(string code, string redirectUri, string clientId, string clientSecret)
     {
-        var httpClient = _httpClientFactory.CreateClient();
+        var httpClient = httpClientFactory.CreateClient();
         httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
 
         // GitHub expects form-encoded data, not JSON
@@ -108,7 +98,7 @@ public class GitHubTokenValidationService : ITokenValidationService
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("GitHub token exchange failed: {StatusCode} - {Content}", response.StatusCode, responseContent);
+            logger.LogWarning("GitHub token exchange failed: {StatusCode} - {Content}", response.StatusCode, responseContent);
             throw new UnauthorizedAccessException($"GitHub token exchange failed: {response.StatusCode}");
         }
 
@@ -125,13 +115,13 @@ public class GitHubTokenValidationService : ITokenValidationService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to parse GitHub response as JSON: {Content}", responseContent);
+            logger.LogWarning(ex, "Failed to parse GitHub response as JSON: {Content}", responseContent);
         }
 
         // Check if response contains an error (GitHub sometimes returns errors with 200 status)
         if (tokenResponse != null && !string.IsNullOrWhiteSpace(tokenResponse.Error))
         {
-            _logger.LogWarning("GitHub returned error: {Error} - {ErrorDescription}", tokenResponse.Error, tokenResponse.ErrorDescription);
+            logger.LogWarning("GitHub returned error: {Error} - {ErrorDescription}", tokenResponse.Error, tokenResponse.ErrorDescription);
             throw new UnauthorizedAccessException($"GitHub OAuth error: {tokenResponse.Error}");
         }
 
@@ -158,19 +148,19 @@ public class GitHubTokenValidationService : ITokenValidationService
                 
                 if (key == "error")
                 {
-                    _logger.LogWarning("GitHub returned error in form response: {Error}", value);
+                    logger.LogWarning("GitHub returned error in form response: {Error}", value);
                     throw new UnauthorizedAccessException($"GitHub OAuth error: {value}");
                 }
             }
         }
 
-        _logger.LogWarning("GitHub token exchange returned invalid response: {Content}", responseContent);
+        logger.LogWarning("GitHub token exchange returned invalid response: {Content}", responseContent);
         throw new UnauthorizedAccessException("GitHub token exchange returned invalid response");
     }
 
     private async Task<GitHubUserInfo> GetUserInfoAsync(string accessToken)
     {
-        var httpClient = _httpClientFactory.CreateClient();
+        var httpClient = httpClientFactory.CreateClient();
         httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
         httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
         httpClient.DefaultRequestHeaders.Add("User-Agent", "AspTemplate");
@@ -180,7 +170,7 @@ public class GitHubTokenValidationService : ITokenValidationService
         if (!response.IsSuccessStatusCode)
         {
             var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogWarning("GitHub user info request failed: {StatusCode} - {Content}", response.StatusCode, errorContent);
+            logger.LogWarning("GitHub user info request failed: {StatusCode} - {Content}", response.StatusCode, errorContent);
             throw new UnauthorizedAccessException($"GitHub user info request failed: {response.StatusCode}");
         }
 
@@ -202,7 +192,7 @@ public class GitHubTokenValidationService : ITokenValidationService
         }
 
         // Otherwise, fetch from emails endpoint
-        var httpClient = _httpClientFactory.CreateClient();
+        var httpClient = httpClientFactory.CreateClient();
         httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
         httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
         httpClient.DefaultRequestHeaders.Add("User-Agent", "AspTemplate");
@@ -211,7 +201,7 @@ public class GitHubTokenValidationService : ITokenValidationService
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("GitHub emails request failed: {StatusCode}", response.StatusCode);
+            logger.LogWarning("GitHub emails request failed: {StatusCode}", response.StatusCode);
             throw new UnauthorizedAccessException("Failed to fetch GitHub user email");
         }
 

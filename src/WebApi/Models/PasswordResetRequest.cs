@@ -1,5 +1,9 @@
-﻿namespace WebApi.Models;
+﻿using System.Diagnostics.CodeAnalysis;
 
+namespace WebApi.Models;
+
+[SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
+[SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
 public class PasswordResetRequest
 {
     public Guid Id { get; set; }  // request id

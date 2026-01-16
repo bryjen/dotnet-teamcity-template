@@ -1,74 +1,36 @@
-using Microsoft.Extensions.Options;
+using System.Diagnostics.CodeAnalysis;
+using FluentValidation;
 using WebApi.Configuration.Options;
 
 namespace WebApi.Configuration.Validators;
 
 /// <summary>
-/// Validates JWT settings configuration
+/// Validates JWT settings configuration using FluentValidation
 /// </summary>
-public class JwtSettingsValidator : IValidateOptions<JwtSettings>
+[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
+public class JwtSettingsValidator : AbstractValidator<JwtSettings>
 {
-    private readonly IHostEnvironment _environment;
-
     public JwtSettingsValidator(IHostEnvironment environment)
     {
-        _environment = environment;
-    }
+        RuleFor(x => x.Secret)
+            .NotEmpty().WithMessage("JWT Secret is required")
+            .MinimumLength(environment.IsProduction() ? 32 : 16)
+            .WithMessage(environment.IsProduction() 
+                ? "JWT Secret must be at least 32 characters for security (production requirement)"
+                : "JWT Secret must be at least 16 characters");
 
-    public ValidateOptionsResult Validate(string? name, JwtSettings options)
-    {
-        var errors = new List<string>();
+        RuleFor(x => x.Issuer)
+            .NotEmpty().WithMessage("JWT Issuer is required");
 
-        // Secret is always required
-        if (string.IsNullOrWhiteSpace(options.Secret))
-        {
-            errors.Add("JWT Secret is required");
-        }
-        else
-        {
-            // In production, enforce minimum secret length
-            if (_environment.IsProduction() && options.Secret.Length < 32)
-            {
-                errors.Add("JWT Secret must be at least 32 characters for security (production requirement)");
-            }
-            else if (options.Secret.Length < 16)
-            {
-                errors.Add("JWT Secret must be at least 16 characters");
-            }
-        }
+        RuleFor(x => x.Audience)
+            .NotEmpty().WithMessage("JWT Audience is required");
 
-        if (string.IsNullOrWhiteSpace(options.Issuer))
-        {
-            errors.Add("JWT Issuer is required");
-        }
+        RuleFor(x => x.AccessTokenExpirationMinutes)
+            .GreaterThanOrEqualTo(1).WithMessage("AccessTokenExpirationMinutes must be at least 1")
+            .LessThanOrEqualTo(1440).WithMessage("AccessTokenExpirationMinutes should not exceed 1440 (24 hours) for security");
 
-        if (string.IsNullOrWhiteSpace(options.Audience))
-        {
-            errors.Add("JWT Audience is required");
-        }
-
-        if (options.AccessTokenExpirationMinutes < 1)
-        {
-            errors.Add("AccessTokenExpirationMinutes must be at least 1");
-        }
-
-        if (options.AccessTokenExpirationMinutes > 1440) // 24 hours
-        {
-            errors.Add("AccessTokenExpirationMinutes should not exceed 1440 (24 hours) for security");
-        }
-
-        if (options.RefreshTokenExpirationDays < 1)
-        {
-            errors.Add("RefreshTokenExpirationDays must be at least 1");
-        }
-
-        if (options.RefreshTokenExpirationDays > 365)
-        {
-            errors.Add("RefreshTokenExpirationDays should not exceed 365 days for security");
-        }
-
-        return errors.Count > 0
-            ? ValidateOptionsResult.Fail(errors)
-            : ValidateOptionsResult.Success;
+        RuleFor(x => x.RefreshTokenExpirationDays)
+            .GreaterThanOrEqualTo(1).WithMessage("RefreshTokenExpirationDays must be at least 1")
+            .LessThanOrEqualTo(365).WithMessage("RefreshTokenExpirationDays should not exceed 365 days for security");
     }
 }

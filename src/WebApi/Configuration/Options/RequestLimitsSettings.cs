@@ -1,8 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace WebApi.Configuration.Options;
 
 /// <summary>
 /// Request size limit settings
 /// </summary>
+[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
 public class RequestLimitsSettings
 {
     public const string SectionName = "RequestLimits";

@@ -75,7 +75,9 @@ public class AppDbContext(
                 .HasFilter("\"ProviderUserId\" IS NOT NULL");
             
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
-            entity.Property(e => e.PasswordHash).IsRequired(false); // Now nullable
+            entity.Property(e => e.PasswordHash)
+                .IsRequired(false)
+                .HasMaxLength(255); 
             entity.Property(e => e.Provider).IsRequired().HasConversion<string>().HasMaxLength(20);
             entity.Property(e => e.ProviderUserId).HasMaxLength(255);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -105,6 +107,13 @@ public class AppDbContext(
             
             entity.Property(e => e.Token).IsRequired().HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(rt => rt.ReplacedByToken)
+                .IsRequired(false)
+                .HasMaxLength(255);
+            entity.Property(rt => rt.RevocationReason)
+                .IsRequired(false)
+                .HasMaxLength(255);
             
             entity.HasOne(e => e.User)
                 .WithMany(e => e.RefreshTokens)

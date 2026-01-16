@@ -1,26 +1,22 @@
 using WebApi.Models;
+using WebApi.Services.Auth.Validation;
 
 namespace WebApi.Services.Auth;
 
 /// <summary>
 /// Factory for getting the appropriate token validation service based on OAuth provider
 /// </summary>
-public class TokenValidationServiceFactory
+public class TokenValidationServiceFactory(
+    GoogleTokenValidationService googleValidator,
+    MicrosoftTokenValidationService microsoftValidator,
+    GitHubTokenValidationService githubValidator)
 {
-    private readonly Dictionary<AuthProvider, ITokenValidationService> _validators;
-
-    public TokenValidationServiceFactory(
-        GoogleTokenValidationService googleValidator,
-        MicrosoftTokenValidationService microsoftValidator,
-        GitHubTokenValidationService githubValidator)
+    private readonly Dictionary<AuthProvider, ITokenValidationService> _validators = new()
     {
-        _validators = new Dictionary<AuthProvider, ITokenValidationService>
-        {
-            { AuthProvider.Google, googleValidator },
-            { AuthProvider.Microsoft, microsoftValidator },
-            { AuthProvider.GitHub, githubValidator }
-        };
-    }
+        { AuthProvider.Google, googleValidator },
+        { AuthProvider.Microsoft, microsoftValidator },
+        { AuthProvider.GitHub, githubValidator }
+    };
 
     /// <summary>
     /// Gets the token validation service for the specified provider

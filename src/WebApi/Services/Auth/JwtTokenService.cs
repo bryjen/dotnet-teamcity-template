@@ -71,18 +71,4 @@ public class JwtTokenService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-
-    public ClaimsPrincipal? ValidateToken(string token)
-    {
-        try
-        {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var principal = tokenHandler.ValidateToken(token, _validationParameters, out var validatedToken);
-            return principal;
-        }
-        catch
-        {
-            return null;
-        }
-    }
 }

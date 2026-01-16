@@ -1,8 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace WebApi.Configuration.Options;
 
 /// <summary>
 /// Database connection retry policy settings
 /// </summary>
+[SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
+[SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
 public class DatabaseRetryPolicySettings
 {
     public const string SectionName = "Database:RetryPolicy";

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
-namespace WebApi.Controllers;
+namespace WebApi.Controllers.Utils;
 
 /// <summary>
 /// Base controller providing common functionality for authenticated controllers

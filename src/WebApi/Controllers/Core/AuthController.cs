@@ -1,16 +1,14 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Web.Common.DTOs;
 using Web.Common.DTOs.Auth;
-using WebApi.DTOs;
+using WebApi.Controllers.Utils;
 using WebApi.Exceptions;
 using WebApi.Models;
-using WebApi.Services;
 using WebApi.Services.Auth;
 
-namespace WebApi.Controllers;
+namespace WebApi.Controllers.Core;
 
 /// <summary>
 /// Handles user authentication and registration

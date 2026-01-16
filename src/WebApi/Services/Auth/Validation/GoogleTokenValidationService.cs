@@ -1,11 +1,12 @@
 using Google.Apis.Auth;
 
-namespace WebApi.Services.Auth;
+namespace WebApi.Services.Auth.Validation;
 
 /// <summary>
 /// Service for validating Google ID tokens
 /// </summary>
-public class GoogleTokenValidationService : ITokenValidationService
+public class GoogleTokenValidationService 
+    : ITokenValidationService
 {
     /// <summary>
     /// Google doesn't use authorization code flow in this implementation, so this method throws NotSupportedException

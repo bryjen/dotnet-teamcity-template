@@ -1,5 +1,9 @@
-﻿namespace WebApi.Models;
+﻿using System.Diagnostics.CodeAnalysis;
 
+namespace WebApi.Models;
+
+[SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
+[SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
 public class TodoItem
 {
     public Guid Id { get; set; }

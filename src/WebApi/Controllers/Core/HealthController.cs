@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApi.Data;
 
-namespace WebApi.Controllers;
+namespace WebApi.Controllers.Core;
 
 /// <summary>
 /// Health check endpoint for monitoring service status

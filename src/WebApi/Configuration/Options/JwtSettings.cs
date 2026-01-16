@@ -1,8 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace WebApi.Configuration.Options;
 
 /// <summary>
 /// JWT authentication settings
 /// </summary>
+[SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
+[SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
 public class JwtSettings
 {
     public const string SectionName = "Jwt";

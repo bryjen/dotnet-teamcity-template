@@ -4,11 +4,9 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.ResponseCompression;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -20,8 +18,11 @@ using Resend;
 using WebApi.Configuration.Options;
 using WebApi.Data;
 using WebApi.Services.Auth;
+using WebApi.Services.Auth.Validation;
 using WebApi.Services.Email;
 using WebApi.Services.Validation;
+
+using static WebApi.Configuration.DatabaseConfigurationHelpers;
 
 namespace WebApi.Configuration;
 
@@ -31,7 +32,7 @@ public static class ServiceConfiguration
     /// Resolves CORS allowed origins from configuration.
     /// If an environment variable is set, use it (comma-separated). Otherwise, fall back to `appsettings.json` array.
     /// </summary>
-    public static string[] GetCorsAllowedOrigins(IConfiguration configuration)
+    internal static string[] GetCorsAllowedOrigins(IConfiguration configuration)
     {
         // Check environment variable first
         var corsOriginsString = configuration["Cors__AllowedOrigins"]
@@ -47,6 +48,53 @@ public static class ServiceConfiguration
         return corsOriginsArray ?? Array.Empty<string>();
     }
     
+    /// <summary>
+    /// Configures Cross-Origin Resource Sharing (CORS) for the application.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configuration">The configuration instance to read CORS settings from.</param>
+    /// <remarks>
+    /// <para>
+    /// CORS origins are resolved from configuration in the following order:
+    /// 1. Environment variable "Cors__AllowedOrigins" (comma-separated)
+    /// 2. Configuration section "Cors:AllowedOrigins" (array)
+    /// </para>
+    /// <para>
+    /// If no origins are configured, the policy allows all origins, methods, and headers (permissive mode).
+    /// When specific origins are configured, the policy allows credentials and uses those origins only.
+    /// </para>
+    /// </remarks>
+    public static void ConfigureCors(
+        this IServiceCollection services, 
+        IConfiguration configuration)
+    {
+        var corsOrigins = GetCorsAllowedOrigins(configuration);
+        services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                if (corsOrigins.Length == 0)
+                {
+                    // Allow all origins (permissive mode) - cannot use AllowCredentials() with AllowAnyOrigin()
+                    policy.AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                }
+                else
+                {
+                    // Specific origins - can use credentials
+                    policy.WithOrigins(corsOrigins)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                }
+            });
+        });
+    }
+    
+    /// <summary>
+    /// Configures OpenAPI + Swagger.
+    /// </summary>
     public static void ConfigureOpenApi(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
@@ -75,129 +123,64 @@ public static class ServiceConfiguration
         IConfiguration configuration, 
         IHostEnvironment? environment = null)
     {
-        // Create a temporary logger factory for configuration logging
-        // This is acceptable since it's only used during service configuration
         using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         var logger = loggerFactory.CreateLogger("WebApi.Configuration.ServiceConfiguration");
 
-        // Skip PostgreSQL registration if running in test mode (tests swap in an in-memory DbContext).
-        // Important: don't require a connection string in Test env, otherwise WebApplicationFactory can fail
-        // before test configuration overrides are applied.
-        var isTestEnvironment = environment?.IsEnvironment("Test") ?? false;
-        if (isTestEnvironment)
+        // skip database registration in test environment
+        if (environment?.IsEnvironment("Test") ?? false)
         {
             logger.LogInformation("Environment 'Test' detected. Skipping database registration (tests will configure DbContext separately).");
             return;
         }
 
-        // temporary/global switch: if Database:Provider is set to InMemory, always use in-memory DB
-        var configuredProvider = configuration["Database:Provider"];
-        if (string.Equals(configuredProvider, "InMemory", StringComparison.OrdinalIgnoreCase))
+        // check if in-memory database is explicitly requested
+        if (ShouldUseInMemoryDatabase(configuration))
         {
-            logger.LogInformation("Configuration 'Database:Provider=InMemory' detected. Using in-memory database provider 'FallbackInMemoryDatabase' and skipping PostgreSQL.");
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseInMemoryDatabase("FallbackInMemoryDatabase"));
+            UseInMemoryDatabase(services, logger);
             return;
         }
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
-        
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             logger.LogError("Connection string 'DefaultConnection' not found. Falling back to in-memory database.");
-            logger.LogInformation("Using in-memory database provider 'FallbackInMemoryDatabase'.");
-
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseInMemoryDatabase("FallbackInMemoryDatabase"));
-            return;
-        }
-        else if (string.Equals(connectionString, "InMemory", StringComparison.OrdinalIgnoreCase))
-        {
-            logger.LogInformation("Connection string 'DefaultConnection' is set to 'InMemory'. Skipping PostgreSQL registration (tests/local tooling).");
+            UseInMemoryDatabase(services, logger);
             return;
         }
 
-        
-        // Set the intended provider, + we try testing the connection, falling back to in-memory if it fails.
-        try
+        // try to use PostgreSQL, fall back to in-memory if connection fails
+        if (TryUsePostgreSql(services, configuration, connectionString, logger))
         {
-            // Read retry policy configuration
-            var retryPolicyConfig = configuration.GetSection(DatabaseRetryPolicySettings.SectionName);
-            var maxRetryCount = retryPolicyConfig.GetValue<int>("MaxRetryCount", 5);
-            var maxRetryDelaySeconds = retryPolicyConfig.GetValue<int>("MaxRetryDelaySeconds", 30);
-            
-            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>()
-                .UseNpgsql(connectionString, npgsqlOptions =>
-                {
-                    // Enable retry on failure for transient database errors
-                    npgsqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: maxRetryCount,
-                        maxRetryDelay: TimeSpan.FromSeconds(maxRetryDelaySeconds),
-                        errorCodesToAdd: null); // Uses default PostgreSQL transient error codes
-                });
-            using var testContext = new AppDbContext(optionsBuilder.Options);
-            var canConnect = testContext.Database.CanConnect();
-            if (canConnect)
-            {
-                // Connection successful, use PostgreSQL with retry policy
-                logger.LogInformation("Successfully connected to PostgreSQL using connection string 'DefaultConnection'. Using PostgreSQL database provider with retry policy (MaxRetryCount: {MaxRetryCount}, MaxRetryDelay: {MaxRetryDelay}s).", 
-                    maxRetryCount, maxRetryDelaySeconds);
-                services.AddDbContext<AppDbContext>(options =>
-                    options.UseNpgsql(connectionString, npgsqlOptions =>
-                    {
-                        // Enable retry on failure for transient database errors
-                        npgsqlOptions.EnableRetryOnFailure(
-                            maxRetryCount: maxRetryCount,
-                            maxRetryDelay: TimeSpan.FromSeconds(maxRetryDelaySeconds),
-                            errorCodesToAdd: null); // Uses default PostgreSQL transient error codes
-                    }));
-                return;
-            }
-            
-            logger.LogWarning("PostgreSQL connection test for 'DefaultConnection' returned false. Falling back to in-memory database.");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, 
-                "Failed to connect to PostgreSQL database using connection string. " +
-                "Error: {ErrorMessage}. Falling back to in-memory database.", 
-                ex.Message);
+            return;
         }
 
-        // in case of no early exit, fall back to an in memory database
         logger.LogInformation("Using in-memory database provider 'FallbackInMemoryDatabase' due to PostgreSQL connection issues.");
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase("FallbackInMemoryDatabase"));
+        UseInMemoryDatabase(services, logger);
     }
     
-    public static void ConfigureCors(
-        this IServiceCollection services, 
-        IConfiguration configuration)
-    {
-        var corsOrigins = ServiceConfiguration.GetCorsAllowedOrigins(configuration);
-        services.AddCors(options =>
-        {
-            options.AddDefaultPolicy(policy =>
-            {
-                if (corsOrigins.Length == 0)
-                {
-                    // Allow all origins (permissive mode) - cannot use AllowCredentials() with AllowAnyOrigin()
-                    policy.AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader();
-                }
-                else
-                {
-                    // Specific origins - can use credentials
-                    policy.WithOrigins(corsOrigins)
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .AllowCredentials();
-                }
-            });
-        });
-    }
-    
+    /// <summary>
+    /// Configures JWT Bearer authentication and authorization for the application.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configuration">The configuration instance to read JWT settings from.</param>
+    /// <param name="environment">The hosting environment to determine test mode behavior.</param>
+    /// <remarks>
+    /// <para>
+    /// Reads JWT configuration from the "Jwt" section, including:
+    /// - Secret: The signing key for JWT tokens (required)
+    /// - Issuer: The token issuer (required)
+    /// - Audience: The token audience (required)
+    /// </para>
+    /// <para>
+    /// In test environments, if no JWT secret is configured, a default test secret is provided
+    /// to allow the application to start deterministically.
+    /// </para>
+    /// <para>
+    /// Token validation includes issuer, audience, lifetime, and signing key validation.
+    /// Clock skew is set to zero for strict time validation.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when JWT Secret is not configured in non-test environments.</exception>
     public static void ConfigureJwtAuth(
         this IServiceCollection services, 
         IConfiguration configuration,
@@ -237,6 +220,31 @@ public static class ServiceConfiguration
         services.AddAuthorization();
     }
     
+    /// <summary>
+    /// Configures OpenTelemetry for distributed tracing, metrics, and logging.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configuration">The configuration instance to read OpenTelemetry settings from.</param>
+    /// <param name="loggingBuilder">The logging builder to configure OpenTelemetry logging.</param>
+    /// <param name="environment">The hosting environment to determine if telemetry should be enabled.</param>
+    /// <remarks>
+    /// <para>
+    /// This method configures OpenTelemetry for:
+    /// - Structured logging with formatted messages and scopes
+    /// - Distributed tracing for ASP.NET Core and HTTP client requests
+    /// - Metrics for ASP.NET Core, HTTP client, and runtime instrumentation
+    /// </para>
+    /// <para>
+    /// Configuration is read from environment variables:
+    /// - OTEL_SERVICE_NAME: The service name (defaults to "WebApi")
+    /// - OTEL_EXPORTER_OTLP_ENDPOINT: The OTLP exporter endpoint URL (optional)
+    /// </para>
+    /// <para>
+    /// OpenTelemetry is automatically disabled in test environments to avoid interference with tests.
+    /// If an OTLP endpoint is configured, telemetry data is exported to that endpoint.
+    /// Otherwise, telemetry is collected but not exported.
+    /// </para>
+    /// </remarks>
     public static void ConfigureOpenTelemetry(
         this IServiceCollection services, 
         IConfiguration configuration,
@@ -301,6 +309,23 @@ public static class ServiceConfiguration
     }
     
     
+    /// <summary>
+    /// Configures email services using Resend as the email provider.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configuration">The configuration instance to read email settings from.</param>
+    /// <remarks>
+    /// <para>
+    /// Reads email configuration from the "Email:Resend" section:
+    /// - ApiKey: The Resend API key for authentication
+    /// - Domain: The email domain to send emails from
+    /// </para>
+    /// <para>
+    /// Registers:
+    /// - IResend as a singleton for the Resend client
+    /// - IEmailService as a transient service using RenderMjmlEmailService implementation
+    /// </para>
+    /// </remarks>
     public static void ConfigureEmail(
         this IServiceCollection services, 
         IConfiguration configuration)
@@ -310,23 +335,6 @@ public static class ServiceConfiguration
         services.AddSingleton<IResend>(ResendClient.Create(resendApiKey));
         services.AddTransient<IEmailService, RenderMjmlEmailService>(sp =>
             new RenderMjmlEmailService(sp.GetRequiredService<IResend>(), emailDomain));
-    }
-    
-    /// <summary>
-    /// Configures security headers for the application.
-    /// </summary>
-    /// <remarks>
-    /// Security headers are applied via SecurityHeadersMiddleware.
-    /// This method is kept for consistency with other configuration methods,
-    /// but the actual implementation is in the middleware.
-    /// </remarks>
-    public static void ConfigureSecurityHeaders(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        IHostEnvironment environment)
-    {
-        // Security headers are applied via SecurityHeadersMiddleware
-        // No service registration needed for the custom middleware
     }
     
     /// <summary>
@@ -452,7 +460,7 @@ public static class ServiceConfiguration
     /// </summary>
     /// <remarks>
     /// Enables Gzip and Brotli compression for responses to reduce bandwidth usage.
-    /// Only enabled in production environment.
+    /// Only enabled in a production environment.
     /// </remarks>
     public static void ConfigureResponseCompression(
         this IServiceCollection services,
@@ -497,7 +505,7 @@ public static class ServiceConfiguration
     /// </summary>
     /// <remarks>
     /// Enables HTTP-level response caching to reduce server load and improve performance.
-    /// Only enabled in production environment.
+    /// Only enabled in a production environment.
     /// </remarks>
     public static void ConfigureResponseCaching(
         this IServiceCollection services,
@@ -590,11 +598,108 @@ public static class ServiceConfiguration
         });
     }
     
+    /// <summary>
+    /// Configures JSON serialization options for ASP.NET Core controllers.
+    /// </summary>
+    /// <param name="options">The JSON options to configure.</param>
+    /// <remarks>
+    /// <para>
+    /// Applies the following JSON serialization settings:
+    /// - WriteIndented: true - Formats JSON output with indentation for readability
+    /// - PropertyNamingPolicy: SnakeCaseLower - Converts property names to snake_case
+    /// - PropertyNameCaseInsensitive: true - Allows case-insensitive property name matching during deserialization
+    /// </para>
+    /// <para>
+    /// This method is used internally by the JSON options configuration callback.
+    /// </para>
+    /// </remarks>
     internal static void ConfigureJsonCallback(JsonOptions options)
     {
         var jsonSerializerOptions = options.JsonSerializerOptions;
         jsonSerializerOptions.WriteIndented = true;
         jsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
         jsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    }
+}
+
+internal static class DatabaseConfigurationHelpers
+{
+    internal static bool ShouldUseInMemoryDatabase(IConfiguration configuration)
+    {
+        var provider = configuration["Database:Provider"];
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        
+        return string.Equals(provider, "InMemory", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(connectionString, "InMemory", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static void UseInMemoryDatabase(IServiceCollection services, ILogger logger)
+    {
+        logger.LogInformation("Using in-memory database provider 'FallbackInMemoryDatabase'.");
+        services.AddDbContext<AppDbContext>(options => 
+            options.UseInMemoryDatabase("FallbackInMemoryDatabase"));
+    }
+
+    // ReSharper disable once IdentifierTypo
+    internal static bool TryUsePostgreSql(
+        IServiceCollection services, 
+        IConfiguration configuration, 
+        string connectionString, 
+        ILogger logger)
+    {
+        try
+        {
+            var (maxRetryCount, maxRetryDelaySeconds) = GetRetryPolicySettings(configuration);
+            
+            // Test connection
+            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>()
+                .UseNpgsql(connectionString, npgsqlOptions => 
+                    ConfigureRetryPolicy(npgsqlOptions, maxRetryCount, maxRetryDelaySeconds));
+            
+            using var testContext = new AppDbContext(optionsBuilder.Options);
+            if (!testContext.Database.CanConnect())
+            {
+                logger.LogWarning("PostgreSQL connection test returned false. Falling back to in-memory database.");
+                return false;
+            }
+
+            // Connection successful - register PostgreSQL with retry policy
+            logger.LogInformation(
+                "Successfully connected to PostgreSQL. Using PostgreSQL database provider with retry policy (MaxRetryCount: {MaxRetryCount}, MaxRetryDelay: {MaxRetryDelay}s).", 
+                maxRetryCount, maxRetryDelaySeconds);
+            
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(connectionString, npgsqlOptions => 
+                    ConfigureRetryPolicy(npgsqlOptions, maxRetryCount, maxRetryDelaySeconds)));
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, 
+                "Failed to connect to PostgreSQL database. Error: {ErrorMessage}. Falling back to in-memory database.", 
+                ex.Message);
+            return false;
+        }
+    }
+
+    private static (int MaxRetryCount, int MaxRetryDelaySeconds) GetRetryPolicySettings(IConfiguration configuration)
+    {
+        var retryPolicyConfig = configuration.GetSection(DatabaseRetryPolicySettings.SectionName);
+        return (
+            MaxRetryCount: retryPolicyConfig.GetValue<int>("MaxRetryCount", 5),
+            MaxRetryDelaySeconds: retryPolicyConfig.GetValue<int>("MaxRetryDelaySeconds", 30)
+        );
+    }
+
+    private static void ConfigureRetryPolicy(
+        Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.NpgsqlDbContextOptionsBuilder npgsqlOptions, 
+        int maxRetryCount, 
+        int maxRetryDelaySeconds)
+    {
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: maxRetryCount,
+            maxRetryDelay: TimeSpan.FromSeconds(maxRetryDelaySeconds),
+            errorCodesToAdd: null);
     }
 }

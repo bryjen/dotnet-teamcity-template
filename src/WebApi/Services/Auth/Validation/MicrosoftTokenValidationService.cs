@@ -6,21 +6,17 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using WebApi.Configuration.Options;
 
-namespace WebApi.Services.Auth;
+namespace WebApi.Services.Auth.Validation;
 
 /// <summary>
 /// Service for validating Microsoft/Azure AD ID tokens
 /// </summary>
-public class MicrosoftTokenValidationService : ITokenValidationService
+public class MicrosoftTokenValidationService(
+    IOptions<OAuthSettings> oauthSettings,
+    ILogger<MicrosoftTokenValidationService> logger)
+    : ITokenValidationService
 {
-    private readonly OAuthSettings _oauthSettings;
-    private readonly ILogger<MicrosoftTokenValidationService> _logger;
-
-    public MicrosoftTokenValidationService(IOptions<OAuthSettings> oauthSettings, ILogger<MicrosoftTokenValidationService> logger)
-    {
-        _oauthSettings = oauthSettings.Value;
-        _logger = logger;
-    }
+    private readonly OAuthSettings _oauthSettings = oauthSettings.Value;
 
     /// <summary>
     /// Microsoft doesn't use authorization code flow in this implementation, so this method throws NotSupportedException
@@ -136,13 +132,13 @@ public class MicrosoftTokenValidationService : ITokenValidationService
         }
         catch (SecurityTokenValidationException ex)
         {
-            _logger.LogWarning(ex, "Microsoft token validation failed: {Message}. Inner: {InnerMessage}", 
+            logger.LogWarning(ex, "Microsoft token validation failed: {Message}. Inner: {InnerMessage}", 
                 ex.Message, ex.InnerException?.Message);
             throw new UnauthorizedAccessException($"Invalid Microsoft ID token: {ex.Message}", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to validate Microsoft ID token: {Message}", ex.Message);
+            logger.LogError(ex, "Failed to validate Microsoft ID token: {Message}", ex.Message);
             throw new UnauthorizedAccessException($"Failed to validate Microsoft ID token: {ex.Message}", ex);
         }
     }

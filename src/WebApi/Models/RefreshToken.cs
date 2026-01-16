@@ -1,5 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace WebApi.Models;
 
+[SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
+[SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
 public class RefreshToken
 {
     public Guid Id { get; set; }

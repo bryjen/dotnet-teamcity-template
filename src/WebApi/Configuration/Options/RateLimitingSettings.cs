@@ -1,8 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace WebApi.Configuration.Options;
 
 /// <summary>
 /// Rate limiting configuration settings
 /// </summary>
+[SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
+[SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
 public class RateLimitingSettings
 {
     public const string SectionName = "RateLimiting";
@@ -12,6 +16,8 @@ public class RateLimitingSettings
     public RateLimitPolicy Authenticated { get; set; } = new();
 }
 
+[SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
+[SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Global")]
 public class RateLimitPolicy
 {
     public int PermitLimit { get; set; } = 100;

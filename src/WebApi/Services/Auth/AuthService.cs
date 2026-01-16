@@ -5,6 +5,7 @@ using WebApi.Configuration.Options;
 using WebApi.Data;
 using WebApi.Exceptions;
 using WebApi.Models;
+using WebApi.Services.Auth.Validation;
 using WebApi.Services.Validation;
 
 namespace WebApi.Services.Auth;

@@ -16,48 +16,22 @@ using WebApi.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Bind and validate configuration options
-builder.Services.Configure<JwtSettings>(
-    builder.Configuration.GetSection(JwtSettings.SectionName));
-builder.Services.AddSingleton<IValidateOptions<JwtSettings>, JwtSettingsValidator>();
-
-builder.Services.Configure<EmailSettings>(
-    builder.Configuration.GetSection(EmailSettings.SectionName));
-builder.Services.AddSingleton<IValidateOptions<EmailSettings>, EmailSettingsValidator>();
-
-builder.Services.Configure<FrontendSettings>(
-    builder.Configuration.GetSection(FrontendSettings.SectionName));
-builder.Services.AddSingleton<IValidateOptions<FrontendSettings>, FrontendSettingsValidator>();
-
-builder.Services.Configure<RateLimitingSettings>(
-    builder.Configuration.GetSection(RateLimitingSettings.SectionName));
-builder.Services.AddSingleton<IValidateOptions<RateLimitingSettings>, RateLimitingSettingsValidator>();
-
-builder.Services.Configure<OAuthSettings>(
-    builder.Configuration.GetSection(OAuthSettings.SectionName));
-
 builder.Services
     .AddControllers()
     .AddJsonOptions(ServiceConfiguration.ConfigureJsonCallback);
-
-// FluentValidation configuration
-builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
-builder.Services.AddFluentValidationAutoValidation();
 
 builder.Services
     .AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
 
+builder.Services.ConfigureAppOptions(builder.Configuration);
 builder.Services.ConfigureEmail(builder.Configuration);
-
 builder.Services.ConfigureOpenApi();
 builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
 builder.Services.ConfigureCors(builder.Configuration);
-// Configure Data Protection for cookie encryption (required for OAuth state)
 builder.Services.AddDataProtection();
 builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureRateLimiting(builder.Configuration);
-builder.Services.ConfigureSecurityHeaders(builder.Configuration, builder.Environment);
 builder.Services.ConfigureRequestLimits(builder.Configuration);
 builder.Services.ConfigureResponseCompression(builder.Environment);
 builder.Services.ConfigureResponseCaching(builder.Environment);
@@ -68,23 +42,20 @@ builder.Services.AddScoped<TagService>();
 
 var app = builder.Build();
 
-// Validate configuration on startup (fail fast)
-ValidateConfigurationOnStartup(app.Services, app.Environment, app.Logger);
+// validate options on startup -> fast fail
+ValidateConfigurationOnStartup(app.Services, app.Environment, app.Logger);  
 
-// Request/response logging (should be early in pipeline)
-// This must be before GlobalExceptionHandlerMiddleware so it can capture error responses
+// request/response logging, must be before GlobalExceptionHandlerMiddleware so it can capture error responses
 app.UseMiddleware<RequestLoggingMiddleware>();
 
-// Global exception handling middleware (should be early in pipeline, after logging)
+// global unhandled exception handling (should be early in pipeline, after logging)
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
-// Security headers (should be early, after exception handling)
+// middleware for security response security headers
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
-// Rate limiting (should be early, after exception handling)
 app.UseRateLimiter();
 
-// Response compression (production only - should be early, before routing)
 if (app.Environment.IsProduction())
 {
     app.UseResponseCompression();
@@ -105,7 +76,6 @@ app.UseSwaggerUI(options =>
     options.DisplayRequestDuration();
 });
 
-// Only use HTTPS redirection in production
 if (app.Environment.IsProduction())
 {
     app.UseHttpsRedirection();
@@ -114,7 +84,6 @@ if (app.Environment.IsProduction())
 // Routing must come before response caching
 app.UseRouting();
 
-// Response caching (production only - must be after UseRouting but before UseAuthentication)
 if (app.Environment.IsProduction())
 {
     app.UseResponseCaching();

@@ -1,4 +1,4 @@
-namespace WebApi.Services.Auth;
+namespace WebApi.Services.Auth.Validation;
 
 /// <summary>
 /// Interface for validating OAuth tokens from different providers
