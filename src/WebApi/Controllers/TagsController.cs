@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WebApi.DTOs;
 using WebApi.DTOs.Tags;
 using WebApi.Exceptions;
 using WebApi.Services;
@@ -51,7 +52,7 @@ public class TagsController : BaseController
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(TagDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TagDto>> GetTagById(Guid id)
     {
         var userId = GetUserId();
@@ -59,7 +60,7 @@ public class TagsController : BaseController
 
         if (tag == null)
         {
-            throw new NotFoundException("Tag not found");
+            return this.NotFoundError("Tag not found");
         }
 
         return Ok(tag);
@@ -87,14 +88,25 @@ public class TagsController : BaseController
     /// </remarks>
     [HttpPost]
     [ProducesResponseType(typeof(TagDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<TagDto>> CreateTag([FromBody] CreateTagRequest request)
     {
-        var userId = GetUserId();
-        var tag = await _tagService.CreateTagAsync(request, userId);
-        return CreatedAtAction(nameof(GetTagById), new { id = tag.Id }, tag);
+        try
+        {
+            var userId = GetUserId();
+            var tag = await _tagService.CreateTagAsync(request, userId);
+            return CreatedAtAction(nameof(GetTagById), new { id = tag.Id }, tag);
+        }
+        catch (ValidationException ex)
+        {
+            return this.BadRequestError(ex.Message);
+        }
+        catch (ConflictException ex)
+        {
+            return this.ConflictError(ex.Message);
+        }
     }
 
     /// <summary>
@@ -120,21 +132,32 @@ public class TagsController : BaseController
     /// </remarks>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(TagDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<TagDto>> UpdateTag(Guid id, [FromBody] UpdateTagRequest request)
     {
-        var userId = GetUserId();
-        var tag = await _tagService.UpdateTagAsync(id, request, userId);
-
-        if (tag == null)
+        try
         {
-            throw new NotFoundException("Tag not found");
-        }
+            var userId = GetUserId();
+            var tag = await _tagService.UpdateTagAsync(id, request, userId);
 
-        return Ok(tag);
+            if (tag == null)
+            {
+                return this.NotFoundError("Tag not found");
+            }
+
+            return Ok(tag);
+        }
+        catch (ValidationException ex)
+        {
+            return this.BadRequestError(ex.Message);
+        }
+        catch (ConflictException ex)
+        {
+            return this.ConflictError(ex.Message);
+        }
     }
 
     /// <summary>
@@ -152,7 +175,7 @@ public class TagsController : BaseController
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteTag(Guid id)
     {
         var userId = GetUserId();
@@ -160,7 +183,7 @@ public class TagsController : BaseController
 
         if (!result)
         {
-            throw new NotFoundException("Tag not found");
+            return this.NotFoundError("Tag not found");
         }
 
         return NoContent();

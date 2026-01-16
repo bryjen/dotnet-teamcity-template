@@ -79,11 +79,12 @@ var app = builder.Build();
 // Validate configuration on startup (fail fast)
 ValidateConfigurationOnStartup(app.Services, app.Environment, app.Logger);
 
-// Global exception handling middleware (should be early in pipeline)
-app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
-
-// Request/response logging (should be early, after exception handling)
+// Request/response logging (should be early in pipeline)
+// This must be before GlobalExceptionHandlerMiddleware so it can capture error responses
 app.UseMiddleware<RequestLoggingMiddleware>();
+
+// Global exception handling middleware (should be early in pipeline, after logging)
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 // Security headers (should be early, after exception handling)
 app.UseMiddleware<SecurityHeadersMiddleware>();

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WebApi.DTOs;
 using WebApi.DTOs.Todos;
 using WebApi.Exceptions;
 using WebApi.Models;
@@ -87,7 +88,7 @@ public class TodosController : BaseController
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(TodoItemDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TodoItemDto>> GetTodoById(Guid id)
     {
         var userId = GetUserId();
@@ -95,7 +96,7 @@ public class TodosController : BaseController
 
         if (todo == null)
         {
-            throw new NotFoundException("Todo not found");
+            return this.NotFoundError("Todo not found");
         }
 
         return Ok(todo);
@@ -125,13 +126,24 @@ public class TodosController : BaseController
     /// </remarks>
     [HttpPost]
     [ProducesResponseType(typeof(TodoItemDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<TodoItemDto>> CreateTodo([FromBody] CreateTodoRequest request)
     {
-        var userId = GetUserId();
-        var todo = await _todoService.CreateTodoAsync(request, userId);
-        return CreatedAtAction(nameof(GetTodoById), new { id = todo.Id }, todo);
+        try
+        {
+            var userId = GetUserId();
+            var todo = await _todoService.CreateTodoAsync(request, userId);
+            return CreatedAtAction(nameof(GetTodoById), new { id = todo.Id }, todo);
+        }
+        catch (ValidationException ex)
+        {
+            return this.BadRequestError(ex.Message);
+        }
+        catch (NotFoundException ex)
+        {
+            return this.NotFoundError(ex.Message);
+        }
     }
 
     /// <summary>
@@ -159,20 +171,31 @@ public class TodosController : BaseController
     /// </remarks>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(TodoItemDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TodoItemDto>> UpdateTodo(Guid id, [FromBody] UpdateTodoRequest request)
     {
-        var userId = GetUserId();
-        var todo = await _todoService.UpdateTodoAsync(id, request, userId);
-
-        if (todo == null)
+        try
         {
-            throw new NotFoundException("Todo not found");
-        }
+            var userId = GetUserId();
+            var todo = await _todoService.UpdateTodoAsync(id, request, userId);
 
-        return Ok(todo);
+            if (todo == null)
+            {
+                return this.NotFoundError("Todo not found");
+            }
+
+            return Ok(todo);
+        }
+        catch (ValidationException ex)
+        {
+            return this.BadRequestError(ex.Message);
+        }
+        catch (NotFoundException ex)
+        {
+            return this.NotFoundError(ex.Message);
+        }
     }
 
     /// <summary>
@@ -194,7 +217,7 @@ public class TodosController : BaseController
     [HttpPatch("{id}/complete")]
     [ProducesResponseType(typeof(TodoItemDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TodoItemDto>> ToggleComplete(Guid id)
     {
         var userId = GetUserId();
@@ -202,7 +225,7 @@ public class TodosController : BaseController
 
         if (todo == null)
         {
-            throw new NotFoundException("Todo not found");
+            return this.NotFoundError("Todo not found");
         }
 
         return Ok(todo);
@@ -219,7 +242,7 @@ public class TodosController : BaseController
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteTodo(Guid id)
     {
         var userId = GetUserId();
@@ -227,7 +250,7 @@ public class TodosController : BaseController
 
         if (!result)
         {
-            throw new NotFoundException("Todo not found");
+            return this.NotFoundError("Todo not found");
         }
 
         return NoContent();

@@ -53,6 +53,7 @@ public class RequestLoggingMiddleware
             LogResponse(context, correlationId, stopwatch.ElapsedMilliseconds, responseBody);
             
             // Copy response body back to original stream
+            // This will include any error response written by GlobalExceptionHandlerMiddleware
             responseBody.Seek(0, SeekOrigin.Begin);
             await responseBody.CopyToAsync(originalBodyStream);
         }

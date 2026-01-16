@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Web.Common.DTOs.Auth;
+using WebApi.DTOs;
+using WebApi.Exceptions;
 using WebApi.Services;
 using WebApi.Services.Auth;
 
@@ -47,12 +49,23 @@ public class AuthController(
     /// </remarks>
     [HttpPost("register")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
     {
-        var response = await authService.RegisterAsync(request);
-        return CreatedAtAction(nameof(GetCurrentUser), response);
+        try
+        {
+            var response = await authService.RegisterAsync(request);
+            return CreatedAtAction(nameof(GetCurrentUser), response);
+        }
+        catch (ValidationException ex)
+        {
+            return this.BadRequestError(ex.Message);
+        }
+        catch (ConflictException ex)
+        {
+            return this.ConflictError(ex.Message);
+        }
     }
 
     /// <summary>
@@ -75,11 +88,18 @@ public class AuthController(
     /// </remarks>
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
     {
-        var response = await authService.LoginAsync(request);
-        return Ok(response);
+        try
+        {
+            var response = await authService.LoginAsync(request);
+            return Ok(response);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return this.UnauthorizedError(ex.Message);
+        }
     }
 
     /// <summary>
@@ -100,11 +120,18 @@ public class AuthController(
     /// </remarks>
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
     {
-        var response = await authService.RefreshTokenAsync(request.RefreshToken);
-        return Ok(response);
+        try
+        {
+            var response = await authService.RefreshTokenAsync(request.RefreshToken);
+            return Ok(response);
+        }
+        catch (ValidationException ex)
+        {
+            return this.BadRequestError(ex.Message);
+        }
     }
 
     /// <summary>
@@ -123,22 +150,22 @@ public class AuthController(
     [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserDto>> GetCurrentUser()
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         
         if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
         {
-            return Unauthorized(new { message = "Invalid token" });
+            return this.UnauthorizedError("Invalid token");
         }
 
         var user = await authService.GetUserByIdAsync(userId);
         
         if (user == null)
         {
-            return NotFound(new { message = "User not found" });
+            return this.NotFoundError("User not found");
         }
 
         return Ok(user);
@@ -164,12 +191,12 @@ public class AuthController(
     /// </remarks>
     [HttpPost("password-reset/request")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> RequestPasswordReset([FromBody] PasswordResetRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return BadRequest(new { message = "Email is required" });
+            return this.BadRequestError("Email is required");
         }
 
         await passwordResetService.CreatePasswordResetRequest(request.Email);
@@ -202,24 +229,24 @@ public class AuthController(
     /// </remarks>
     [HttpPost("password-reset/confirm")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ConfirmPasswordReset([FromBody] ConfirmPasswordResetRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Token))
         {
-            return BadRequest(new { message = "Token is required" });
+            return this.BadRequestError("Token is required");
         }
 
         if (string.IsNullOrWhiteSpace(request.NewPassword))
         {
-            return BadRequest(new { message = "New password is required" });
+            return this.BadRequestError("New password is required");
         }
 
         var result = await passwordResetService.PerformPasswordResetRequest(request.Token, request.NewPassword);
         
         if (!result.IsSuccess)
         {
-            return BadRequest(new { message = result.ErrorMessage ?? "Invalid or expired token" });
+            return this.BadRequestError(result.ErrorMessage ?? "Invalid or expired token");
         }
 
         return Ok(new { message = "Password has been reset successfully. You can now log in with your new password." });

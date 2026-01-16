@@ -47,6 +47,8 @@ public static class ServiceConfiguration
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
+            options.SupportNonNullableReferenceTypes();
+            
             var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
             if (File.Exists(xmlPath))
