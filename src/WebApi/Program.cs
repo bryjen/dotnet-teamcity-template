@@ -63,8 +63,8 @@ builder.Services.ConfigureResponseCompression(builder.Environment);
 builder.Services.ConfigureResponseCaching(builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
 builder.Services.ConfigureAuthServices(builder.Configuration);
-builder.Services.AddScoped<ITodoService, TodoService>();
-builder.Services.AddScoped<ITagService, TagService>();
+builder.Services.AddScoped<TodoService>();
+builder.Services.AddScoped<TagService>();
 
 var app = builder.Build();
 

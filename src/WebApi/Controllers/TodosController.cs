@@ -15,7 +15,7 @@ namespace WebApi.Controllers;
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
 public class TodosController(
-    ITodoService todoService) 
+    TodoService todoService) 
     : BaseController
 {
     /// <summary>

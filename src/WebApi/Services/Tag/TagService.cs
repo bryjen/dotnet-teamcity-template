@@ -5,7 +5,7 @@ using WebApi.Exceptions;
 
 namespace WebApi.Services.Tag;
 
-public class TagService(AppDbContext context) : ITagService
+public class TagService(AppDbContext context)
 {
     public async Task<List<TagDto>> GetAllTagsAsync(Guid userId)
     {

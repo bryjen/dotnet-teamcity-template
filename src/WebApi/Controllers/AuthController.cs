@@ -20,7 +20,7 @@ namespace WebApi.Controllers;
 [Produces("application/json")]
 [EnableRateLimiting("auth")]
 public class AuthController(
-    IAuthService authService, 
+    AuthService authService, 
     PasswordResetService passwordResetService) 
     : ControllerBase
 {

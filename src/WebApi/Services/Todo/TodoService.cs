@@ -6,7 +6,7 @@ using WebApi.Models;
 
 namespace WebApi.Services.Todo;
 
-public class TodoService(AppDbContext context) : ITodoService
+public class TodoService(AppDbContext context)
 {
     public async Task<List<TodoItemDto>> GetAllTodosAsync(Guid userId, string? status = null, Priority? priority = null, Guid? tagId = null)
     {

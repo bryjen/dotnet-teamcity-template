@@ -16,7 +16,7 @@ public class AuthService(
     PasswordValidator passwordValidator,
     TokenValidationServiceFactory tokenValidationFactory,
     IOptions<JwtSettings> jwtSettings,
-    IOptions<OAuthSettings> oauthSettings) : IAuthService
+    IOptions<OAuthSettings> oauthSettings)
 {
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {

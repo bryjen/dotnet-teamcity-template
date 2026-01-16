@@ -14,7 +14,7 @@ namespace WebApi.Controllers;
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
 public class TagsController(
-    ITagService tagService) 
+    TagService tagService) 
     : BaseController
 {
     /// <summary>

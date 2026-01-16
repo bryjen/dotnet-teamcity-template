@@ -576,7 +576,7 @@ public static class ServiceConfiguration
         services.AddScoped<MicrosoftTokenValidationService>();
         services.AddScoped<GitHubTokenValidationService>();
         services.AddScoped<TokenValidationServiceFactory>();
-        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<AuthService>();
         
         // Configure PasswordResetService
         services.AddScoped<PasswordResetService>(sp =>
