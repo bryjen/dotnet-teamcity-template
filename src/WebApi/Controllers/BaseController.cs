@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace WebApi.Controllers;
 
@@ -9,6 +10,7 @@ namespace WebApi.Controllers;
 /// </summary>
 [Authorize]
 [ApiController]
+[EnableRateLimiting("authenticated")]
 public abstract class BaseController : ControllerBase
 {
     /// <summary>

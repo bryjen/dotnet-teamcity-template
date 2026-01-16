@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using WebApi.Configuration;
 using WebApi.Data;
@@ -7,12 +9,17 @@ using WebApi.Services.Email;
 using WebApi.Services.Tag;
 using WebApi.Services.Todo;
 using WebApi.Services.Validation;
+using WebApi.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddControllers()
     .AddJsonOptions(ServiceConfiguration.ConfigureJsonCallback);
+
+// FluentValidation configuration
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+builder.Services.AddFluentValidationAutoValidation();
 
 builder.Services
     .AddHealthChecks()
@@ -24,6 +31,8 @@ builder.Services.ConfigureOpenApi();
 builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
 builder.Services.ConfigureCors(builder.Configuration);
 builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
+builder.Services.ConfigureRateLimiting(builder.Configuration);
+builder.Services.ConfigureSecurityHeaders(builder.Configuration, builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
 
 builder.Services.AddScoped<PasswordResetService>(sp =>
@@ -47,6 +56,15 @@ var app = builder.Build();
 
 // Global exception handling middleware (should be early in pipeline)
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+
+// Request/response logging (should be early, after exception handling)
+app.UseMiddleware<RequestLoggingMiddleware>();
+
+// Security headers (should be early, after exception handling)
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
+// Rate limiting (should be early, after exception handling)
+app.UseRateLimiter();
 
 // no need to hide openapi docs since this is a "test" project anyways
 // in a production environment, just place this in an if statement

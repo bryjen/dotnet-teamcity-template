@@ -1,8 +1,11 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenTelemetry.Logs;
@@ -279,6 +282,141 @@ public static class ServiceConfiguration
         services.AddSingleton<IResend>(ResendClient.Create(resendApiKey));
         services.AddTransient<IEmailService, RenderMjmlEmailService>(sp =>
             new RenderMjmlEmailService(sp.GetRequiredService<IResend>(), emailDomain));
+    }
+    
+    /// <summary>
+    /// Configures security headers for the application.
+    /// </summary>
+    /// <remarks>
+    /// Security headers are applied via SecurityHeadersMiddleware.
+    /// This method is kept for consistency with other configuration methods,
+    /// but the actual implementation is in the middleware.
+    /// </remarks>
+    public static void ConfigureSecurityHeaders(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment environment)
+    {
+        // Security headers are applied via SecurityHeadersMiddleware
+        // No service registration needed for the custom middleware
+    }
+    
+    /// <summary>
+    /// Configures rate limiting for the application.
+    /// </summary>
+    /// <remarks>
+    /// Sets up three rate limiting policies:
+    /// - Global: Applies to all requests (100 requests per minute per IP/user)
+    /// - Auth: Stricter limits for authentication endpoints (5 requests per minute per IP)
+    /// - Authenticated: Higher limits for authenticated users (200 requests per minute per user)
+    /// </remarks>
+    public static void ConfigureRateLimiting(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var globalConfig = configuration.GetSection("RateLimiting:Global");
+        var authConfig = configuration.GetSection("RateLimiting:Auth");
+        var authenticatedConfig = configuration.GetSection("RateLimiting:Authenticated");
+        
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            
+            // Global rate limiter - applies to all requests
+            var globalPermitLimit = globalConfig.GetValue<int>("PermitLimit", 100);
+            var globalWindowMinutes = globalConfig.GetValue<int>("WindowMinutes", 1);
+            var globalQueueLimit = globalConfig.GetValue<int>("QueueLimit", 10);
+            
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            {
+                // Use authenticated user ID if available, otherwise use IP address
+                var partitionKey = context.User.Identity?.Name 
+                    ?? context.Connection.RemoteIpAddress?.ToString() 
+                    ?? "anonymous";
+                
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: partitionKey,
+                    factory: partition => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = globalPermitLimit,
+                        Window = TimeSpan.FromMinutes(globalWindowMinutes),
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = globalQueueLimit
+                    });
+            });
+            
+            // Auth endpoints policy - stricter limits to prevent brute force attacks (IP-based)
+            var authPermitLimit = authConfig.GetValue<int>("PermitLimit", 5);
+            var authWindowMinutes = authConfig.GetValue<int>("WindowMinutes", 1);
+            var authQueueLimit = authConfig.GetValue<int>("QueueLimit", 2);
+            
+            options.AddPolicy("auth", context =>
+            {
+                var partitionKey = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: partitionKey,
+                    factory: partition => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = authPermitLimit,
+                        Window = TimeSpan.FromMinutes(authWindowMinutes),
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = authQueueLimit
+                    });
+            });
+            
+            // Authenticated users policy - higher limits for authenticated users
+            var authenticatedPermitLimit = authenticatedConfig.GetValue<int>("PermitLimit", 200);
+            var authenticatedWindowMinutes = authenticatedConfig.GetValue<int>("WindowMinutes", 1);
+            var authenticatedQueueLimit = authenticatedConfig.GetValue<int>("QueueLimit", 20);
+            
+            options.AddPolicy("authenticated", context =>
+            {
+                var userId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (userId == null)
+                {
+                    // If not authenticated, use no limiter (will fall back to global)
+                    return RateLimitPartition.GetNoLimiter("anonymous");
+                }
+                
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: userId,
+                    factory: partition => new FixedWindowRateLimiterOptions
+                    {
+                        AutoReplenishment = true,
+                        PermitLimit = authenticatedPermitLimit,
+                        Window = TimeSpan.FromMinutes(authenticatedWindowMinutes),
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = authenticatedQueueLimit
+                    });
+            });
+            
+            // Custom response when rate limit is exceeded
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                context.HttpContext.Response.ContentType = "application/json";
+                
+                // Try to get retry after from metadata
+                var retryAfter = 60; // default to 60 seconds
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfterValue))
+                {
+                    retryAfter = (int)((TimeSpan)retryAfterValue).TotalSeconds;
+                }
+                
+                context.HttpContext.Response.Headers.RetryAfter = retryAfter.ToString();
+                
+                var response = new
+                {
+                    message = "Rate limit exceeded. Please try again later.",
+                    retryAfter = retryAfter
+                };
+                
+                await context.HttpContext.Response.WriteAsJsonAsync(response, cancellationToken);
+            };
+        });
     }
     
     internal static void ConfigureJsonCallback(JsonOptions options)

@@ -47,6 +47,12 @@
     <!-- email -->
     <PackageReference Include="Mjml.Net" Version="4.11.0" />
     <PackageReference Include="Resend" Version="0.2.1" />
+    
+    <!-- validation -->
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
+    
+    <!-- security -->
+    <PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders" Version="0.21.0" />
   </ItemGroup>
 
   <ItemGroup>

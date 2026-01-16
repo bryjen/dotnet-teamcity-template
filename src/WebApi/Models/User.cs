@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Identity;
+
 namespace WebApi.Models;
 
 public class User
@@ -16,3 +18,7 @@ public class User
     public ICollection<PasswordResetRequest> PasswordResetRequests { get; set; } = new List<PasswordResetRequest>();
 }
 
+class TestUser : IdentityUser
+{
+    
+}
