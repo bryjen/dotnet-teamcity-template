@@ -21,6 +21,16 @@ public sealed class FakeAuthApi : IAuthApi
 
     public Task<ApiResult<UserDto>> GetMeAsync(CancellationToken ct = default)
         => Task.FromResult(MeHandler?.Invoke() ?? ApiResult<UserDto>.Failure("Not configured"));
+
+    public Task<ApiResult<PasswordResetResponse>> RequestPasswordResetAsync(string email, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<ApiResult<PasswordResetResponse>> ConfirmPasswordResetAsync(string token, string newPassword, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 

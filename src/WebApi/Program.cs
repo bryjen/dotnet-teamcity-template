@@ -1,7 +1,10 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using WebApi.Configuration;
+using WebApi.Configuration.Options;
+using WebApi.Configuration.Validators;
 using WebApi.Data;
 using WebApi.Middleware;
 using WebApi.Services.Auth;
@@ -12,6 +15,23 @@ using WebApi.Services.Validation;
 using WebApi.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Bind and validate configuration options
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.AddSingleton<IValidateOptions<JwtSettings>, JwtSettingsValidator>();
+
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection(EmailSettings.SectionName));
+builder.Services.AddSingleton<IValidateOptions<EmailSettings>, EmailSettingsValidator>();
+
+builder.Services.Configure<FrontendSettings>(
+    builder.Configuration.GetSection(FrontendSettings.SectionName));
+builder.Services.AddSingleton<IValidateOptions<FrontendSettings>, FrontendSettingsValidator>();
+
+builder.Services.Configure<RateLimitingSettings>(
+    builder.Configuration.GetSection(RateLimitingSettings.SectionName));
+builder.Services.AddSingleton<IValidateOptions<RateLimitingSettings>, RateLimitingSettingsValidator>();
 
 builder.Services
     .AddControllers()
@@ -53,6 +73,9 @@ builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<ITagService, TagService>();
 
 var app = builder.Build();
+
+// Validate configuration on startup (fail fast)
+ValidateConfigurationOnStartup(app.Services, app.Environment, app.Logger);
 
 // Global exception handling middleware (should be early in pipeline)
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
@@ -122,4 +145,89 @@ using (var scope = app.Services.CreateScope())
 app.Run();
 
 // Make the implicit Program class public for testing
-public partial class Program { }
+public partial class Program 
+{
+    /// <summary>
+    /// Validates all configuration options on startup
+    /// </summary>
+    private static void ValidateConfigurationOnStartup(
+        IServiceProvider services, 
+        IHostEnvironment environment, 
+        ILogger logger)
+    {
+        var validationErrors = new List<string>();
+        var warnings = new List<string>();
+
+        // Validate JWT settings
+        ValidateOptions<JwtSettings>(services, "JWT settings", validationErrors, warnings, environment);
+
+        // Validate Email settings
+        ValidateOptions<EmailSettings>(services, "Email settings", validationErrors, warnings, environment);
+
+        // Validate Frontend settings
+        ValidateOptions<FrontendSettings>(services, "Frontend settings", validationErrors, warnings, environment);
+
+        // Validate Rate Limiting settings
+        ValidateOptions<RateLimitingSettings>(services, "Rate Limiting settings", validationErrors, warnings, environment);
+
+        // Log warnings (non-blocking in development)
+        foreach (var warning in warnings)
+        {
+            logger.LogWarning("Configuration warning: {Warning}", warning);
+        }
+
+        // Fail if there are validation errors
+        if (validationErrors.Count > 0)
+        {
+            var errorMessage = "Configuration validation failed:\n" + string.Join("\n", validationErrors.Select(e => $"  - {e}"));
+            logger.LogError("Configuration validation failed. Application will not start.");
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        if (warnings.Count > 0 && environment.IsProduction())
+        {
+            logger.LogWarning("Configuration warnings detected in production. Review configuration settings.");
+        }
+    }
+
+    private static void ValidateOptions<T>(
+        IServiceProvider services,
+        string settingsName,
+        List<string> errors,
+        List<string> warnings,
+        IHostEnvironment environment) where T : class
+    {
+        var options = services.GetRequiredService<IOptions<T>>();
+        var validateOptions = services.GetService<IValidateOptions<T>>();
+
+        if (validateOptions == null)
+        {
+            return; // No validator registered
+        }
+
+        var result = validateOptions.Validate(Options.DefaultName, options.Value);
+
+        if (result.Failed)
+        {
+            foreach (var failure in result.Failures)
+            {
+                // In production, all validation failures are errors
+                // In development, some might be warnings
+                if (environment.IsProduction() || !IsOptionalInDevelopment<T>())
+                {
+                    errors.Add($"{settingsName}: {failure}");
+                }
+                else
+                {
+                    warnings.Add($"{settingsName}: {failure}");
+                }
+            }
+        }
+    }
+
+    private static bool IsOptionalInDevelopment<T>() where T : class
+    {
+        // Email settings are optional in development
+        return typeof(T) == typeof(EmailSettings);
+    }
+}
