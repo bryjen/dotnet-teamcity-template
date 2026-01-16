@@ -55,6 +55,7 @@ builder.Services.AddDataProtection();
 builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureRateLimiting(builder.Configuration);
 builder.Services.ConfigureSecurityHeaders(builder.Configuration, builder.Environment);
+builder.Services.ConfigureRequestLimits(builder.Configuration);
 builder.Services.ConfigureResponseCompression(builder.Environment);
 builder.Services.ConfigureResponseCaching(builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);

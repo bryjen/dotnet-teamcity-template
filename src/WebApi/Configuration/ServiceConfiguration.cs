@@ -1,13 +1,16 @@
 using System.IO.Compression;
+using System.IO.Compression;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenTelemetry.Logs;
@@ -15,6 +18,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Resend;
+using WebApi.Configuration.Options;
 using WebApi.Data;
 using WebApi.Services.Email;
 
@@ -116,16 +120,36 @@ public static class ServiceConfiguration
         // Set the intended provider, + we try testing the connection, falling back to in-memory if it fails.
         try
         {
+            // Read retry policy configuration
+            var retryPolicyConfig = configuration.GetSection(DatabaseRetryPolicySettings.SectionName);
+            var maxRetryCount = retryPolicyConfig.GetValue<int>("MaxRetryCount", 5);
+            var maxRetryDelaySeconds = retryPolicyConfig.GetValue<int>("MaxRetryDelaySeconds", 30);
+            
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>()
-                .UseNpgsql(connectionString);
+                .UseNpgsql(connectionString, npgsqlOptions =>
+                {
+                    // Enable retry on failure for transient database errors
+                    npgsqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: maxRetryCount,
+                        maxRetryDelay: TimeSpan.FromSeconds(maxRetryDelaySeconds),
+                        errorCodesToAdd: null); // Uses default PostgreSQL transient error codes
+                });
             using var testContext = new AppDbContext(optionsBuilder.Options);
             var canConnect = testContext.Database.CanConnect();
             if (canConnect)
             {
-                // Connection successful, use PostgreSQL
-                logger.LogInformation("Successfully connected to PostgreSQL using connection string 'DefaultConnection'. Using PostgreSQL database provider.");
+                // Connection successful, use PostgreSQL with retry policy
+                logger.LogInformation("Successfully connected to PostgreSQL using connection string 'DefaultConnection'. Using PostgreSQL database provider with retry policy (MaxRetryCount: {MaxRetryCount}, MaxRetryDelay: {MaxRetryDelay}s).", 
+                    maxRetryCount, maxRetryDelaySeconds);
                 services.AddDbContext<AppDbContext>(options =>
-                    options.UseNpgsql(connectionString));
+                    options.UseNpgsql(connectionString, npgsqlOptions =>
+                    {
+                        // Enable retry on failure for transient database errors
+                        npgsqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: maxRetryCount,
+                            maxRetryDelay: TimeSpan.FromSeconds(maxRetryDelaySeconds),
+                            errorCodesToAdd: null); // Uses default PostgreSQL transient error codes
+                    }));
                 return;
             }
             
@@ -494,6 +518,45 @@ public static class ServiceConfiguration
             
             // Use case-sensitive paths for cache keys
             options.UseCaseSensitivePaths = false;
+        });
+    }
+    
+    /// <summary>
+    /// Configures request size limits for the application.
+    /// </summary>
+    /// <remarks>
+    /// Sets global request body size limits and form data limits.
+    /// Individual endpoints can override these limits using the [RequestSizeLimit(bytes)] attribute.
+    /// </remarks>
+    public static void ConfigureRequestLimits(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var limitsConfig = configuration.GetSection(RequestLimitsSettings.SectionName);
+        var maxRequestBodySizeBytes = limitsConfig.GetValue<long>("MaxRequestBodySizeBytes", 10 * 1024 * 1024); // Default: 10 MB
+        var maxFormValueLength = limitsConfig.GetValue<int>("MaxFormValueLength", 4 * 1024 * 1024); // Default: 4 MB
+        var maxFormKeyLength = limitsConfig.GetValue<int>("MaxFormKeyLength", 2 * 1024); // Default: 2 KB
+        var maxFormFileSizeBytes = limitsConfig.GetValue<long>("MaxFormFileSizeBytes", 5 * 1024 * 1024); // Default: 5 MB
+
+        // Configure form options (for form data limits)
+        services.Configure<FormOptions>(options =>
+        {
+            options.ValueLengthLimit = maxFormValueLength;
+            options.KeyLengthLimit = maxFormKeyLength;
+            options.MultipartBodyLengthLimit = maxRequestBodySizeBytes;
+            options.MultipartHeadersLengthLimit = 16384; // 16 KB for headers
+        });
+
+        // Configure Kestrel server options (for request body size limits)
+        services.Configure<KestrelServerOptions>(options =>
+        {
+            options.Limits.MaxRequestBodySize = maxRequestBodySizeBytes;
+        });
+
+        // Configure IIS server options (for IIS hosting)
+        services.Configure<IISServerOptions>(options =>
+        {
+            options.MaxRequestBodySize = maxRequestBodySizeBytes;
         });
     }
     
