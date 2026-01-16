@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -5,6 +6,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -416,6 +418,81 @@ public static class ServiceConfiguration
                 
                 await context.HttpContext.Response.WriteAsJsonAsync(response, cancellationToken);
             };
+        });
+    }
+    
+    /// <summary>
+    /// Configures response compression for the application (production only).
+    /// </summary>
+    /// <remarks>
+    /// Enables Gzip and Brotli compression for responses to reduce bandwidth usage.
+    /// Only enabled in production environment.
+    /// </remarks>
+    public static void ConfigureResponseCompression(
+        this IServiceCollection services,
+        IHostEnvironment environment)
+    {
+        // Only enable compression in production
+        if (!environment.IsProduction())
+        {
+            return;
+        }
+
+        services.AddResponseCompression(options =>
+        {
+            options.EnableForHttps = true; // Enable compression for HTTPS
+            options.Providers.Add<BrotliCompressionProvider>();
+            options.Providers.Add<GzipCompressionProvider>();
+            
+            // Compress these MIME types
+            options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+            {
+                "application/json",
+                "application/xml",
+                "text/json",
+                "text/xml"
+            });
+        });
+
+        // Configure compression levels
+        services.Configure<BrotliCompressionProviderOptions>(options =>
+        {
+            options.Level = CompressionLevel.Optimal;
+        });
+
+        services.Configure<GzipCompressionProviderOptions>(options =>
+        {
+            options.Level = CompressionLevel.Optimal;
+        });
+    }
+
+    /// <summary>
+    /// Configures response caching for the application (production only).
+    /// </summary>
+    /// <remarks>
+    /// Enables HTTP-level response caching to reduce server load and improve performance.
+    /// Only enabled in production environment.
+    /// </remarks>
+    public static void ConfigureResponseCaching(
+        this IServiceCollection services,
+        IHostEnvironment environment)
+    {
+        // Only enable response caching in production
+        if (!environment.IsProduction())
+        {
+            return;
+        }
+
+        services.AddResponseCaching(options =>
+        {
+            // Maximum cacheable response size (100 MB)
+            options.MaximumBodySize = 100 * 1024 * 1024;
+            
+            // Maximum cache size (100 MB)
+            options.SizeLimit = 100 * 1024 * 1024;
+            
+            // Use case-sensitive paths for cache keys
+            options.UseCaseSensitivePaths = false;
         });
     }
     

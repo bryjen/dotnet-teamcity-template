@@ -53,6 +53,8 @@ builder.Services.ConfigureCors(builder.Configuration);
 builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureRateLimiting(builder.Configuration);
 builder.Services.ConfigureSecurityHeaders(builder.Configuration, builder.Environment);
+builder.Services.ConfigureResponseCompression(builder.Environment);
+builder.Services.ConfigureResponseCaching(builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
 
 builder.Services.AddScoped<PasswordResetService>(sp =>
@@ -89,6 +91,12 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 // Rate limiting (should be early, after exception handling)
 app.UseRateLimiter();
 
+// Response compression (production only - should be early, before routing)
+if (app.Environment.IsProduction())
+{
+    app.UseResponseCompression();
+}
+
 // no need to hide openapi docs since this is a "test" project anyways
 // in a production environment, just place this in an if statement
 app.UseSwagger();
@@ -105,6 +113,15 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseHttpsRedirection();
+
+// Routing must come before response caching
+app.UseRouting();
+
+// Response caching (production only - must be after UseRouting but before UseAuthentication)
+if (app.Environment.IsProduction())
+{
+    app.UseResponseCaching();
+}
 
 app.UseCors();
 
