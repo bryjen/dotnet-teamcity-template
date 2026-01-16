@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Web.Common.DTOs.Auth;
 using WebApi.DTOs;
 using WebApi.Exceptions;
+using WebApi.Models;
 using WebApi.Services;
 using WebApi.Services.Auth;
 
@@ -252,26 +253,83 @@ public class AuthController(
     }
 
     /// <summary>
-    /// Authenticate with Google using ID token
+    /// Authenticate with OAuth provider using ID token
     /// </summary>
-    /// <param name="request">Google ID token from frontend</param>
+    /// <param name="request">OAuth login request with provider name and ID token</param>
     /// <returns>Authentication response with user details, access token, and refresh token</returns>
     /// <response code="200">Login successful</response>
-    /// <response code="400">Invalid request (missing or invalid ID token)</response>
+    /// <response code="400">Invalid request (missing or invalid parameters)</response>
     /// <response code="401">Token validation failed</response>
     /// <response code="409">Account conflict</response>
     /// <remarks>
-    /// This endpoint validates a Google ID token received from the frontend Google Sign-In flow.
-    /// The frontend should use Google's JavaScript SDK to obtain the ID token and send it here.
+    /// This endpoint validates an OAuth ID token from various providers (Google, Microsoft, etc.).
+    /// The frontend should obtain the ID token from the OAuth provider and send it here.
     ///
     /// Sample request:
     ///
-    ///     POST /api/v1/auth/google
+    ///     POST /api/v1/auth/oauth
     ///     {
+    ///        "provider": "Google",
     ///        "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
     ///     }
     ///
+    /// Supported providers: Google, Microsoft
+    ///
     /// </remarks>
+    [HttpPost("oauth")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AuthResponse>> OAuthLogin([FromBody] OAuthLoginRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Provider))
+        {
+            return this.BadRequestError("Provider is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+        {
+            return this.BadRequestError("ID token is required");
+        }
+
+        if (!Enum.TryParse<AuthProvider>(request.Provider, ignoreCase: true, out var provider))
+        {
+            return this.BadRequestError($"Invalid provider '{request.Provider}'. Supported providers: {string.Join(", ", Enum.GetNames<AuthProvider>().Where(p => p != "Local"))}");
+        }
+
+        if (provider == AuthProvider.Local)
+        {
+            return this.BadRequestError("Local provider is not supported for OAuth login");
+        }
+
+        try
+        {
+            var response = await authService.LoginWithOAuthAsync(provider, request.IdToken);
+            return Ok(response);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return this.UnauthorizedError(ex.Message);
+        }
+        catch (ConflictException ex)
+        {
+            return this.ConflictError(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.BadRequestError(ex.Message);
+        }
+        catch (NotSupportedException ex)
+        {
+            return this.BadRequestError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Authenticate with Google using ID token (deprecated - use /oauth endpoint instead)
+    /// </summary>
+    [Obsolete("Use /api/v1/auth/oauth endpoint with provider='Google' instead")]
     [HttpPost("google")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
@@ -286,8 +344,8 @@ public class AuthController(
 
         try
         {
-            var response = await authService.LoginWithGoogleIdTokenAsync(request.IdToken);
-            return Ok(response);
+            var oauthRequest = new OAuthLoginRequest { Provider = "Google", IdToken = request.IdToken };
+            return await OAuthLogin(oauthRequest);
         }
         catch (UnauthorizedAccessException ex)
         {

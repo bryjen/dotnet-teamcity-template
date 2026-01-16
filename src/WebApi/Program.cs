@@ -73,6 +73,8 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<PasswordValidator>();
 builder.Services.AddScoped<GoogleTokenValidationService>();
+builder.Services.AddScoped<MicrosoftTokenValidationService>();
+builder.Services.AddScoped<TokenValidationServiceFactory>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<ITagService, TagService>();

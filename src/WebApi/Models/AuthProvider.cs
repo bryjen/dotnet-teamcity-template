@@ -3,5 +3,6 @@ namespace WebApi.Models;
 public enum AuthProvider
 {
     Local,
-    Google
+    Google,
+    Microsoft
 }

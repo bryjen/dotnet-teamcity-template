@@ -5,16 +5,16 @@ namespace WebApi.Services.Auth;
 /// <summary>
 /// Service for validating Google ID tokens
 /// </summary>
-public class GoogleTokenValidationService
+public class GoogleTokenValidationService : ITokenValidationService
 {
     /// <summary>
-    /// Validates a Google ID token and returns the payload
+    /// Validates a Google ID token and returns the user information
     /// </summary>
     /// <param name="idToken">The Google ID token to validate</param>
     /// <param name="expectedClientId">The expected Google Client ID (audience)</param>
-    /// <returns>The validated token payload containing user information</returns>
+    /// <returns>The validated token result containing user ID and email</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown if token validation fails</exception>
-    public async Task<GoogleJsonWebSignature.Payload> ValidateIdTokenAsync(string idToken, string expectedClientId)
+    public async Task<TokenValidationResult> ValidateIdTokenAsync(string idToken, string expectedClientId)
     {
         if (string.IsNullOrWhiteSpace(idToken))
         {
@@ -36,7 +36,17 @@ public class GoogleTokenValidationService
             // This automatically fetches Google's public keys and validates the token
             var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
 
-            return payload;
+            if (string.IsNullOrWhiteSpace(payload.Subject))
+            {
+                throw new UnauthorizedAccessException("Google ID token missing user ID");
+            }
+
+            if (string.IsNullOrWhiteSpace(payload.Email))
+            {
+                throw new UnauthorizedAccessException("Google ID token missing email");
+            }
+
+            return new TokenValidationResult(payload.Subject, payload.Email);
         }
         catch (InvalidJwtException ex)
         {

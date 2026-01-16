@@ -12,7 +12,7 @@ public class AuthService(
     JwtTokenService jwtTokenService,
     RefreshTokenService refreshTokenService,
     PasswordValidator passwordValidator,
-    GoogleTokenValidationService googleTokenValidationService,
+    TokenValidationServiceFactory tokenValidationFactory,
     IConfiguration configuration)
 {
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -72,60 +72,57 @@ public class AuthService(
         return await GenerateAuthResponseAsync(user);
     }
 
-    public async Task<AuthResponse> LoginWithGoogleIdTokenAsync(string idToken)
+    public async Task<AuthResponse> LoginWithOAuthAsync(AuthProvider provider, string idToken)
     {
-        // Get Google Client ID from configuration
-        var googleClientId = configuration["Google:ClientId"];
-        if (string.IsNullOrWhiteSpace(googleClientId))
+        // Get validator for the provider
+        var validator = tokenValidationFactory.GetValidator(provider);
+
+        // Get client ID from configuration
+        var clientIdKey = provider switch
         {
-            throw new InvalidOperationException("Google Client ID is not configured");
+            AuthProvider.Google => "OAuth:Google:ClientId",
+            AuthProvider.Microsoft => "OAuth:Microsoft:ClientId",
+            _ => throw new NotSupportedException($"OAuth provider '{provider}' is not supported")
+        };
+
+        var clientId = configuration[clientIdKey];
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            throw new InvalidOperationException($"{provider} Client ID is not configured");
         }
 
         // Validate the ID token
-        var payload = await googleTokenValidationService.ValidateIdTokenAsync(idToken, googleClientId);
+        var validationResult = await validator.ValidateIdTokenAsync(idToken, clientId);
 
-        // Extract Google user ID (sub claim) and email
-        var googleUserId = payload.Subject;
-        var email = payload.Email;
-
-        if (string.IsNullOrWhiteSpace(googleUserId))
-        {
-            throw new UnauthorizedAccessException("Google ID token missing user ID");
-        }
-
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            throw new UnauthorizedAccessException("Google ID token missing email");
-        }
-
-        // Use existing LoginWithGoogleAsync method
-        return await LoginWithGoogleAsync(googleUserId, email);
+        // Use generic OAuth login method
+        return await LoginWithOAuthAsync(provider, validationResult.UserId, validationResult.Email);
     }
 
-    public async Task<AuthResponse> LoginWithGoogleAsync(string googleUserId, string email)
+    public async Task<AuthResponse> LoginWithOAuthAsync(AuthProvider provider, string providerUserId, string email)
     {
-        // Find existing Google account
+        // Find existing account for this provider
         var user = await context.Users
             .FirstOrDefaultAsync(u => 
-                u.Provider == AuthProvider.Google && 
-                u.ProviderUserId == googleUserId);
+                u.Provider == provider && 
+                u.ProviderUserId == providerUserId);
 
         if (user == null)
         {
-            // Check if email already exists for Google provider
-            if (await context.Users.AnyAsync(u => u.Provider == AuthProvider.Google && u.Email == email))
+            // Check if email already exists for this provider
+            if (await context.Users.AnyAsync(u => u.Provider == provider && u.Email == email))
             {
-                throw new ConflictException("A Google account with this email already exists");
+                var providerName = provider.ToString();
+                throw new ConflictException($"A {providerName} account with this email already exists");
             }
 
-            // Create new Google account
+            // Create new account for this provider
             user = new User
             {
                 Id = Guid.NewGuid(),
                 Email = email,
                 PasswordHash = null,
-                Provider = AuthProvider.Google,
-                ProviderUserId = googleUserId,
+                Provider = provider,
+                ProviderUserId = providerUserId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };

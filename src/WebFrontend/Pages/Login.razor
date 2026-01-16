@@ -1,11 +1,15 @@
 @page "/login"
 @using Web.Common.DTOs.Auth
 @using Microsoft.JSInterop
+@using WebFrontend.Services.Auth
+@using WebFrontend.Services.Auth.OAuth
 @inject AuthService AuthService
 @inject AuthState AuthState
 @inject NavigationManager Nav
 @inject IConfiguration Configuration
 @inject IJSRuntime JSRuntime
+@inject OAuthService OAuthService
+@inject OAuthProviderRegistry OAuthProviderRegistry
 
 <PageTitle>Login</PageTitle>
 
@@ -39,25 +43,39 @@
 
         <div class="text-center">
             <div class="mb-2">or</div>
-            <button class="btn btn-outline-primary" type="button" @onclick="HandleGoogleSignIn"
-                disabled="@(_isSubmitting || _isSubmittingGoogle)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
-                    style="margin-right: 8px;">
-                    <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4" />
-                    <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853" />
-                    <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        fill="#FBBC05" />
-                    <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        fill="#EA4335" />
-                </svg>
-                @(_isSubmittingGoogle ? "Signing in..." : "Sign in with Google")
-            </button>
+            @foreach (var provider in OAuthProviderRegistry.GetAllEnabledProviders())
+            {
+                <button class="oauth-button" type="button" @onclick="() => HandleOAuthSignIn(provider.Name)"
+                    disabled="@(_isSubmitting || _isSubmittingOAuth)">
+                    @if (provider.Name == "Google")
+                    {
+                        <svg class="oauth-logo" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
+                            <path
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                fill="#4285F4" />
+                            <path
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                fill="#34A853" />
+                            <path
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                                fill="#FBBC05" />
+                            <path
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                fill="#EA4335" />
+                        </svg>
+                    }
+                    else if (provider.Name == "Microsoft")
+                    {
+                        <svg class="oauth-logo" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
+                            <path d="M0 0h11.377v11.372H0z" fill="#f25022" />
+                            <path d="M12.623 0H24v11.372H12.623z" fill="#00a4ef" />
+                            <path d="M0 12.628h11.377V24H0z" fill="#7fba00" />
+                            <path d="M12.623 12.628H24V24H12.623z" fill="#ffb900" />
+                        </svg>
+                    }
+                    <span class="oauth-text">@(_isSubmittingOAuth ? "Signing in..." : provider.DisplayName)</span>
+                </button>
+            }
         </div>
     </div>
 </EditForm>
@@ -70,10 +88,9 @@
     };
 
     private bool _isSubmitting;
-    private bool _isSubmittingGoogle;
+    private bool _isSubmittingOAuth;
     private string? _error;
 
-    /*
     protected override async Task OnInitializedAsync()
     {
         if (AuthState.IsAuthenticated)
@@ -82,123 +99,44 @@
             return;
         }
 
-        // Initialize Google Sign-In when component loads
-        await InitializeGoogleSignIn();
-    }
-     */
-
-    protected override async Task OnInitializedAsync()
-    {
-        if (AuthState.IsAuthenticated)
+        // Handle OAuth callback - check for provider in query params
+        var provider = GetQueryParam("provider");
+        if (!string.IsNullOrWhiteSpace(provider))
         {
-            Nav.NavigateTo("/todos");
-            return;
-        }
-
-        // Handle Google OAuth callback - check both query params and fragment
-        var idToken = GetQueryParam("id_token") ?? await GetFragmentParam("id_token");
-        var error = GetQueryParam("error") ?? await GetFragmentParam("error");
-
-        if (!string.IsNullOrWhiteSpace(error))
-        {
-            _error = error switch
-            {
-                "access_denied" => "Google sign-in was cancelled.",
-                _ => "Google authentication failed. Please try again."
-            };
-        }
-        else if (!string.IsNullOrWhiteSpace(idToken))
-        {
-            // Process the ID token from Google redirect
-            _isSubmittingGoogle = true;
-            try
-            {
-                var result = await AuthService.LoginWithGoogleAsync(idToken);
-                if (!result.IsSuccess)
-                {
-                    _error = result.ErrorMessage ?? "Google authentication failed.";
-                    _isSubmittingGoogle = false;
-                    return;
-                }
-
-                // Success - redirect to todos (clear the URL fragment/params)
-                var returnUrl = GetQueryParam("returnUrl");
-                Nav.NavigateTo(string.IsNullOrWhiteSpace(returnUrl) ? "/todos" : returnUrl);
-            }
-            catch (Exception ex)
-            {
-                _error = $"An error occurred: {ex.Message}";
-                _isSubmittingGoogle = false;
-            }
+            await HandleOAuthCallback(provider);
         }
     }
 
-    private async Task HandleGoogleSignIn()
+    private async Task HandleOAuthCallback(string providerName)
     {
-        var clientId = Configuration["Google:ClientId"];
-        if (string.IsNullOrWhiteSpace(clientId))
-        {
-            _error = "Google Sign-In is not configured.";
-            return;
-        }
-
-        // Build Google OAuth redirect URL
-        var redirectUri = $"{Nav.BaseUri}login";
-        var returnUrl = GetQueryParam("returnUrl");
-        if (!string.IsNullOrWhiteSpace(returnUrl))
-        {
-            redirectUri += $"?returnUrl={Uri.EscapeDataString(returnUrl)}";
-        }
-
-        var state = Guid.NewGuid().ToString("N");
-        var googleAuthUrl = $"https://accounts.google.com/o/oauth2/v2/auth?" +
-        $"client_id={Uri.EscapeDataString(clientId)}&" +
-        $"redirect_uri={Uri.EscapeDataString(redirectUri)}&" +
-        $"response_type=id_token&" +
-        $"scope=openid email profile&" +
-        $"nonce={state}&" +
-        $"state={state}";
-
-        // Redirect to Google
-        Nav.NavigateTo(googleAuthUrl, forceLoad: true);
-    }
-
-    [JSInvokable]
-    public async Task OnGoogleSignIn(string idToken)
-    {
-        _error = null;
-        _isSubmittingGoogle = true;
-
+        _isSubmittingOAuth = true;
         try
         {
-            if (string.IsNullOrWhiteSpace(idToken))
-            {
-                _error = "Failed to get Google ID token. Please try again.";
-                _isSubmittingGoogle = false;
-                StateHasChanged();
-                return;
-            }
+            var callbackUri = new Uri(Nav.Uri);
+            var result = await OAuthService.HandleOAuthCallback(providerName, callbackUri);
 
-            // Send ID token to backend for validation
-            var result = await AuthService.LoginWithGoogleAsync(idToken);
             if (!result.IsSuccess)
             {
-                _error = result.ErrorMessage ?? "Google authentication failed.";
-                _isSubmittingGoogle = false;
-                StateHasChanged();
+                _error = result.ErrorMessage ?? "OAuth authentication failed.";
+                _isSubmittingOAuth = false;
                 return;
             }
 
-            // Success - redirect to todos
+            // Success - session already saved by AuthService.LoginWithOAuthAsync, just redirect
             var returnUrl = GetQueryParam("returnUrl");
             Nav.NavigateTo(string.IsNullOrWhiteSpace(returnUrl) ? "/todos" : returnUrl);
         }
         catch (Exception ex)
         {
             _error = $"An error occurred: {ex.Message}";
-            _isSubmittingGoogle = false;
-            StateHasChanged();
+            _isSubmittingOAuth = false;
         }
+    }
+
+    private void HandleOAuthSignIn(string providerName)
+    {
+        var returnUrl = GetQueryParam("returnUrl");
+        OAuthService.InitiateOAuthFlow(providerName, returnUrl);
     }
 
     private async Task HandleSubmit()
@@ -246,29 +184,4 @@
         return null;
     }
 
-    private async Task<string?> GetFragmentParam(string key)
-    {
-        // Google OAuth returns ID token in URL fragment, need JavaScript to read it
-        try
-        {
-            var fragment = await JSRuntime.InvokeAsync<string>("getUrlFragment");
-            if (string.IsNullOrWhiteSpace(fragment))
-                return null;
-
-            var parts = fragment.TrimStart('#').Split('&', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var part in parts)
-            {
-                var kv = part.Split('=', 2);
-                if (kv.Length == 2 && string.Equals(kv[0], key, StringComparison.OrdinalIgnoreCase))
-                {
-                    return Uri.UnescapeDataString(kv[1]);
-                }
-            }
-        }
-        catch
-        {
-            // JavaScript not available or error
-        }
-        return null;
-    }
 }

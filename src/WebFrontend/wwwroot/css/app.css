@@ -113,3 +113,47 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.oauth-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto 8px auto;
+    padding: 10px 16px;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.oauth-button:hover:not(:disabled) {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.oauth-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.oauth-button:active:not(:disabled) {
+    background-color: #f3f4f6;
+}
+
+.oauth-logo {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+.oauth-text {
+    flex: 1;
+    text-align: left;
+}

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using WebFrontend.Services.Auth;
+using WebFrontend.Services.Auth.OAuth;
+using WebFrontend.Services.Auth.OAuth.Providers;
 using WebFrontend.Services.Api;
 using WebFrontend.Services.Storage;
 using WebFrontend;
@@ -30,6 +32,18 @@ builder.Services.AddScoped<TokenStore>();
 builder.Services.AddScoped<ITokenProvider>(sp => sp.GetRequiredService<TokenStore>());
 builder.Services.AddScoped<AuthState>();
 builder.Services.AddScoped<AuthService>();
+
+// OAuth providers
+builder.Services.AddScoped<GoogleOAuthProvider>();
+builder.Services.AddScoped<MicrosoftOAuthProvider>();
+builder.Services.AddScoped<IOAuthProvider>(sp => sp.GetRequiredService<GoogleOAuthProvider>());
+builder.Services.AddScoped<IOAuthProvider>(sp => sp.GetRequiredService<MicrosoftOAuthProvider>());
+builder.Services.AddScoped<OAuthProviderRegistry>(sp =>
+{
+    var providers = sp.GetServices<IOAuthProvider>();
+    return new OAuthProviderRegistry(providers);
+});
+builder.Services.AddScoped<OAuthService>();
 
 // API layer
 builder.Services.AddScoped<BackendStatus>();
