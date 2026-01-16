@@ -72,6 +72,7 @@ builder.Services.AddScoped<PasswordResetService>(sp =>
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<PasswordValidator>();
+builder.Services.AddScoped<GoogleTokenValidationService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<ITagService, TagService>();

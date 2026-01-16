@@ -12,6 +12,7 @@ public class AuthService(
     JwtTokenService jwtTokenService,
     RefreshTokenService refreshTokenService,
     PasswordValidator passwordValidator,
+    GoogleTokenValidationService googleTokenValidationService,
     IConfiguration configuration)
 {
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -69,6 +70,36 @@ public class AuthService(
         }
 
         return await GenerateAuthResponseAsync(user);
+    }
+
+    public async Task<AuthResponse> LoginWithGoogleIdTokenAsync(string idToken)
+    {
+        // Get Google Client ID from configuration
+        var googleClientId = configuration["Google:ClientId"];
+        if (string.IsNullOrWhiteSpace(googleClientId))
+        {
+            throw new InvalidOperationException("Google Client ID is not configured");
+        }
+
+        // Validate the ID token
+        var payload = await googleTokenValidationService.ValidateIdTokenAsync(idToken, googleClientId);
+
+        // Extract Google user ID (sub claim) and email
+        var googleUserId = payload.Subject;
+        var email = payload.Email;
+
+        if (string.IsNullOrWhiteSpace(googleUserId))
+        {
+            throw new UnauthorizedAccessException("Google ID token missing user ID");
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new UnauthorizedAccessException("Google ID token missing email");
+        }
+
+        // Use existing LoginWithGoogleAsync method
+        return await LoginWithGoogleAsync(googleUserId, email);
     }
 
     public async Task<AuthResponse> LoginWithGoogleAsync(string googleUserId, string email)

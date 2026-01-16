@@ -251,6 +251,58 @@ public class AuthController(
         return Ok(new { message = "Password has been reset successfully. You can now log in with your new password." });
     }
 
+    /// <summary>
+    /// Authenticate with Google using ID token
+    /// </summary>
+    /// <param name="request">Google ID token from frontend</param>
+    /// <returns>Authentication response with user details, access token, and refresh token</returns>
+    /// <response code="200">Login successful</response>
+    /// <response code="400">Invalid request (missing or invalid ID token)</response>
+    /// <response code="401">Token validation failed</response>
+    /// <response code="409">Account conflict</response>
+    /// <remarks>
+    /// This endpoint validates a Google ID token received from the frontend Google Sign-In flow.
+    /// The frontend should use Google's JavaScript SDK to obtain the ID token and send it here.
+    ///
+    /// Sample request:
+    ///
+    ///     POST /api/v1/auth/google
+    ///     {
+    ///        "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
+    ///     }
+    ///
+    /// </remarks>
+    [HttpPost("google")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AuthResponse>> GoogleLogin([FromBody] GoogleLoginRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+        {
+            return this.BadRequestError("ID token is required");
+        }
+
+        try
+        {
+            var response = await authService.LoginWithGoogleIdTokenAsync(request.IdToken);
+            return Ok(response);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return this.UnauthorizedError(ex.Message);
+        }
+        catch (ConflictException ex)
+        {
+            return this.ConflictError(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.BadRequestError(ex.Message);
+        }
+    }
+
     public record PasswordResetRequestDto(string Email);
     public record ConfirmPasswordResetRequestDto(string Token, string NewPassword);
 }

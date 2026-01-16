@@ -17,6 +17,12 @@ public sealed class HttpAuthApi : IAuthApi
     public Task<ApiResult<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
         => _api.PostAsync<LoginRequest, AuthResponse>("/api/v1/auth/login", request, ct);
 
+    public Task<ApiResult<AuthResponse>> LoginWithGoogleAsync(string idToken, CancellationToken ct = default)
+    {
+        var request = new GoogleLoginRequest { IdToken = idToken };
+        return _api.PostAsync<GoogleLoginRequest, AuthResponse>("/api/v1/auth/google", request, ct);
+    }
+
     public Task<ApiResult<AuthResponse>> RefreshTokenAsync(string refreshToken, CancellationToken ct = default)
     {
         var request = new RefreshTokenRequest { RefreshToken = refreshToken };

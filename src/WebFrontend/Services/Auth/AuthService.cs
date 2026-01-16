@@ -73,6 +73,16 @@ public sealed class AuthService
         return result;
     }
 
+    public async Task<ApiResult<AuthResponse>> LoginWithGoogleAsync(string idToken, CancellationToken ct = default)
+    {
+        var result = await _authApi.LoginWithGoogleAsync(idToken, ct);
+        if (result.IsSuccess)
+        {
+            await SaveSessionAsync(result.Value!);
+        }
+        return result;
+    }
+
     public async Task LogoutAsync()
     {
         await _tokenStore.ClearAsync();
