@@ -141,21 +141,21 @@ variable "webapi_cpu" {
 }
 
 variable "webapi_memory" {
-  description = "Memory allocation for WebApi container (e.g., '0.5Gi', '1Gi')"
+  description = "Memory allocation for WebApi container (e.g., '0.5Gi', '1Gi'). For 0.5 CPU, must be 1.0Gi"
   type        = string
-  default     = "0.5Gi"
+  default     = "1.0Gi"
 }
 
 variable "webfrontend_cpu" {
-  description = "CPU allocation for WebFrontend container (in cores, e.g., 0.5, 1.0)"
+  description = "CPU allocation for WebFrontend container (in cores, e.g., 0.25, 0.5, 1.0)"
   type        = number
-  default     = 0.5
+  default     = 0.25
 }
 
 variable "webfrontend_memory" {
-  description = "Memory allocation for WebFrontend container (e.g., '0.25Gi', '0.5Gi')"
+  description = "Memory allocation for WebFrontend container (e.g., '0.5Gi', '1Gi'). For 0.25 CPU, must be 0.5Gi"
   type        = string
-  default     = "0.25Gi"
+  default     = "0.5Gi"
 }
 
 variable "webapi_min_replicas" {
