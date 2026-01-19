@@ -35,5 +35,4 @@ override.tf.json
 terraform.rc
 
 # Ignore GCP CLI outputs
-tf/gcloud/*.json
-tf/cloudrun/cloud_run
+tf/accs/**/*.json

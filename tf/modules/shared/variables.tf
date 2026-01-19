@@ -1,14 +1,6 @@
-variable "gcp_project_id" {
-  description = "GCP Project ID"
-  type        = string
-  default     = "YOUR_PROJECT_ID"
-}
-
-variable "gcp_region" {
-  description = "GCP region for resources"
-  type        = string
-  default     = "us-central1"
-}
+########################################
+# Common Application Variables
+########################################
 
 variable "environment" {
   description = "Environment name (dev, staging, prod)"
@@ -27,13 +19,13 @@ variable "project_name" {
 ########################################
 
 variable "webapi_image" {
-  description = "Docker image for WebApi (e.g., gcr.io/PROJECT_ID/asptemplate-webapi:latest)"
+  description = "Docker image for WebApi (full image path)"
   type        = string
   default     = ""
 }
 
 variable "webfrontend_image" {
-  description = "Docker image for WebFrontend (e.g., gcr.io/PROJECT_ID/asptemplate-webfrontend:latest)"
+  description = "Docker image for WebFrontend (full image path)"
   type        = string
   default     = ""
 }
@@ -124,4 +116,74 @@ variable "oauth_github_client_secret" {
   type        = string
   sensitive   = true
   default     = ""
+}
+
+########################################
+# Container Resource Configuration
+########################################
+
+variable "webapi_cpu" {
+  description = "CPU allocation for WebApi container (e.g., '0.5', '1', '2')"
+  type        = string
+  default     = "0.5"
+}
+
+variable "webapi_memory" {
+  description = "Memory allocation for WebApi container (e.g., '512Mi', '1Gi')"
+  type        = string
+  default     = "512Mi"
+}
+
+variable "webfrontend_cpu" {
+  description = "CPU allocation for WebFrontend container (e.g., '0.5', '1', '2')"
+  type        = string
+  default     = "0.5"
+}
+
+variable "webfrontend_memory" {
+  description = "Memory allocation for WebFrontend container (e.g., '256Mi', '512Mi')"
+  type        = string
+  default     = "256Mi"
+}
+
+variable "webapi_min_replicas" {
+  description = "Minimum number of replicas for WebApi"
+  type        = number
+  default     = 0
+}
+
+variable "webapi_max_replicas" {
+  description = "Maximum number of replicas for WebApi"
+  type        = number
+  default     = 2
+}
+
+variable "webfrontend_min_replicas" {
+  description = "Minimum number of replicas for WebFrontend"
+  type        = number
+  default     = 0
+}
+
+variable "webfrontend_max_replicas" {
+  description = "Maximum number of replicas for WebFrontend"
+  type        = number
+  default     = 2
+}
+
+variable "webapi_timeout" {
+  description = "Request timeout in seconds for WebApi"
+  type        = number
+  default     = 60
+}
+
+variable "webfrontend_timeout" {
+  description = "Request timeout in seconds for WebFrontend"
+  type        = number
+  default     = 60
+}
+
+variable "container_concurrency" {
+  description = "Container concurrency (must be 1 when using < 1 vCPU)"
+  type        = number
+  default     = 1
 }
