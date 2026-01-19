@@ -1,4 +1,5 @@
 using Web.Common.DTOs.Auth;
+using WebFrontend.Models;
 using WebFrontend.Services.Api;
 
 namespace WebFrontend.Tests.Helpers;

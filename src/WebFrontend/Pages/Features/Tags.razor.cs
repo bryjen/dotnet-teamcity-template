@@ -1,87 +1,14 @@
-@page "/tags"
-@attribute [RequireAuth]
-@using System.Text.RegularExpressions
-@using WebApi.DTOs.Tags
-@inject ITagsApi TagsApi
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Components;
+using WebApi.DTOs.Tags;
+using WebFrontend.Services.Api;
 
-<PageTitle>Tags</PageTitle>
+namespace WebFrontend.Pages.Features;
 
-<h1>Tags</h1>
-
-@if (!string.IsNullOrWhiteSpace(_error))
+public partial class Tags : ComponentBase
 {
-    <div class="alert alert-danger" role="alert">@_error</div>
-}
+    [Inject] public HttpTagsApi TagsApi { get; set; } = default!;
 
-<div class="card mb-4">
-    <div class="card-header">@( _editingId == null ? "Create tag" : "Edit tag")</div>
-    <div class="card-body">
-        <EditForm Model="_edit" OnValidSubmit="SaveTag">
-            <div class="row g-3">
-                <div class="col-12 col-md-6">
-                    <label class="form-label">Name</label>
-                    <InputText class="form-control" @bind-Value="_edit.Name" />
-                </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label">Color</label>
-                    <InputText class="form-control" @bind-Value="_edit.Color" />
-                    <div class="form-text">Hex format: #RRGGBB</div>
-                </div>
-                <div class="col-12">
-                    <button class="btn btn-primary me-2" type="submit" disabled="@_saving">
-                        @(_saving ? "Saving..." : (_editingId == null ? "Create" : "Save"))
-                    </button>
-                    @if (_editingId != null)
-                    {
-                        <button class="btn btn-secondary" type="button" @onclick="CancelEdit" disabled="@_saving">Cancel</button>
-                    }
-                </div>
-            </div>
-        </EditForm>
-    </div>
-</div>
-
-@if (_loading)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-striped align-middle">
-            <thead>
-            <tr>
-                <th>Name</th>
-                <th>Color</th>
-                <th>Todos</th>
-                <th class="text-end">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach (var tag in _tags)
-            {
-                <tr>
-                    <td>@tag.Name</td>
-                    <td>
-                        <span class="badge text-bg-secondary">@tag.Color</span>
-                    </td>
-                    <td>@tag.TodoCount</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => StartEdit(tag)" disabled="@_saving">
-                            Edit
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(tag)" disabled="@_saving">
-                            Delete
-                        </button>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
-}
-
-@code {
     private static readonly Regex HexColorRegex = new("^#[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
 
     private bool _loading = true;
@@ -208,5 +135,3 @@ else
         public string Color { get; set; } = "#000000";
     }
 }
-
-

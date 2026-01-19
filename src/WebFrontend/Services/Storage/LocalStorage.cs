@@ -2,23 +2,16 @@ using Microsoft.JSInterop;
 
 namespace WebFrontend.Services.Storage;
 
-public sealed class LocalStorage : ILocalStorage
+public sealed class LocalStorage(IJSRuntime js)
 {
-    private readonly IJSRuntime _js;
-
-    public LocalStorage(IJSRuntime js)
-    {
-        _js = js;
-    }
-
     public ValueTask SetItemAsync(string key, string value)
-        => _js.InvokeVoidAsync("localStorage.setItem", key, value);
+        => js.InvokeVoidAsync("localStorage.setItem", key, value);
 
     public ValueTask<string?> GetItemAsync(string key)
-        => _js.InvokeAsync<string?>("localStorage.getItem", key);
+        => js.InvokeAsync<string?>("localStorage.getItem", key);
 
     public ValueTask RemoveItemAsync(string key)
-        => _js.InvokeVoidAsync("localStorage.removeItem", key);
+        => js.InvokeVoidAsync("localStorage.removeItem", key);
 }
 
 

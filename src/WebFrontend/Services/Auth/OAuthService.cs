@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Web.Common.DTOs.Auth;
+using WebFrontend.Models;
 using WebFrontend.Services.Api;
 using WebFrontend.Services.Auth.OAuth;
 
@@ -8,22 +9,11 @@ namespace WebFrontend.Services.Auth;
 /// <summary>
 /// Service for handling OAuth authentication flows
 /// </summary>
-public class OAuthService
+public class OAuthService(
+    OAuthProviderRegistry providerRegistry,
+    AuthService authService,
+    NavigationManager navigationManager)
 {
-    private readonly OAuthProviderRegistry _providerRegistry;
-    private readonly AuthService _authService;
-    private readonly NavigationManager _navigationManager;
-
-    public OAuthService(
-        OAuthProviderRegistry providerRegistry,
-        AuthService authService,
-        NavigationManager navigationManager)
-    {
-        _providerRegistry = providerRegistry;
-        _authService = authService;
-        _navigationManager = navigationManager;
-    }
-
     /// <summary>
     /// Initiates the OAuth flow for the specified provider
     /// </summary>
@@ -31,20 +21,20 @@ public class OAuthService
     /// <param name="returnUrl">Optional URL to redirect to after successful authentication</param>
     public void InitiateOAuthFlow(string providerName, string? returnUrl = null)
     {
-        var provider = _providerRegistry.GetProvider(providerName);
+        var provider = providerRegistry.GetProvider(providerName);
         if (provider == null)
         {
             throw new InvalidOperationException($"OAuth provider '{providerName}' not found or not enabled");
         }
 
-        var redirectUri = $"{_navigationManager.BaseUri}login?provider={Uri.EscapeDataString(providerName)}";
+        var redirectUri = $"{navigationManager.BaseUri}login?provider={Uri.EscapeDataString(providerName)}";
         if (!string.IsNullOrWhiteSpace(returnUrl))
         {
             redirectUri += $"&returnUrl={Uri.EscapeDataString(returnUrl)}";
         }
 
         var authUrl = provider.BuildAuthorizationUrl(redirectUri, returnUrl);
-        _navigationManager.NavigateTo(authUrl, forceLoad: true);
+        navigationManager.NavigateTo(authUrl, forceLoad: true);
     }
 
     /// <summary>
@@ -55,7 +45,7 @@ public class OAuthService
     /// <returns>API result with authentication response or error</returns>
     public async Task<ApiResult<AuthResponse>> HandleOAuthCallback(string providerName, Uri callbackUri)
     {
-        var provider = _providerRegistry.GetProvider(providerName);
+        var provider = providerRegistry.GetProvider(providerName);
         if (provider == null)
         {
             return ApiResult<AuthResponse>.Failure($"OAuth provider '{providerName}' not found or not enabled");
@@ -85,13 +75,13 @@ public class OAuthService
                 : baseUri.ToString();
 
             // Send authorization code to backend for validation and save session
-            return await _authService.LoginWithOAuthAsync(providerName, authorizationCode: result.AuthorizationCode, redirectUri: redirectUriForBackend);
+            return await authService.LoginWithOAuthAsync(providerName, authorizationCode: result.AuthorizationCode, redirectUri: redirectUriForBackend);
         }
         // Handle ID token flow (Google, Microsoft)
         else if (!string.IsNullOrWhiteSpace(result.IdToken))
         {
             // Send ID token to backend for validation and save session
-            return await _authService.LoginWithOAuthAsync(providerName, idToken: result.IdToken);
+            return await authService.LoginWithOAuthAsync(providerName, idToken: result.IdToken);
         }
         else
         {

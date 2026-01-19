@@ -15,6 +15,7 @@ locals {
   webapi_env_vars_conditional = {
     "ConnectionStrings__DefaultConnection" = var.database_connection_string
     "Jwt__Secret"                         = var.jwt_secret
+    "Cors__Enabled"                       = tostring(var.cors_enabled)
     "Cors__AllowedOrigins"                = var.cors_allowed_origins
     "Frontend__BaseUrl"                   = var.frontend_base_url
     "Email__Resend__ApiKey"               = var.email_resend_api_key

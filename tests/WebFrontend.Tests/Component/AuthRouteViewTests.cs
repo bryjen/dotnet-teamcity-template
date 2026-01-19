@@ -3,6 +3,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using WebFrontend.Attributes;
 using WebFrontend.Components;
 using WebFrontend.Layout;
 using WebFrontend.Services.Auth;

@@ -28,7 +28,7 @@ builder.Services.ConfigureAppOptions(builder.Configuration);
 builder.Services.ConfigureEmail(builder.Configuration);
 builder.Services.ConfigureOpenApi();
 builder.Services.ConfigureDatabase(builder.Configuration, builder.Environment);
-builder.Services.ConfigureCors(builder.Configuration);
+var corsEnabled = builder.Services.ConfigureCors(builder.Configuration);
 builder.Services.AddDataProtection();
 builder.Services.ConfigureJwtAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureRateLimiting(builder.Configuration);
@@ -89,7 +89,10 @@ if (app.Environment.IsProduction())
     app.UseResponseCaching();
 }
 
-app.UseCors();
+if (corsEnabled)
+{
+    app.UseCors();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

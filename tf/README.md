@@ -85,7 +85,8 @@ All application configuration variables are shared between providers:
 - `webapi_image` / `webfrontend_image` - Container images
 - `database_connection_string` - Database connection string
 - `jwt_secret` - JWT secret key
-- `cors_allowed_origins` - CORS allowed origins
+- `cors_enabled` - Enable or disable CORS (default: `true`, set to `false` to completely disable CORS)
+- `cors_allowed_origins` - CORS allowed origins (comma-separated or single origin)
 - OAuth configuration variables
 - Container resource limits (CPU, memory, replicas, timeouts)
 

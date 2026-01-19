@@ -23,6 +23,7 @@ module "azure_deployment" {
   # App configuration / secrets
   database_connection_string = var.database_connection_string
   jwt_secret                = var.jwt_secret
+  cors_enabled              = var.cors_enabled
   cors_allowed_origins      = var.cors_allowed_origins
   api_base_url              = var.api_base_url
   frontend_base_url         = var.frontend_base_url

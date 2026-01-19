@@ -3,6 +3,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Web.Common.DTOs.Auth;
+using WebFrontend.Models;
 using WebFrontend.Pages;
 using WebFrontend.Services.Api;
 using WebFrontend.Services.Auth;

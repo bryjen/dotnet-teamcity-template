@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace WebFrontend.Services.Api;
+namespace WebFrontend.Models;
 
 public sealed record ApiResult<T>(
     bool IsSuccess,

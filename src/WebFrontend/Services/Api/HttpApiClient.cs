@@ -1,11 +1,15 @@
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using WebFrontend.Models;
 using WebFrontend.Services.Auth;
 
 namespace WebFrontend.Services.Api;
 
-public sealed class HttpApiClient
+public sealed class HttpApiClient(
+    ApiHttpClient apiHttpClient, 
+    TokenStore tokenProvider, 
+    BackendStatus backendStatus)
 {
     private static readonly JsonSerializerOptions SnakeCaseOptions = new()
     {
@@ -13,16 +17,7 @@ public sealed class HttpApiClient
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly HttpClient _http;
-    private readonly ITokenProvider _tokenProvider;
-    private readonly BackendStatus _backendStatus;
-
-    public HttpApiClient(ApiHttpClient apiHttpClient, ITokenProvider tokenProvider, BackendStatus backendStatus)
-    {
-        _http = apiHttpClient.Client;
-        _tokenProvider = tokenProvider;
-        _backendStatus = backendStatus;
-    }
+    private readonly HttpClient _http = apiHttpClient.Client;
 
     public async Task<ApiResult<TResponse>> GetAsync<TResponse>(string path, CancellationToken ct = default)
     {
@@ -38,13 +33,13 @@ public sealed class HttpApiClient
         catch (HttpRequestException ex)
         {
             var result = ApiResult<TResponse>.Failure($"Backend unreachable: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
+            backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
             return result;
         }
         catch (TaskCanceledException ex)
         {
             var result = ApiResult<TResponse>.Failure($"Request cancelled/timed out: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
+            backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
             return result;
         }
     }
@@ -66,13 +61,13 @@ public sealed class HttpApiClient
         catch (HttpRequestException ex)
         {
             var result = ApiResult<TResponse>.Failure($"Backend unreachable: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
+            backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
             return result;
         }
         catch (TaskCanceledException ex)
         {
             var result = ApiResult<TResponse>.Failure($"Request cancelled/timed out: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
+            backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
             return result;
         }
     }
@@ -94,13 +89,13 @@ public sealed class HttpApiClient
         catch (HttpRequestException ex)
         {
             var result = ApiResult<TResponse>.Failure($"Backend unreachable: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
+            backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
             return result;
         }
         catch (TaskCanceledException ex)
         {
             var result = ApiResult<TResponse>.Failure($"Request cancelled/timed out: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
+            backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
             return result;
         }
     }
@@ -119,13 +114,13 @@ public sealed class HttpApiClient
         catch (HttpRequestException ex)
         {
             var result = ApiResult<TResponse>.Failure($"Backend unreachable: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
+            backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
             return result;
         }
         catch (TaskCanceledException ex)
         {
             var result = ApiResult<TResponse>.Failure($"Request cancelled/timed out: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
+            backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
             return result;
         }
     }
@@ -140,23 +135,23 @@ public sealed class HttpApiClient
             if (response.IsSuccessStatusCode)
             {
                 var ok = ApiResult<bool>.Success(true, response.StatusCode);
-                _backendStatus.Clear();
+                backendStatus.Clear();
                 return ok;
             }
             var fail = ApiResult<bool>.Failure(await ReadErrorMessage(response, ct), response.StatusCode);
-            _backendStatus.SetError(fail.ErrorMessage ?? "Request failed");
+            backendStatus.SetError(fail.ErrorMessage ?? "Request failed");
             return fail;
         }
         catch (HttpRequestException ex)
         {
             var result = ApiResult<bool>.Failure($"Backend unreachable: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
+            backendStatus.SetError(result.ErrorMessage ?? "Backend unreachable");
             return result;
         }
         catch (TaskCanceledException ex)
         {
             var result = ApiResult<bool>.Failure($"Request cancelled/timed out: {ex.Message}");
-            _backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
+            backendStatus.SetError(result.ErrorMessage ?? "Request cancelled/timed out");
             return result;
         }
     }
@@ -209,7 +204,7 @@ public sealed class HttpApiClient
 
     private async Task AttachAuthHeaderAsync(HttpRequestMessage request)
     {
-        var token = await _tokenProvider.GetTokenAsync();
+        var token = await tokenProvider.GetTokenAsync();
         if (!string.IsNullOrWhiteSpace(token))
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -220,11 +215,11 @@ public sealed class HttpApiClient
     {
         if (result.IsSuccess)
         {
-            _backendStatus.Clear();
+            backendStatus.Clear();
         }
         else
         {
-            _backendStatus.SetError(result.ErrorMessage ?? "Request failed");
+            backendStatus.SetError(result.ErrorMessage ?? "Request failed");
         }
     }
 }

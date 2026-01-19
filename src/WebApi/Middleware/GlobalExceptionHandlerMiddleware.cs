@@ -54,12 +54,15 @@ public class GlobalExceptionHandlerMiddleware(
 
         response.Clear();
 
-        // apply CORS headers before writing the response
-        var policy = await corsPolicyProvider.GetPolicyAsync(context, null);
-        if (policy != null)
+        // apply CORS headers before writing the response (if CORS is enabled)
+        if (corsPolicyProvider != null && corsService != null)
         {
-            var corsResult = corsService.EvaluatePolicy(context, policy);
-            corsService.ApplyResult(corsResult, response);
+            var policy = await corsPolicyProvider.GetPolicyAsync(context, null);
+            if (policy != null)
+            {
+                var corsResult = corsService.EvaluatePolicy(context, policy);
+                corsService.ApplyResult(corsResult, response);
+            }
         }
 
         response.ContentType = "application/json";
@@ -110,12 +113,15 @@ public class GlobalExceptionHandlerMiddleware(
 
         response.Clear();
 
-        // apply CORS headers before writing the response
-        var policy = await corsPolicyProvider.GetPolicyAsync(context, null);
-        if (policy != null)
+        // apply CORS headers before writing the response (if CORS is enabled)
+        if (corsPolicyProvider != null && corsService != null)
         {
-            var corsResult = corsService.EvaluatePolicy(context, policy);
-            corsService.ApplyResult(corsResult, response);
+            var policy = await corsPolicyProvider.GetPolicyAsync(context, null);
+            if (policy != null)
+            {
+                var corsResult = corsService.EvaluatePolicy(context, policy);
+                corsService.ApplyResult(corsResult, response);
+            }
         }
 
         response.ContentType = "application/json";

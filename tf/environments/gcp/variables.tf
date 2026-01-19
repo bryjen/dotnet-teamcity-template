@@ -56,6 +56,12 @@ variable "jwt_secret" {
   default     = ""
 }
 
+variable "cors_enabled" {
+  description = "Enable or disable CORS. Set to false to completely disable CORS."
+  type        = bool
+  default     = true
+}
+
 variable "cors_allowed_origins" {
   description = "CORS allowed origins (single origin, or comma-separated)"
   type        = string

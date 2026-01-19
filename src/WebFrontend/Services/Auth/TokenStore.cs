@@ -4,17 +4,10 @@ using WebFrontend.Services.Storage;
 
 namespace WebFrontend.Services.Auth;
 
-public sealed class TokenStore : ITokenProvider
+public sealed class TokenStore(LocalStorage localStorage)
 {
     private const string StorageKey = "todoapp.auth.session";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
-    private readonly ILocalStorage _localStorage;
-
-    public TokenStore(ILocalStorage localStorage)
-    {
-        _localStorage = localStorage;
-    }
 
     public async ValueTask<string?> GetTokenAsync()
     {
@@ -39,7 +32,7 @@ public sealed class TokenStore : ITokenProvider
 
     public async ValueTask<AuthSession?> GetSessionAsync()
     {
-        var json = await _localStorage.GetItemAsync(StorageKey);
+        var json = await localStorage.GetItemAsync(StorageKey);
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
@@ -52,7 +45,7 @@ public sealed class TokenStore : ITokenProvider
         catch
         {
             // Corrupt/old payload - clear it.
-            await _localStorage.RemoveItemAsync(StorageKey);
+            await localStorage.RemoveItemAsync(StorageKey);
             return null;
         }
     }
@@ -66,11 +59,11 @@ public sealed class TokenStore : ITokenProvider
             response.AccessTokenExpiresAt,
             response.RefreshTokenExpiresAt);
         var json = JsonSerializer.Serialize(session, JsonOptions);
-        await _localStorage.SetItemAsync(StorageKey, json);
+        await localStorage.SetItemAsync(StorageKey, json);
     }
 
     public ValueTask ClearAsync()
-        => _localStorage.RemoveItemAsync(StorageKey);
+        => localStorage.RemoveItemAsync(StorageKey);
 }
 
 

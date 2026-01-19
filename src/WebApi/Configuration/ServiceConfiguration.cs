@@ -53,7 +53,13 @@ public static class ServiceConfiguration
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
     /// <param name="configuration">The configuration instance to read CORS settings from.</param>
+    /// <returns>True if CORS was configured, false if CORS is disabled.</returns>
     /// <remarks>
+    /// <para>
+    /// CORS can be disabled by setting "Cors:Enabled" to false in configuration or environment variable "Cors__Enabled" to "false".
+    /// When disabled, CORS services are still registered (for middleware compatibility) but no CORS policy is added,
+    /// and UseCors() middleware will not be called in the pipeline.
+    /// </para>
     /// <para>
     /// CORS origins are resolved from configuration in the following order:
     /// 1. Environment variable "Cors__AllowedOrigins" (comma-separated)
@@ -64,32 +70,47 @@ public static class ServiceConfiguration
     /// When specific origins are configured, the policy allows credentials and uses those origins only.
     /// </para>
     /// </remarks>
-    public static void ConfigureCors(
+    public static bool ConfigureCors(
         this IServiceCollection services, 
         IConfiguration configuration)
     {
-        var corsOrigins = GetCorsAllowedOrigins(configuration);
+        // Check if CORS is disabled
+        var corsEnabled = configuration.GetValue<bool>("Cors:Enabled", true);
+        var corsEnabledEnv = configuration["Cors__Enabled"] ?? Environment.GetEnvironmentVariable("Cors__Enabled");
+        if (!string.IsNullOrWhiteSpace(corsEnabledEnv) && bool.TryParse(corsEnabledEnv, out var parsed))
+        {
+            corsEnabled = parsed;
+        }
+
+        // Always register CORS services for middleware compatibility, but only add policy if enabled
         services.AddCors(options =>
         {
-            options.AddDefaultPolicy(policy =>
+            if (corsEnabled)
             {
-                if (corsOrigins.Length == 0)
+                var corsOrigins = GetCorsAllowedOrigins(configuration);
+                options.AddDefaultPolicy(policy =>
                 {
-                    // Allow all origins (permissive mode) - cannot use AllowCredentials() with AllowAnyOrigin()
-                    policy.AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader();
-                }
-                else
-                {
-                    // Specific origins - can use credentials
-                    policy.WithOrigins(corsOrigins)
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .AllowCredentials();
-                }
-            });
+                    if (corsOrigins.Length == 0)
+                    {
+                        // Allow all origins (permissive mode) - cannot use AllowCredentials() with AllowAnyOrigin()
+                        policy.AllowAnyOrigin()
+                            .AllowAnyMethod()
+                            .AllowAnyHeader();
+                    }
+                    else
+                    {
+                        // Specific origins - can use credentials
+                        policy.WithOrigins(corsOrigins)
+                            .AllowAnyMethod()
+                            .AllowAnyHeader()
+                            .AllowCredentials();
+                    }
+                });
+            }
+            // If CORS is disabled, no policy is added, so CORS headers won't be applied
         });
+        
+        return corsEnabled;
     }
     
     /// <summary>

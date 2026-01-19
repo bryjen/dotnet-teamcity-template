@@ -1,8 +1,9 @@
 using Web.Common.DTOs.Auth;
+using WebFrontend.Models;
 
 namespace WebFrontend.Services.Api;
 
-public sealed class HttpAuthApi : IAuthApi
+public sealed class HttpAuthApi
 {
     private readonly HttpApiClient _api;
 
@@ -50,6 +51,8 @@ public sealed class HttpAuthApi : IAuthApi
         return _api.PostAsync<ConfirmPasswordResetRequestDto, PasswordResetResponse>("/api/v1/auth/password-reset/confirm", request, ct);
     }
 }
+
+public record PasswordResetResponse(string Message);
 
 public class PasswordResetRequestDto
 {
