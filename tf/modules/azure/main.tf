@@ -87,6 +87,11 @@ resource "azurerm_container_app" "webapi" {
     target_port      = local.shared_config.webapi_config.port
     transport        = "http"
     allow_insecure_connections = false
+
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
   }
 
   lifecycle {
@@ -136,6 +141,11 @@ resource "azurerm_container_app" "webfrontend" {
     target_port      = local.shared_config.webfrontend_config.port
     transport        = "http"
     allow_insecure_connections = false
+
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
   }
 
   lifecycle {
