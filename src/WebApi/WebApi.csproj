@@ -6,7 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <NoWarn>
+      $(NoWarn);
+      1591;
+      <!-- Semantic Kernel experimental API usage -->
+      SKEXP0001;
+      SKEXP0011
+    </NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -8,6 +8,7 @@ using WebApi.Configuration.Validators;
 using WebApi.Data;
 using WebApi.Middleware;
 using WebApi.Repositories;
+using WebApi.Services.AI.Scenarios;
 using WebApi.Services.Auth;
 using WebApi.Services.Chat;
 using WebApi.Services.Email;
@@ -39,6 +40,7 @@ builder.Services.ConfigureResponseCaching(builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
 builder.Services.ConfigureAuthServices(builder.Configuration);
 builder.Services.ConfigureAi();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ConversationService>();
 
 // Health chat repositories
@@ -48,12 +50,12 @@ builder.Services.AddScoped<VectorStoreRepository>();
 
 // Health chat services
 builder.Services.AddScoped<VectorStoreService>();
-builder.Services.AddScoped<HealthChatService>();
+builder.Services.AddScoped<HealthChatScenario>();
 builder.Services.AddScoped<ResponseRouterService>();
 builder.Services.AddScoped<HealthChatOrchestrator>();
 
 // Note: Health chat plugins (SymptomTrackerPlugin, AppointmentPlugin) are NOT registered in DI
-// They are created per-request with userId injected using ActivatorUtilities in HealthChatService
+// They are created per-request with userId injected using ActivatorUtilities in the keyed kernel registration
 
 var app = builder.Build();
 

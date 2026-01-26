@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Web.Common.DTOs.Health;
 using WebApi.Controllers;
@@ -5,6 +6,8 @@ using WebApi.Data;
 using Web.Common.DTOs.Conversations;
 using WebApi.Exceptions;
 using WebApi.Models;
+using WebApi.Models.AI;
+using WebApi.Services.AI.Scenarios;
 using WebApi.Services.VectorStore;
 
 namespace WebApi.Services.Chat;
@@ -13,7 +16,7 @@ namespace WebApi.Services.Chat;
 /// Orchestrates the health chat flow: conversation management, AI processing, message persistence, and embedding storage.
 /// </summary>
 public class HealthChatOrchestrator(
-    HealthChatService healthChatService,
+    HealthChatScenario scenario,
     ResponseRouterService responseRouter,
     VectorStoreService vectorStoreService,
     AppDbContext context,
@@ -37,7 +40,7 @@ public class HealthChatOrchestrator(
             .Select(a => a.Id)
             .ToListAsync();
 
-        var healthResponse = await healthChatService.ProcessMessageAsync(
+        var healthResponse = await ProcessMessageAsync(
             userId,
             message,
             conversation.Id);
@@ -242,5 +245,81 @@ public class HealthChatOrchestrator(
         }
 
         return changes;
+    }
+
+    private async Task<HealthAssistantResponse> ProcessMessageAsync(
+        Guid userId,
+        string userMessage,
+        Guid? conversationId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var request = new HealthChatScenarioRequest
+            {
+                Message = userMessage,
+                ConversationId = conversationId,
+                UserId = userId
+            };
+
+            var response = await scenario.ExecuteAsync(request, cancellationToken);
+
+            // Parse JSON response
+            return ParseHealthResponse(response.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing health chat message for user {UserId}", userId);
+            throw;
+        }
+    }
+
+    private HealthAssistantResponse ParseHealthResponse(string responseText)
+    {
+        try
+        {
+            // Try to extract JSON from response (might be wrapped in markdown code blocks)
+            var jsonText = ExtractJsonFromResponse(responseText);
+            var healthResponse = JsonSerializer.Deserialize<HealthAssistantResponse>(jsonText, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (healthResponse != null)
+            {
+                return healthResponse;
+            }
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(ex, "Failed to parse JSON response, using fallback");
+        }
+
+        // Fallback to plain text response
+        return new HealthAssistantResponse
+        {
+            Message = responseText,
+            Appointment = null,
+            SymptomChanges = null
+        };
+    }
+
+    private static string ExtractJsonFromResponse(string response)
+    {
+        // Remove markdown code blocks if present
+        var json = response.Trim();
+        if (json.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
+        {
+            json = json.Substring(7);
+        }
+        if (json.StartsWith("```", StringComparison.OrdinalIgnoreCase))
+        {
+            json = json.Substring(3);
+        }
+        if (json.EndsWith("```", StringComparison.OrdinalIgnoreCase))
+        {
+            json = json.Substring(0, json.Length - 3);
+        }
+        return json.Trim();
     }
 }

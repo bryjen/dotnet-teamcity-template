@@ -18,10 +18,8 @@ public class VectorStoreService(
         try
         {
             // Generate embedding using Semantic Kernel
-#pragma warning disable SKEXP0001
             var embeddingService = kernel.GetRequiredService<ITextEmbeddingGenerationService>();
             var embeddingData = await embeddingService.GenerateEmbeddingAsync(messageContent);
-#pragma warning restore SKEXP0001
             
             // Convert to float array
             var vector = embeddingData.ToArray();
@@ -76,10 +74,8 @@ public class VectorStoreService(
         try
         {
             // Generate embedding for the query text
-#pragma warning disable SKEXP0001
             var embeddingService = kernel.GetRequiredService<ITextEmbeddingGenerationService>();
             var embeddingData = await embeddingService.GenerateEmbeddingAsync(queryText);
-#pragma warning restore SKEXP0001
             
             var queryVector = embeddingData.ToArray();
             

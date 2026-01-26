@@ -3,7 +3,7 @@ using Microsoft.SemanticKernel;
 using WebApi.Models;
 using WebApi.Repositories;
 
-namespace WebApi.Services.Chat.Plugins;
+namespace WebApi.Services.Chat.SkPlugins;
 
 public class SymptomTrackerPlugin(SymptomRepository symptomRepository, Guid userId)
 {
