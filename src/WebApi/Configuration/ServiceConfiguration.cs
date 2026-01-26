@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Pgvector.EntityFrameworkCore;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -344,7 +345,7 @@ public static class ServiceConfiguration
     /// <para>
     /// Registers:
     /// - IResend as a singleton for the Resend client
-    /// - IEmailService as a transient service using RenderMjmlEmailService implementation
+    /// - RenderMjmlEmailService as a transient service
     /// </para>
     /// </remarks>
     public static void ConfigureEmail(
@@ -354,7 +355,7 @@ public static class ServiceConfiguration
         var resendApiKey = configuration["Email:Resend:ApiKey"] ?? string.Empty;
         var emailDomain = configuration["Email:Resend:Domain"] ?? string.Empty;
         services.AddSingleton<IResend>(ResendClient.Create(resendApiKey));
-        services.AddTransient<IEmailService, RenderMjmlEmailService>(sp =>
+        services.AddTransient<RenderMjmlEmailService>(sp =>
             new RenderMjmlEmailService(sp.GetRequiredService<IResend>(), emailDomain));
     }
     
@@ -613,7 +614,7 @@ public static class ServiceConfiguration
             var frontendUrl = configuration["Frontend:BaseUrl"] ?? throw new InvalidOperationException("Frontend URL not configured");
             return new PasswordResetService(
                 sp.GetRequiredService<AppDbContext>(), 
-                sp.GetRequiredService<IEmailService>(),
+                sp.GetRequiredService<RenderMjmlEmailService>(),
                 sp.GetRequiredService<PasswordValidator>(),
                 frontendUrl);
         });
@@ -675,7 +676,10 @@ internal static class DatabaseConfigurationHelpers
             // Test connection
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>()
                 .UseNpgsql(connectionString, npgsqlOptions => 
-                    ConfigureRetryPolicy(npgsqlOptions, maxRetryCount, maxRetryDelaySeconds));
+                {
+                    npgsqlOptions.UseVector();
+                    ConfigureRetryPolicy(npgsqlOptions, maxRetryCount, maxRetryDelaySeconds);
+                });
             
             using var testContext = new AppDbContext(optionsBuilder.Options);
             if (!testContext.Database.CanConnect())
@@ -691,7 +695,10 @@ internal static class DatabaseConfigurationHelpers
             
             services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(connectionString, npgsqlOptions => 
-                    ConfigureRetryPolicy(npgsqlOptions, maxRetryCount, maxRetryDelaySeconds)));
+                {
+                    npgsqlOptions.UseVector();
+                    ConfigureRetryPolicy(npgsqlOptions, maxRetryCount, maxRetryDelaySeconds);
+                }));
             
             return true;
         }

@@ -1,6 +1,0 @@
-﻿<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.Shared.NotFound)">
-    <Found Context="routeData">
-        <WebFrontend.Components.Auth.AuthRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)"/>
-        <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
-    </Found>
-</Router>

@@ -24,7 +24,7 @@ data "azurerm_resource_group" "main" {
 }
 
 locals {
-  resource_group_id   = var.create_resource_group ? azurerm_resource_group.main[0].id : data.azurerm_resource_group.main[0].id
+  resource_group_id         = var.create_resource_group ? azurerm_resource_group.main[0].id : data.azurerm_resource_group.main[0].id
   resource_group_name_final = var.create_resource_group ? azurerm_resource_group.main[0].name : data.azurerm_resource_group.main[0].name
 }
 
@@ -83,9 +83,9 @@ resource "azurerm_container_app" "webapi" {
   }
 
   ingress {
-    external_enabled = true
-    target_port      = local.shared_config.webapi_config.port
-    transport        = "http"
+    external_enabled           = true
+    target_port                = local.shared_config.webapi_config.port
+    transport                  = "http"
     allow_insecure_connections = false
 
     traffic_weight {
@@ -99,56 +99,3 @@ resource "azurerm_container_app" "webapi" {
   }
 }
 
-########################################
-# Container App: WebFrontend
-########################################
-
-resource "azurerm_container_app" "webfrontend" {
-  name                         = "${var.project_name}-webfrontend"
-  container_app_environment_id = azurerm_container_app_environment.main.id
-  resource_group_name          = local.resource_group_name_final
-  revision_mode                = "Single"
-
-  template {
-    container {
-      name   = "webfrontend"
-      image  = var.webfrontend_image != "" ? var.webfrontend_image : "${var.acr_name}.azurecr.io/${var.project_name}-webfrontend:latest"
-      cpu    = local.shared_config.webfrontend_config.cpu
-      memory = local.shared_config.webfrontend_config.memory
-
-      # Convert env vars map to Azure env blocks
-      dynamic "env" {
-        for_each = local.webfrontend_env_vars_all
-        content {
-          name  = env.key
-          value = env.value
-        }
-      }
-
-      # API_BASE_URL - dynamically resolved from WebApi service URL if not provided
-      env {
-        name  = "API_BASE_URL"
-        value = var.api_base_url != "" ? var.api_base_url : "https://${azurerm_container_app.webapi.latest_revision_fqdn}"
-      }
-    }
-
-    min_replicas = local.shared_config.webfrontend_config.min_replicas
-    max_replicas = local.shared_config.webfrontend_config.max_replicas
-  }
-
-  ingress {
-    external_enabled = true
-    target_port      = local.shared_config.webfrontend_config.port
-    transport        = "http"
-    allow_insecure_connections = false
-
-    traffic_weight {
-      percentage      = 100
-      latest_revision = true
-    }
-  }
-
-  lifecycle {
-    prevent_destroy = true
-  }
-}

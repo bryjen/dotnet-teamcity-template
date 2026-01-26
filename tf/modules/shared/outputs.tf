@@ -9,5 +9,4 @@
 
 # Expected outputs:
 # - webapi_url (string): URL of the WebApi service
-# - webfrontend_url (string): URL of the WebFrontend service
 # - webapi_cors_env_var (string): Debug output for CORS configuration

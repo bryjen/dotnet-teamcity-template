@@ -36,3 +36,7 @@ terraform.rc
 
 # Ignore GCP CLI outputs
 tf/accs/**/*.json
+
+/notes
+/context
+.env

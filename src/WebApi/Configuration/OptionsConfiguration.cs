@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -51,12 +51,15 @@ public static class OptionsConfiguration
         services.AddSingleton<IValidator<EmailSettings>, EmailSettingsValidator>();
         services.AddSingleton<IValidator<FrontendSettings>, FrontendSettingsValidator>();
         services.AddSingleton<IValidator<RateLimitingSettings>, RateLimitingSettingsValidator>();
+        services.AddSingleton<IValidator<AzureOpenAiSettings>, AzureOpenAiSettingsValidator>();
         
         services.AddValidatedSettings<JwtSettings>(configuration);
         services.AddValidatedSettings<EmailSettings>(configuration);
         services.AddValidatedSettings<FrontendSettings>(configuration);
         services.AddValidatedSettings<RateLimitingSettings>(configuration);
         services.AddValidatedSettings<OAuthSettings>(configuration, hasValidator: false);
+        services.AddValidatedSettings<AzureOpenAiSettings>(configuration);
+        services.AddValidatedSettings<VectorStoreSettings>(configuration, hasValidator: false);
         
         // enable automatic FluentValidation for ASP.NET Core model binding
         services.AddFluentValidationAutoValidation();

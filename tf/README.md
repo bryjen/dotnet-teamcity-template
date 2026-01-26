@@ -82,7 +82,7 @@ All application configuration variables are shared between providers:
 
 - `environment` - Environment name (dev, staging, prod)
 - `project_name` - Project name for resource naming
-- `webapi_image` / `webfrontend_image` - Container images
+- `webapi_image` - Container image for WebApi
 - `database_connection_string` - Database connection string
 - `jwt_secret` - JWT secret key
 - `cors_enabled` - Enable or disable CORS (default: `true`, set to `false` to completely disable CORS)

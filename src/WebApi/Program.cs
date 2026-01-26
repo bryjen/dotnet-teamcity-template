@@ -7,11 +7,12 @@ using WebApi.Configuration.Options;
 using WebApi.Configuration.Validators;
 using WebApi.Data;
 using WebApi.Middleware;
+using WebApi.Repositories;
 using WebApi.Services.Auth;
+using WebApi.Services.Chat;
 using WebApi.Services.Email;
-using WebApi.Services.Tag;
-using WebApi.Services.Todo;
 using WebApi.Services.Validation;
+using WebApi.Services.VectorStore;
 using WebApi.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,8 +38,22 @@ builder.Services.ConfigureResponseCompression(builder.Environment);
 builder.Services.ConfigureResponseCaching(builder.Environment);
 builder.Services.ConfigureOpenTelemetry(builder.Configuration, builder.Logging, builder.Environment);
 builder.Services.ConfigureAuthServices(builder.Configuration);
-builder.Services.AddScoped<TodoService>();
-builder.Services.AddScoped<TagService>();
+builder.Services.ConfigureAi();
+builder.Services.AddScoped<ConversationService>();
+
+// Health chat repositories
+builder.Services.AddScoped<SymptomRepository>();
+builder.Services.AddScoped<AppointmentRepository>();
+builder.Services.AddScoped<VectorStoreRepository>();
+
+// Health chat services
+builder.Services.AddScoped<VectorStoreService>();
+builder.Services.AddScoped<HealthChatService>();
+builder.Services.AddScoped<ResponseRouterService>();
+builder.Services.AddScoped<HealthChatOrchestrator>();
+
+// Note: Health chat plugins (SymptomTrackerPlugin, AppointmentPlugin) are NOT registered in DI
+// They are created per-request with userId injected using ActivatorUtilities in HealthChatService
 
 var app = builder.Build();
 
@@ -66,9 +81,9 @@ if (app.Environment.IsProduction())
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Todo App API v1");
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
     options.RoutePrefix = string.Empty; // Set Swagger UI at the app's root
-    options.DocumentTitle = "Todo App API Documentation";
+    options.DocumentTitle = "API Documentation";
     options.DefaultModelsExpandDepth(2);
     options.DefaultModelExpandDepth(2);
     options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.List);

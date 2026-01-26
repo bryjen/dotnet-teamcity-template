@@ -2,7 +2,6 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Web.Common.DTOs;
-using WebApi.DTOs;
 using WebApi.Exceptions;
 
 namespace WebApi.Middleware;

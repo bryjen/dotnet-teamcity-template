@@ -47,12 +47,6 @@ variable "webapi_image" {
   default     = ""
 }
 
-variable "webfrontend_image" {
-  description = "Docker image for WebFrontend"
-  type        = string
-  default     = ""
-}
-
 variable "database_connection_string" {
   description = "Database connection string"
   type        = string
@@ -75,18 +69,6 @@ variable "cors_enabled" {
 
 variable "cors_allowed_origins" {
   description = "CORS allowed origins"
-  type        = string
-  default     = ""
-}
-
-variable "api_base_url" {
-  description = "API base URL for frontend configuration"
-  type        = string
-  default     = ""
-}
-
-variable "frontend_base_url" {
-  description = "Frontend base URL"
   type        = string
   default     = ""
 }
@@ -135,6 +117,73 @@ variable "oauth_github_client_secret" {
   default     = ""
 }
 
+variable "azure_openai_endpoint" {
+  description = "Azure OpenAI endpoint URL"
+  type        = string
+  default     = ""
+}
+
+variable "azure_openai_api_key" {
+  description = "Azure OpenAI API key"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "azure_openai_deployment_name" {
+  description = "Azure OpenAI deployment name"
+  type        = string
+  default     = ""
+}
+
+variable "azure_openai_embedding_deployment_name" {
+  description = "Azure OpenAI embedding deployment name"
+  type        = string
+  default     = ""
+}
+
+variable "twilio_account_sid" {
+  description = "Twilio Account SID"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "twilio_auth_token" {
+  description = "Twilio Auth Token"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "twilio_from_phone_number" {
+  description = "Twilio phone number to use for outbound calls (e.g., +1234567890)"
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
+variable "twilio_base_url" {
+  description = "Base URL for TwiML webhook callbacks (e.g., https://your-domain.com)"
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
+variable "elevenlabs_api_key" {
+  description = "ElevenLabs API key for text-to-speech"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "elevenlabs_voice_id" {
+  description = "ElevenLabs voice ID to use for text-to-speech"
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
 variable "webapi_cpu" {
   description = "CPU allocation for WebApi container (in cores, e.g., 0.5, 1.0)"
   type        = number
@@ -145,18 +194,6 @@ variable "webapi_memory" {
   description = "Memory allocation for WebApi container (e.g., '0.5Gi', '1Gi'). For 0.5 CPU, must be 1.0Gi"
   type        = string
   default     = "1.0Gi"
-}
-
-variable "webfrontend_cpu" {
-  description = "CPU allocation for WebFrontend container (in cores, e.g., 0.25, 0.5, 1.0)"
-  type        = number
-  default     = 0.25
-}
-
-variable "webfrontend_memory" {
-  description = "Memory allocation for WebFrontend container (e.g., '0.5Gi', '1Gi'). For 0.25 CPU, must be 0.5Gi"
-  type        = string
-  default     = "0.5Gi"
 }
 
 variable "webapi_min_replicas" {
@@ -171,26 +208,8 @@ variable "webapi_max_replicas" {
   default     = 2
 }
 
-variable "webfrontend_min_replicas" {
-  description = "Minimum number of replicas for WebFrontend"
-  type        = number
-  default     = 0
-}
-
-variable "webfrontend_max_replicas" {
-  description = "Maximum number of replicas for WebFrontend"
-  type        = number
-  default     = 2
-}
-
 variable "webapi_timeout" {
   description = "Request timeout in seconds for WebApi"
-  type        = number
-  default     = 60
-}
-
-variable "webfrontend_timeout" {
-  description = "Request timeout in seconds for WebFrontend"
   type        = number
   default     = 60
 }

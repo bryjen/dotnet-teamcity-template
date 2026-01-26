@@ -9,7 +9,7 @@ namespace WebApi.Services.Auth;
 
 public class PasswordResetService(
     AppDbContext context,
-    IEmailService emailService,
+    RenderMjmlEmailService emailService,
     PasswordValidator passwordValidator,
     string frontendBaseUrl)
 {

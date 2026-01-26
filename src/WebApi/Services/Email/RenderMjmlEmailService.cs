@@ -7,7 +7,7 @@ namespace WebApi.Services.Email;
 /// Service for sending emails using <a href="https://resend.com/about">Resend</a> as an email sending problem, and
 /// <a href="https://mjml.io/">MJML</a> templates for the email contents.
 /// </summary>
-public class RenderMjmlEmailService(IResend resendClient, string domain) : IEmailService
+public class RenderMjmlEmailService(IResend resendClient, string domain)
 {
     private string FromAddress => $"noreply@{domain}";
     
