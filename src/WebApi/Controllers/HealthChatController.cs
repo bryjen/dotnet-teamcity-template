@@ -13,10 +13,7 @@ namespace WebApi.Controllers;
 /// </summary>
 [Route("api/v1/health/chat")]
 [Produces("application/json")]
-public class HealthChatController(
-    HealthChatOrchestrator orchestrator,
-    ILogger<HealthChatController> logger)
-    : BaseController
+public class HealthChatController : BaseController
 {
     /// <summary>
     /// Send a healthcare chat message. Processes the message with AI, tracks symptoms, and handles appointment booking. Creates a new conversation if ConversationId is not provided.
@@ -179,7 +176,10 @@ public class HealthChatController(
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<HealthChatResponse>> SendHealthMessage([FromBody] HealthChatRequest request)
+    public async Task<ActionResult<HealthChatResponse>> SendHealthMessage(
+        [FromBody] HealthChatRequest request,
+        [FromServices] HealthChatOrchestrator orchestrator,
+        [FromServices] ILogger<HealthChatController> logger)
     {
         try
         {

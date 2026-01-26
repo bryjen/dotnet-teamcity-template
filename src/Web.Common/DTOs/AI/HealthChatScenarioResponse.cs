@@ -1,4 +1,4 @@
-namespace WebApi.Models.AI;
+namespace Web.Common.DTOs.AI;
 
 /// <summary>
 /// Response DTO for the health chat scenario.

@@ -54,8 +54,6 @@ builder.Services.AddScoped<HealthChatScenario>();
 builder.Services.AddScoped<ResponseRouterService>();
 builder.Services.AddScoped<HealthChatOrchestrator>();
 
-// Note: Health chat plugins (SymptomTrackerPlugin, AppointmentPlugin) are NOT registered in DI
-// They are created per-request with userId injected using ActivatorUtilities in the keyed kernel registration
 
 var app = builder.Build();
 

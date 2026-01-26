@@ -1,12 +1,9 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Embeddings;
 using WebApi.Configuration.Options;
-using WebApi.Services.Chat.SkPlugins;
 
 namespace WebApi.Configuration;
 
@@ -70,12 +67,9 @@ public static class AiConfiguration
             return embeddingService;
         });
 
-        // Register keyed scoped kernel for health chat scenario
-        services.AddKeyedScoped<Kernel>("health", (sp, key) =>
+        // Register singleton kernel for services that need a Kernel instance (e.g., DebugController, VectorStoreService)
+        services.AddSingleton<Kernel>(sp =>
         {
-            var httpContext = sp.GetRequiredService<IHttpContextAccessor>().HttpContext;
-            var userId = ExtractUserIdFromContext(httpContext);
-
             var chatCompletionService = sp.GetRequiredService<IChatCompletionService>();
             var embeddingService = sp.GetService<ITextEmbeddingGenerationService>();
 
@@ -87,39 +81,7 @@ public static class AiConfiguration
                 kernelBuilder.Services.AddSingleton(embeddingService);
             }
 
-            var kernel = kernelBuilder.Build();
-
-            // Create plugins with userId
-            var symptomPlugin = ActivatorUtilities.CreateInstance<SymptomTrackerPlugin>(sp, userId);
-            var appointmentPlugin = ActivatorUtilities.CreateInstance<AppointmentPlugin>(sp, userId);
-
-            kernel.Plugins.AddFromObject(symptomPlugin, "SymptomTracker");
-            kernel.Plugins.AddFromObject(appointmentPlugin, "Appointment");
-
-            return kernel;
+            return kernelBuilder.Build();
         });
-    }
-
-    /// <summary>
-    /// Extracts the user ID from the HTTP context claims.
-    /// </summary>
-    /// <param name="context">The HTTP context</param>
-    /// <returns>The user's GUID</returns>
-    /// <exception cref="UnauthorizedAccessException">Thrown when user ID claim is missing or invalid</exception>
-    private static Guid ExtractUserIdFromContext(HttpContext? context)
-    {
-        if (context?.User == null)
-        {
-            throw new UnauthorizedAccessException("User context is not available");
-        }
-
-        var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (userIdClaim == null || !Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedAccessException("Invalid token: user ID claim is missing or invalid");
-        }
-
-        return userId;
     }
 }

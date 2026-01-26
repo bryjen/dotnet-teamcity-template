@@ -4,9 +4,9 @@ using Web.Common.DTOs.Health;
 using WebApi.Controllers;
 using WebApi.Data;
 using Web.Common.DTOs.Conversations;
+using Web.Common.DTOs.AI;
 using WebApi.Exceptions;
 using WebApi.Models;
-using WebApi.Models.AI;
 using WebApi.Services.AI.Scenarios;
 using WebApi.Services.VectorStore;
 

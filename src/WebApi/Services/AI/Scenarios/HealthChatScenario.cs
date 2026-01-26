@@ -2,9 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Web.Common.DTOs.AI;
 using WebApi.Configuration.Options;
 using WebApi.Models;
-using WebApi.Models.AI;
 using WebApi.Services.VectorStore;
 
 namespace WebApi.Services.AI.Scenarios;
@@ -72,19 +72,15 @@ Always call the appropriate functions when users report symptoms or request acti
         HealthChatScenarioRequest input,
         CancellationToken cancellationToken = default)
     {
-        // This method is called but we handle context enrichment in BuildChatHistory
-        // since we need to work with Message objects, not just strings
+        // Not used - ExecuteAsync is overridden and handles context enrichment directly
         return null;
     }
 
     protected override ChatHistory BuildChatHistory(HealthChatScenarioRequest input, string? context)
     {
-        // This method is not used since we override ExecuteAsync to handle async operations
-        // But we must implement it since it's abstract
-        var chatHistory = new ChatHistory();
-        chatHistory.AddSystemMessage(GetSystemPrompt());
-        chatHistory.AddUserMessage(input.Message);
-        return chatHistory;
+        // Not used - ExecuteAsync is overridden and builds chat history directly
+        // Required by abstract base class contract
+        return new ChatHistory();
     }
 
     public override async Task<HealthChatScenarioResponse> ExecuteAsync(

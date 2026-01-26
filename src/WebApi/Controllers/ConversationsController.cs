@@ -12,9 +12,7 @@ namespace WebApi.Controllers;
 /// </summary>
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
-public class ConversationsController(
-    ConversationService conversationService) 
-    : BaseController
+public class ConversationsController : BaseController
 {
     /// <summary>
     /// Get all conversations for the authenticated user
@@ -62,7 +60,8 @@ public class ConversationsController(
     [HttpGet]
     [ProducesResponseType(typeof(List<ConversationSummaryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<List<ConversationSummaryDto>>> GetAllConversations()
+    public async Task<ActionResult<List<ConversationSummaryDto>>> GetAllConversations(
+        [FromServices] ConversationService conversationService)
     {
         var userId = GetUserId();
         var conversations = await conversationService.GetAllConversationsAsync(userId);
@@ -124,7 +123,9 @@ public class ConversationsController(
     [ProducesResponseType(typeof(ConversationDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ConversationDto>> GetConversationById(Guid id)
+    public async Task<ActionResult<ConversationDto>> GetConversationById(
+        Guid id,
+        [FromServices] ConversationService conversationService)
     {
         var userId = GetUserId();
         var conversation = await conversationService.GetConversationByIdAsync(id, userId);
@@ -195,7 +196,10 @@ public class ConversationsController(
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ConversationDto>> UpdateConversationTitle(Guid id, [FromBody] UpdateConversationTitleRequest request)
+    public async Task<ActionResult<ConversationDto>> UpdateConversationTitle(
+        Guid id,
+        [FromBody] UpdateConversationTitleRequest request,
+        [FromServices] ConversationService conversationService)
     {
         try
         {
@@ -248,7 +252,9 @@ public class ConversationsController(
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> DeleteConversation(Guid id)
+    public async Task<ActionResult> DeleteConversation(
+        Guid id,
+        [FromServices] ConversationService conversationService)
     {
         try
         {

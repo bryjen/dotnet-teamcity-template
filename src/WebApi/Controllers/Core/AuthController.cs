@@ -17,10 +17,7 @@ namespace WebApi.Controllers.Core;
 [Route("api/v1/[controller]")]
 [Produces("application/json")]
 [EnableRateLimiting("auth")]
-public class AuthController(
-    AuthService authService, 
-    PasswordResetService passwordResetService) 
-    : ControllerBase
+public class AuthController : ControllerBase
 {
     /// <summary>
     /// Register a new user account
@@ -100,7 +97,9 @@ public class AuthController(
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<AuthResponse>> Register(
+        [FromBody] RegisterRequest request,
+        [FromServices] AuthService authService)
     {
         try
         {
@@ -171,7 +170,9 @@ public class AuthController(
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<AuthResponse>> Login(
+        [FromBody] LoginRequest request,
+        [FromServices] AuthService authService)
     {
         try
         {
@@ -238,7 +239,9 @@ public class AuthController(
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
+    public async Task<ActionResult<AuthResponse>> RefreshToken(
+        [FromBody] RefreshTokenRequest request,
+        [FromServices] AuthService authService)
     {
         try
         {
@@ -304,7 +307,8 @@ public class AuthController(
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<UserDto>> GetCurrentUser()
+    public async Task<ActionResult<UserDto>> GetCurrentUser(
+        [FromServices] AuthService authService)
     {
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         
@@ -370,7 +374,9 @@ public class AuthController(
     [HttpPost("password-reset/request")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> RequestPasswordReset([FromBody] PasswordResetRequestDto request)
+    public async Task<ActionResult> RequestPasswordReset(
+        [FromBody] PasswordResetRequestDto request,
+        [FromServices] PasswordResetService passwordResetService)
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
@@ -451,7 +457,9 @@ public class AuthController(
     [HttpPost("password-reset/confirm")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> ConfirmPasswordReset([FromBody] ConfirmPasswordResetRequestDto request)
+    public async Task<ActionResult> ConfirmPasswordReset(
+        [FromBody] ConfirmPasswordResetRequestDto request,
+        [FromServices] PasswordResetService passwordResetService)
     {
         if (string.IsNullOrWhiteSpace(request.Token))
         {
@@ -599,7 +607,9 @@ public class AuthController(
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<AuthResponse>> OAuthLogin([FromBody] OAuthLoginRequest request)
+    public async Task<ActionResult<AuthResponse>> OAuthLogin(
+        [FromBody] OAuthLoginRequest request,
+        [FromServices] AuthService authService)
     {
         if (string.IsNullOrWhiteSpace(request.Provider))
         {
