@@ -9,6 +9,24 @@
             <p class="text-muted-foreground">Blazor WASM implementation of shadcn/ui components</p>
         </div>
 
+        @* Scroll Lock Toggle Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Scroll Lock</CardTitle>
+                <CardDescription>Toggle page scrolling using JavaScript interop.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="flex items-center gap-3">
+                    <Button Variant="outline" @onclick="ToggleScroll">
+                        @(scrollLocked ? "Enable Scrolling" : "Disable Scrolling")
+                    </Button>
+                    <span class="text-sm text-muted-foreground">
+                        Current: @(scrollLocked ? "Locked" : "Unlocked")
+                    </span>
+                </div>
+            </CardContent>
+        </Card>
+
         @* Badge Section *@
         <Card>
             <CardHeader>
@@ -278,6 +296,8 @@
 </div>
 
 @code {
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
     private bool switchChecked = false;
     private bool switchChecked2 = false;
     private bool checkboxChecked = false;
@@ -285,4 +305,12 @@
     private bool dialogOpen = false;
     private bool dropdownOpen = false;
     private string username = "shadcn";
+
+    private bool scrollLocked = false;
+
+    private async Task ToggleScroll()
+    {
+        scrollLocked = !scrollLocked;
+        await JSRuntime.InvokeVoidAsync("toggleBodyScroll", scrollLocked);
+    }
 }
