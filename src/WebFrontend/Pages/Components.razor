@@ -258,7 +258,7 @@
                 <CardDescription>Displays a menu to the user — such as a set of actions or functions — triggered by a button.</CardDescription>
             </CardHeader>
             <CardContent>
-                <DropdownMenu @bind-Open="dropdownOpen">
+                <DropdownMenu Open="dropdownOpen" OpenChanged="OnDropdownOpenChanged">
                     <DropdownMenuTrigger>
                         <Button Variant="outline">Open Menu</Button>
                     </DropdownMenuTrigger>
@@ -312,5 +312,11 @@
     {
         scrollLocked = !scrollLocked;
         await JSRuntime.InvokeVoidAsync("toggleBodyScroll", scrollLocked);
+    }
+
+    private async Task OnDropdownOpenChanged(bool isOpen)
+    {
+        dropdownOpen = isOpen;
+        await JSRuntime.InvokeVoidAsync("toggleBodyScroll", dropdownOpen);
     }
 }

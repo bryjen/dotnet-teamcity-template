@@ -6,8 +6,8 @@ export function registerClickOutside(dropdownId, dotNetRef) {
     unregisterClickOutside(dropdownId);
 
     const handler = (event) => {
-        const dropdownElement = document.querySelector(`[data-dropdown-id="${dropdownId}"]`);
-        const triggerElement = document.querySelector(`[data-dropdown-trigger="${dropdownId}"]`);
+        const dropdownElement = document.querySelector(`[data-dropdown-menu-content="${dropdownId}"]`);
+        const triggerElement = document.querySelector(`[data-dropdown-menu-trigger="${dropdownId}"]`);
 
         if (!dropdownElement || !triggerElement) {
             unregisterClickOutside(dropdownId);

@@ -3022,7 +3022,7 @@
     border-radius: 10px;
   }
   html.dark ::-webkit-scrollbar {
-    width: 1px;
+    width: 10px;
     height: 10px;
   }
   html.dark ::-webkit-scrollbar-track {
@@ -3031,7 +3031,7 @@
   html.dark ::-webkit-scrollbar-thumb {
     background: #9c9c9c;
     border-radius: 9999px;
-    border: 2px solid #171717;
+    border: 1px solid #171717;
     background-clip: padding-box;
   }
   html.dark ::-webkit-scrollbar-thumb:hover {
