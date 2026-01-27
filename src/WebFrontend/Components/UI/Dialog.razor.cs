@@ -6,13 +6,24 @@ namespace WebFrontend.Components.UI;
 
 public partial class Dialog : ComponentBase, IAsyncDisposable
 {
-    [Parameter] public RenderFragment? ChildContent { get; set; }
-    [Parameter] public bool Open { get; set; }
-    [Parameter] public EventCallback<bool> OpenChanged { get; set; }
-    [Parameter] public string? DialogId { get; set; }
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
-    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
-    [Inject] private DialogService DialogService { get; set; } = default!;
+    [Parameter]
+    public bool Open { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OpenChanged { get; set; }
+
+    [Parameter]
+    public string? DialogId { get; set; }
+
+
+    [Inject]
+    private IJSRuntime JsRuntime { get; set; } = null!;
+
+    [Inject]
+    private DialogService DialogService { get; set; } = null!;
 
     private IJSObjectReference? _jsModule;
     private DotNetObjectReference<Dialog>? _dotNetRef;
@@ -36,7 +47,7 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
         if (firstRender)
         {
             _dotNetRef = DotNetObjectReference.Create(this);
-            _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/dialog.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/dialog.js");
         }
 
         // Update registration in OnAfterRenderAsync as well (in case Open changed via binding)
@@ -75,7 +86,7 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
                 await _jsModule.InvokeVoidAsync("closeDialog", DialogId);
                 await Task.Delay(300);
                 DialogService.UnregisterDialog(DialogId!);
-                await JSRuntime.InvokeVoidAsync("toggleBodyScroll", false);
+                await JsRuntime.InvokeVoidAsync("toggleBodyScroll", false);
                 _isClosing = false;
             }
         }
@@ -126,8 +137,8 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
         Open = true;
         await OpenChanged.InvokeAsync(Open);
         // Lock scroll when dialog opens (without touching scroll-toggle implementation)
-        await JSRuntime.InvokeVoidAsync("toggleBodyScroll", true);
-        
+        await JsRuntime.InvokeVoidAsync("toggleBodyScroll", true);
+
         // Register with DialogService immediately when opening
         if (_contentComponent != null)
         {
@@ -140,7 +151,7 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
             };
             DialogService.RegisterDialog(DialogId!, instance);
         }
-        
+
         // Force re-render to ensure DialogProvider gets updated
         StateHasChanged();
         // Give DialogProvider time to render before JS animations
@@ -150,26 +161,26 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
     public async Task CloseAsync()
     {
         _isClosing = true;
-        
+
         // Start the fade-out animation first
         if (_jsModule != null && _isInitialized)
         {
             await _jsModule.InvokeVoidAsync("closeDialog", DialogId);
         }
-        
+
         // Wait for the animation to complete (250ms transition + small buffer)
         await Task.Delay(300);
-        
+
         // Now actually close and unregister
         Open = false;
         await OpenChanged.InvokeAsync(Open);
-        
+
         // Unregister from service after animation completes
         DialogService.UnregisterDialog(DialogId!);
-        
+
         // Re-enable scroll when dialog closes
-        await JSRuntime.InvokeVoidAsync("toggleBodyScroll", false);
-        
+        await JsRuntime.InvokeVoidAsync("toggleBodyScroll", false);
+
         _isClosing = false;
         StateHasChanged();
     }

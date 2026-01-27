@@ -12,11 +12,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        "primary": "#3b82f6",
-        "background-black": "#000000",
-        "background-dark": "#0a0a0a",
-        "card-dark": "#121212",
-        "border-dark": "#1f1f1f",
+        // All colors now reference CSS variables from @theme layer
+        // These are automatically available via Tailwind's theme system
+        // No hardcoded values - single source of truth in input.css
       },
       fontFamily: {
         "display": ["Inter", "sans-serif"]

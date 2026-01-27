@@ -7,6 +7,7 @@
 
 @layer base {
     :root {
+        /* Core semantic tokens (shadcn-style) */
         --background: 0 0% 100%;
         --foreground: 222.2 84% 4.9%;
         --card: 0 0% 100%;
@@ -27,9 +28,30 @@
         --input: 214.3 31.8% 91.4%;
         --ring: 221.2 83.2% 53.3%;
         --radius: 0.5rem;
+        
+        /* Extended theme tokens - unified color system */
+        --background-black: 0 0% 0%;
+        --background-dark: 0 0% 3.9%;
+        --card-dark: 0 0% 7.1%;
+        --border-dark: 0 0% 12.2%;
+        --scrollbar-track: 0 0% 9%;
+        --scrollbar-thumb: 0 0% 61.2%;
+        --scrollbar-thumb-hover: 0 0% 75.3%;
+        
+        /* Chat/Sidebar specific (can be merged into semantic tokens later) */
+        --chat-dark: 0 0% 4.3%;
+        --chat-sidebar: 0 0% 6.7%;
+        --chat-border: 0 0% 12.2%;
+        --sidebar-text: 0 0% 82%;
+        --sidebar-header: 0 0% 55.7%;
+        
+        /* Neon accent (for symptom map) */
+        --primary-neon: 221 72% 65%;
+        --accent-neon: 0 0% 100%;
     }
 
     .dark {
+        /* Core semantic tokens */
         --background: 0 0% 4%;
         --foreground: 210 40% 98%;
         --card: 0 0% 9%;
@@ -49,6 +71,26 @@
         --border: 0 0% 15%;
         --input: 0 0% 15%;
         --ring: 224.3 76.3% 48%;
+        
+        /* Extended theme tokens - dark mode values */
+        --background-black: 0 0% 0%;
+        --background-dark: 0 0% 3.9%;
+        --card-dark: 0 0% 7.1%;
+        --border-dark: 0 0% 12.2%;
+        --scrollbar-track: 0 0% 9%;
+        --scrollbar-thumb: 0 0% 61.2%;
+        --scrollbar-thumb-hover: 0 0% 75.3%;
+        
+        /* Chat/Sidebar specific */
+        --chat-dark: 0 0% 4.3%;
+        --chat-sidebar: 0 0% 6.7%;
+        --chat-border: 0 0% 12.2%;
+        --sidebar-text: 0 0% 82%;
+        --sidebar-header: 0 0% 55.7%;
+        
+        /* Neon accent */
+        --primary-neon: 221 72% 65%;
+        --accent-neon: 0 0% 100%;
     }
 
     html,
@@ -95,6 +137,7 @@
 }
 
 @theme {
+    /* Core semantic tokens */
     --color-background: hsl(var(--background));
     --color-foreground: hsl(var(--foreground));
     --color-card: hsl(var(--card));
@@ -114,19 +157,26 @@
     --color-border: hsl(var(--border));
     --color-input: hsl(var(--input));
     --color-ring: hsl(var(--ring));
-    /* Dashboard custom colors */
-    --color-background-black: #000000;
-    --color-background-dark: #0a0a0a;
-    --color-card-dark: #121212;
-    --color-border-dark: #1f1f1f;
-    /* Symptom Map custom colors */
-    --color-primary-neon: #5288ed;
-    --color-accent-neon: #ffffff;
-    --color-chat-dark: #0b0b0b;
-    --color-chat-sidebar: #111111;
-    --color-chat-border: #1f1f1f;
-    --color-sidebar-text: #d1d1d1;
-    --color-sidebar-header: #8e8e8e;
+    
+    /* Extended theme tokens - all from CSS variables */
+    --color-background-black: hsl(var(--background-black));
+    --color-background-dark: hsl(var(--background-dark));
+    --color-card-dark: hsl(var(--card-dark));
+    --color-border-dark: hsl(var(--border-dark));
+    --color-scrollbar-track: hsl(var(--scrollbar-track));
+    --color-scrollbar-thumb: hsl(var(--scrollbar-thumb));
+    --color-scrollbar-thumb-hover: hsl(var(--scrollbar-thumb-hover));
+    
+    /* Chat/Sidebar tokens */
+    --color-chat-dark: hsl(var(--chat-dark));
+    --color-chat-sidebar: hsl(var(--chat-sidebar));
+    --color-chat-border: hsl(var(--chat-border));
+    --color-sidebar-text: hsl(var(--sidebar-text));
+    --color-sidebar-header: hsl(var(--sidebar-header));
+    
+    /* Neon accent tokens */
+    --color-primary-neon: hsl(var(--primary-neon));
+    --color-accent-neon: hsl(var(--accent-neon));
 }
 
 @layer components {
@@ -169,20 +219,20 @@
     }
 
     .node-glow {
-        filter: drop-shadow(0 0 8px rgba(82, 136, 237, 0.6));
+        filter: drop-shadow(0 0 8px hsl(var(--primary-neon) / 0.6));
     }
 
     .node-glow-white {
-        filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+        filter: drop-shadow(0 0 8px hsl(var(--accent-neon) / 0.4));
     }
 
     .neon-ring {
-        border: 1px solid rgba(82, 136, 237, 0.3);
-        box-shadow: 0 0 15px rgba(82, 136, 237, 0.1);
+        border: 1px solid hsl(var(--primary-neon) / 0.3);
+        box-shadow: 0 0 15px hsl(var(--primary-neon) / 0.1);
     }
 
     .neon-ring-white {
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid hsl(var(--accent-neon) / 0.1);
     }
 
     .sidebar-scroll::-webkit-scrollbar {
@@ -190,44 +240,44 @@
     }
 
     .sidebar-scroll::-webkit-scrollbar-thumb {
-        background: #2a2a2a;
+        background: hsl(var(--scrollbar-thumb));
         border-radius: 10px;
     }
 
-    /* Scrollbar styling - dark theme inspired */
+    /* Scrollbar styling - uses theme tokens */
     html.dark ::-webkit-scrollbar {
         width: 10px;
         height: 10px;
     }
 
     html.dark ::-webkit-scrollbar-track {
-        background: #171717;
+        background: hsl(var(--scrollbar-track));
     }
 
     html.dark ::-webkit-scrollbar-thumb {
-        background: #9c9c9c;
+        background: hsl(var(--scrollbar-thumb));
         border-radius: 9999px;
-        border: 1px solid #171717;
+        border: 1px solid hsl(var(--scrollbar-track));
         background-clip: padding-box;
     }
 
     html.dark ::-webkit-scrollbar-thumb:hover {
-        background: #c0c0c0;
+        background: hsl(var(--scrollbar-thumb-hover));
         background-clip: padding-box;
     }
 
     /* Firefox - thin scrollbar matching dark theme */
     html.dark * {
         scrollbar-width: thin;
-        scrollbar-color: #9c9c9c #171717;
+        scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
     }
 
     .node-hover-neon:hover {
-        background-color: rgba(82, 136, 237, 0.1) !important;
+        background-color: hsl(var(--primary-neon) / 0.1) !important;
     }
 
     .node-hover-white:hover {
-        background-color: rgba(255, 255, 255, 0.05) !important;
+        background-color: hsl(var(--accent-neon) / 0.05) !important;
     }
 }
 
