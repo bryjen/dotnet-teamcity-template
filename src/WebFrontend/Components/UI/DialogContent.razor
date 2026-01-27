@@ -1,0 +1,62 @@
+@* Dialog content component with overlay *@
+@if (ParentDialog?.Open == true)
+{
+    <div 
+        data-dialog-overlay="@ParentDialog.DialogId"
+        data-state="@(ParentDialog.Open ? "open" : "closed")"
+        class="@ClassBuilder.Merge("data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50", Class)"
+        @onclick="HandleOverlayClick" />
+    
+    <div 
+        data-dialog-id="@ParentDialog.DialogId"
+        data-dialog-content="@ParentDialog.DialogId"
+        data-state="@(ParentDialog.Open ? "open" : "closed")"
+        class="@GetContentClass()"
+        role="dialog"
+        aria-modal="true"
+        @attributes="AdditionalAttributes">
+        @if (ShowCloseButton)
+        {
+            <button
+                data-slot="dialog-close"
+                class="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+                @onclick="HandleClose">
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span class="sr-only">Close</span>
+            </button>
+        }
+        @ChildContent
+    </div>
+}
+
+@code {
+    [CascadingParameter] public Dialog? ParentDialog { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool ShowCloseButton { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string GetContentClass()
+    {
+        var baseClasses = "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 outline-none sm:max-w-lg";
+        return ClassBuilder.Merge(baseClasses, Class);
+    }
+
+    private async Task HandleOverlayClick(MouseEventArgs e)
+    {
+        if (ParentDialog != null)
+        {
+            await ParentDialog.CloseAsync();
+        }
+    }
+
+    private async Task HandleClose()
+    {
+        if (ParentDialog != null)
+        {
+            await ParentDialog.CloseAsync();
+        }
+    }
+}

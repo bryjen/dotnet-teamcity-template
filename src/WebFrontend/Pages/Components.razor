@@ -1,0 +1,288 @@
+@page "/components"
+
+<PageTitle>Component Showcase</PageTitle>
+
+<div class="min-h-screen bg-background p-8">
+    <div class="max-w-7xl mx-auto space-y-12">
+        <div>
+            <h1 class="text-4xl font-bold text-foreground mb-2">shadcn/ui Components</h1>
+            <p class="text-muted-foreground">Blazor WASM implementation of shadcn/ui components</p>
+        </div>
+
+        @* Badge Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Badge</CardTitle>
+                <CardDescription>Displays a badge or a component that looks like a badge.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="flex flex-wrap gap-2">
+                    <Badge Variant="default">Default</Badge>
+                    <Badge Variant="secondary">Secondary</Badge>
+                    <Badge Variant="destructive">Destructive</Badge>
+                    <Badge Variant="outline">Outline</Badge>
+                    <Badge Variant="ghost">Ghost</Badge>
+                    <Badge Variant="link">Link</Badge>
+                </div>
+            </CardContent>
+        </Card>
+
+        @* Button Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Button</CardTitle>
+                <CardDescription>Displays a button or a component that looks like a button.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="flex flex-wrap gap-2 items-center">
+                    <Button Variant="default">Default</Button>
+                    <Button Variant="secondary">Secondary</Button>
+                    <Button Variant="destructive">Destructive</Button>
+                    <Button Variant="outline">Outline</Button>
+                    <Button Variant="ghost">Ghost</Button>
+                    <Button Variant="link">Link</Button>
+                </div>
+                <Separator class="my-4" />
+                <div class="flex flex-wrap gap-2 items-center">
+                    <Button Size="xs">Extra Small</Button>
+                    <Button Size="sm">Small</Button>
+                    <Button Size="default">Default</Button>
+                    <Button Size="lg">Large</Button>
+                </div>
+            </CardContent>
+        </Card>
+
+        @* Card Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Card</CardTitle>
+                <CardDescription>Displays a card with header, content, and footer.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Card Title</CardTitle>
+                        <CardDescription>Card description goes here.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p>This is the card content area.</p>
+                    </CardContent>
+                    <CardFooter>
+                        <Button>Action</Button>
+                    </CardFooter>
+                </Card>
+            </CardContent>
+        </Card>
+
+        @* Input & Label Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Input & Label</CardTitle>
+                <CardDescription>Displays a form input field or a component that looks like an input field.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="space-y-4">
+                    <div>
+                        <Label For="email">Email</Label>
+                        <Input type="email" id="email" placeholder="Enter your email" class="mt-2" />
+                    </div>
+                    <div>
+                        <Label For="password">Password</Label>
+                        <Input type="password" id="password" placeholder="Enter your password" class="mt-2" />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        @* Separator Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Separator</CardTitle>
+                <CardDescription>Visually or semantically separates content.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="space-y-4">
+                    <div>Content above</div>
+                    <Separator />
+                    <div>Content below</div>
+                </div>
+            </CardContent>
+        </Card>
+
+        @* Alert Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Alert</CardTitle>
+                <CardDescription>Displays a callout for user attention.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="space-y-4">
+                    <Alert Variant="default">
+                        <AlertTitle>Heads up!</AlertTitle>
+                        <AlertDescription>
+                            You can add components to your app using the cli.
+                        </AlertDescription>
+                    </Alert>
+                    <Alert Variant="destructive">
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>
+                            Your session has expired. Please log in again.
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            </CardContent>
+        </Card>
+
+        @* Avatar Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Avatar</CardTitle>
+                <CardDescription>An image element with a fallback for representing the user.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="flex flex-wrap gap-4 items-center">
+                    <Avatar Size="sm">
+                        <AvatarImage src="https://github.com/shadcn.png" alt="@username" />
+                        <AvatarFallback>CN</AvatarFallback>
+                    </Avatar>
+                    <Avatar Size="default">
+                        <AvatarImage src="https://github.com/shadcn.png" alt="@username" />
+                        <AvatarFallback>CN</AvatarFallback>
+                    </Avatar>
+                    <Avatar Size="lg">
+                        <AvatarImage src="https://github.com/shadcn.png" alt="@username" />
+                        <AvatarFallback>CN</AvatarFallback>
+                    </Avatar>
+                    <Avatar>
+                        <AvatarFallback>AB</AvatarFallback>
+                        <AvatarBadge>
+                            <svg class="size-2" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="4" />
+                            </svg>
+                        </AvatarBadge>
+                    </Avatar>
+                </div>
+            </CardContent>
+        </Card>
+
+        @* Switch Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Switch</CardTitle>
+                <CardDescription>A control that allows the user to toggle between checked and unchecked states.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-center gap-2">
+                        <Switch @bind-Checked="switchChecked" />
+                        <Label>Enable notifications</Label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <Switch Size="sm" @bind-Checked="switchChecked2" />
+                        <Label>Small switch</Label>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        @* Checkbox Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Checkbox</CardTitle>
+                <CardDescription>A control that allows the user to toggle between checked and unchecked states.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-center gap-2">
+                        <Checkbox @bind-Checked="checkboxChecked" />
+                        <Label>Accept terms and conditions</Label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <Checkbox @bind-Checked="checkboxChecked2" />
+                        <Label>Subscribe to newsletter</Label>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        @* Dialog Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Dialog</CardTitle>
+                <CardDescription>A window overlaid on either the primary window or another dialog window.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Dialog @bind-Open="dialogOpen">
+                    <DialogTrigger>
+                        <Button>Open Dialog</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Are you absolutely sure?</DialogTitle>
+                            <DialogDescription>
+                                This action cannot be undone. This will permanently delete your account
+                                and remove your data from our servers.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button Variant="outline" @onclick="() => dialogOpen = false">Cancel</Button>
+                            <Button Variant="destructive" @onclick="() => dialogOpen = false">Continue</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </CardContent>
+        </Card>
+
+        @* Dropdown Menu Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Dropdown Menu</CardTitle>
+                <CardDescription>Displays a menu to the user — such as a set of actions or functions — triggered by a button.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <DropdownMenu @bind-Open="dropdownOpen">
+                    <DropdownMenuTrigger>
+                        <Button Variant="outline">Open Menu</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>Profile</DropdownMenuItem>
+                        <DropdownMenuItem>Settings</DropdownMenuItem>
+                        <DropdownMenuItem>Team</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem Variant="destructive">Logout</DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </CardContent>
+        </Card>
+
+        @* Tooltip Section *@
+        <Card>
+            <CardHeader>
+                <CardTitle>Tooltip</CardTitle>
+                <CardDescription>A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Button Variant="outline">Hover me</Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>This is a tooltip</p>
+                    </TooltipContent>
+                </Tooltip>
+            </CardContent>
+        </Card>
+    </div>
+</div>
+
+@code {
+    private bool switchChecked = false;
+    private bool switchChecked2 = false;
+    private bool checkboxChecked = false;
+    private bool checkboxChecked2 = false;
+    private bool dialogOpen = false;
+    private bool dropdownOpen = false;
+    private string username = "shadcn";
+}
