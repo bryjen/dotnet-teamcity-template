@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using WebFrontend.Services;
 
 namespace WebFrontend.Components.UI;
 
@@ -11,14 +12,21 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
     [Parameter] public string? DialogId { get; set; }
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private DialogService DialogService { get; set; } = default!;
 
     private IJSObjectReference? _jsModule;
     private DotNetObjectReference<Dialog>? _dotNetRef;
     private bool _isInitialized;
+    private DialogContent? _contentComponent;
 
     protected override void OnInitialized()
     {
         DialogId ??= Guid.NewGuid().ToString();
+    }
+
+    public void RegisterContent(DialogContent contentComponent)
+    {
+        _contentComponent = contentComponent;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -29,6 +37,23 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
             _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/dialog.js");
         }
 
+        // Update registration in OnAfterRenderAsync as well (in case Open changed via binding)
+        if (Open && _contentComponent != null)
+        {
+            var instance = new DialogInstance
+            {
+                DialogId = DialogId!,
+                Open = true,
+                Content = BuildContentFragment(),
+                OnClose = () => _ = CloseAsync()
+            };
+            DialogService.RegisterDialog(DialogId!, instance);
+        }
+        else if (!Open)
+        {
+            DialogService.UnregisterDialog(DialogId!);
+        }
+
         if (_jsModule != null && _dotNetRef != null)
         {
             if (Open)
@@ -36,8 +61,8 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
                 // Initialize dialog only once, after elements are rendered
                 if (!_isInitialized)
                 {
-                    // Wait a bit for DOM to update
-                    await Task.Delay(10);
+                    // Wait a bit for DOM to update - especially for DialogProvider to render
+                    await Task.Delay(50);
                     await _jsModule.InvokeVoidAsync("initializeDialog", DialogId, _dotNetRef);
                     _isInitialized = true;
                 }
@@ -53,17 +78,78 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
         }
     }
 
+    private RenderFragment BuildContentFragment()
+    {
+        if (_contentComponent == null) return _ => { };
+
+        return builder =>
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", _contentComponent.GetContentClass());
+            builder.AddMultipleAttributes(2, _contentComponent.AdditionalAttributes ?? new Dictionary<string, object>());
+
+            if (_contentComponent.ShowCloseButton)
+            {
+                builder.OpenElement(3, "button");
+                builder.AddAttribute(4, "data-slot", "dialog-close");
+                builder.AddAttribute(5, "class", "ring-offset-background focus:ring-ring absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4");
+                builder.AddAttribute(6, "onclick", EventCallback.Factory.Create<Microsoft.AspNetCore.Components.Web.MouseEventArgs>(_contentComponent, _contentComponent.HandleClose));
+                builder.OpenElement(7, "svg");
+                builder.AddAttribute(8, "class", "size-4");
+                builder.AddAttribute(9, "fill", "none");
+                builder.AddAttribute(10, "stroke", "currentColor");
+                builder.AddAttribute(11, "viewBox", "0 0 24 24");
+                builder.OpenElement(12, "path");
+                builder.AddAttribute(13, "stroke-linecap", "round");
+                builder.AddAttribute(14, "stroke-linejoin", "round");
+                builder.AddAttribute(15, "stroke-width", "2");
+                builder.AddAttribute(16, "d", "M6 18L18 6M6 6l12 12");
+                builder.CloseElement();
+                builder.CloseElement();
+                builder.OpenElement(17, "span");
+                builder.AddAttribute(18, "class", "sr-only");
+                builder.AddContent(19, "Close");
+                builder.CloseElement();
+                builder.CloseElement();
+            }
+
+            builder.AddContent(20, _contentComponent.ChildContent);
+            builder.CloseElement();
+        };
+    }
+
     public async Task OpenAsync()
     {
         Open = true;
         await OpenChanged.InvokeAsync(Open);
+        // Lock scroll when dialog opens (without touching scroll-toggle implementation)
+        await JSRuntime.InvokeVoidAsync("toggleBodyScroll", true);
+        
+        // Register with DialogService immediately when opening
+        if (_contentComponent != null)
+        {
+            var instance = new DialogInstance
+            {
+                DialogId = DialogId!,
+                Open = true,
+                Content = BuildContentFragment(),
+                OnClose = () => _ = CloseAsync()
+            };
+            DialogService.RegisterDialog(DialogId!, instance);
+        }
+        
+        // Force re-render to ensure DialogProvider gets updated
         StateHasChanged();
+        // Give DialogProvider time to render before JS animations
+        await Task.Delay(50);
     }
 
     public async Task CloseAsync()
     {
         Open = false;
         await OpenChanged.InvokeAsync(Open);
+        // Re-enable scroll when dialog closes
+        await JSRuntime.InvokeVoidAsync("toggleBodyScroll", false);
         StateHasChanged();
     }
 
@@ -81,6 +167,10 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (DialogId != null)
+        {
+            DialogService.UnregisterDialog(DialogId);
+        }
         if (_jsModule != null && DialogId != null)
         {
             await _jsModule.InvokeVoidAsync("disposeDialog", DialogId);

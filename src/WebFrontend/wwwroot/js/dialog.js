@@ -1,62 +1,69 @@
 // Dialog component JavaScript interop
 const dialogHandlers = new Map();
 
-export function initializeDialog(dialogId, dotNetRef) {
-    const dialogElement = document.querySelector(`[data-dialog-id="${dialogId}"]`);
-    const overlayElement = document.querySelector(`[data-dialog-overlay="${dialogId}"]`);
-    const contentElement = document.querySelector(`[data-dialog-content="${dialogId}"]`);
-    
-    if (!dialogElement || !overlayElement || !contentElement) {
-        return;
-    }
+function getOverlayElement(dialogId) {
+    return document.querySelector(`[data-dialog-overlay="${dialogId}"]`);
+}
 
-    // Store handler
+function getContentElement(dialogId) {
+    return document.querySelector(`[data-dialog-content="${dialogId}"]`);
+}
+
+export function initializeDialog(dialogId, dotNetRef) {
+    // Store handler with document-level listeners so it survives Blazor re-renders
     const handler = {
-        dialogElement,
-        overlayElement,
-        contentElement,
+        dialogId,
         dotNetRef,
         handleEscape: (e) => {
-            if (e.key === 'Escape' && contentElement.getAttribute('data-state') === 'open') {
+            if (e.key !== 'Escape') return;
+            const contentElement = getContentElement(dialogId);
+            if (contentElement && contentElement.getAttribute('data-state') === 'open') {
                 dotNetRef.invokeMethodAsync('HandleEscape');
             }
         },
         handleOverlayClick: (e) => {
+            const overlayElement = getOverlayElement(dialogId);
+            const contentElement = getContentElement(dialogId);
+            if (!overlayElement || !contentElement) return;
+
             if (e.target === overlayElement && contentElement.getAttribute('data-state') === 'open') {
                 dotNetRef.invokeMethodAsync('HandleOverlayClick');
             }
         },
         trapFocus: (e) => {
-            if (contentElement.getAttribute('data-state') !== 'open') {
+            if (e.key !== 'Tab') return;
+
+            const contentElement = getContentElement(dialogId);
+            if (!contentElement || contentElement.getAttribute('data-state') !== 'open') {
                 return;
             }
 
             const focusableElements = contentElement.querySelectorAll(
                 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
             );
+            if (focusableElements.length === 0) return;
+
             const firstElement = focusableElements[0];
             const lastElement = focusableElements[focusableElements.length - 1];
 
-            if (e.key === 'Tab') {
-                if (e.shiftKey) {
-                    if (document.activeElement === firstElement) {
-                        e.preventDefault();
-                        lastElement?.focus();
-                    }
-                } else {
-                    if (document.activeElement === lastElement) {
-                        e.preventDefault();
-                        firstElement?.focus();
-                    }
+            if (e.shiftKey) {
+                if (document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement?.focus();
+                }
+            } else {
+                if (document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement?.focus();
                 }
             }
         }
     };
 
-    // Add event listeners
+    // Add document-level listeners once per dialogId
     document.addEventListener('keydown', handler.handleEscape);
-    overlayElement.addEventListener('click', handler.handleOverlayClick);
-    contentElement.addEventListener('keydown', handler.trapFocus);
+    document.addEventListener('click', handler.handleOverlayClick, true);
+    document.addEventListener('keydown', handler.trapFocus);
 
     dialogHandlers.set(dialogId, handler);
 }
@@ -65,15 +72,43 @@ export function openDialog(dialogId) {
     const handler = dialogHandlers.get(dialogId);
     if (!handler) return;
 
-    const { overlayElement, contentElement } = handler;
+    const overlayElement = getOverlayElement(dialogId);
+    const contentElement = getContentElement(dialogId);
+    if (!overlayElement || !contentElement) return;
+
+    // Apply base styles for JS-driven animation each time in case DOM was re-rendered
+    overlayElement.style.opacity = '0';
+    overlayElement.style.backdropFilter = 'blur(0px) saturate(120%)';
+    overlayElement.style.transition = 'opacity 250ms ease-in-out, backdrop-filter 250ms ease-in-out';
+    overlayElement.style.pointerEvents = 'none';
+
+    contentElement.style.opacity = '0';
+    contentElement.style.transform = 'translate(-50%, -50%) scale(0.95)';
+    contentElement.style.transition = 'opacity 250ms ease-in-out, transform 250ms ease-in-out';
     
     // Set state
     overlayElement.setAttribute('data-state', 'open');
     contentElement.setAttribute('data-state', 'open');
-    
-    // Prevent body scroll
-    document.body.style.overflow = 'hidden';
-    
+
+    // Enable interactions
+    overlayElement.style.pointerEvents = 'auto';
+
+    // Animate overlay frost (fade + blur in)
+    // Use double RAF to ensure the browser applies initial styles before transition
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            overlayElement.style.opacity = '1';
+            overlayElement.style.backdropFilter = 'blur(16px) saturate(150%)';
+        });
+    });
+
+    // Animate content (fade + subtle pop)
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            contentElement.style.opacity = '1';
+            contentElement.style.transform = 'translate(-50%, -50%) scale(1)';
+        });
+    });
     // Focus first element
     setTimeout(() => {
         const firstFocusable = contentElement.querySelector(
@@ -87,14 +122,25 @@ export function closeDialog(dialogId) {
     const handler = dialogHandlers.get(dialogId);
     if (!handler) return;
 
-    const { overlayElement, contentElement } = handler;
+    const overlayElement = getOverlayElement(dialogId);
+    const contentElement = getContentElement(dialogId);
+    if (!overlayElement || !contentElement) return;
     
     // Set state
     overlayElement.setAttribute('data-state', 'closed');
     contentElement.setAttribute('data-state', 'closed');
-    
-    // Restore body scroll
-    document.body.style.overflow = '';
+
+    // Disable interactions after fade-out completes
+    overlayElement.style.opacity = '0';
+    overlayElement.style.backdropFilter = 'blur(0px) saturate(120%)';
+    contentElement.style.opacity = '0';
+    contentElement.style.transform = 'translate(-50%, -50%) scale(0.95)';
+
+    setTimeout(() => {
+        if (overlayElement.getAttribute('data-state') === 'closed') {
+            overlayElement.style.pointerEvents = 'none';
+        }
+    }, 260);
 }
 
 export function disposeDialog(dialogId) {
@@ -103,11 +149,10 @@ export function disposeDialog(dialogId) {
 
     // Remove event listeners
     document.removeEventListener('keydown', handler.handleEscape);
-    handler.overlayElement.removeEventListener('click', handler.handleOverlayClick);
-    handler.contentElement.removeEventListener('keydown', handler.trapFocus);
+    document.removeEventListener('click', handler.handleOverlayClick, true);
+    document.removeEventListener('keydown', handler.trapFocus);
 
-    // Restore body scroll
-    document.body.style.overflow = '';
+    // No scroll handling here – scroll locking is managed via toggleBodyScroll
 
     dialogHandlers.delete(dialogId);
 }

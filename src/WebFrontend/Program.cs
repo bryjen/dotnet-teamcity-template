@@ -72,6 +72,9 @@ builder.Services.AddScoped<AuthService>();
 // Register dropdown service
 builder.Services.AddScoped<DropdownService>();
 
+// Register dialog service as scoped
+builder.Services.AddScoped<DialogService>();
+
 // Register toast service as singleton so it persists across components
 builder.Services.AddSingleton<ToastService>();
 
