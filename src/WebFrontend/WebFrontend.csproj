@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.2" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer"
+            Version="10.0.2" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\WebApi.ApiWrapper\WebApi.ApiWrapper.csproj" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TailwindCliPath>$(MSBuildProjectDirectory)\tools\tailwindcss.exe</TailwindCliPath>
+        <TailwindCliUrl>
+            https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-windows-x64.exe</TailwindCliUrl>
+    </PropertyGroup>
+
+    <Target Name="DownloadTailwindCli" BeforeTargets="BuildTailwind"
+        Condition="!Exists('$(TailwindCliPath)')">
+        <MakeDir Directories="$(MSBuildProjectDirectory)\tools" />
+        <Message Text="Downloading Tailwind CSS Standalone CLI..." Importance="high" />
+        <Exec
+            Command="powershell -Command &quot;Invoke-WebRequest -Uri '$(TailwindCliUrl)' -OutFile '$(TailwindCliPath)'&quot;"
+            ContinueOnError="false" />
+    </Target>
+
+    <Target Name="BuildTailwind" BeforeTargets="Build" Condition="Exists('$(TailwindCliPath)')">
+        <Exec
+            Command="&quot;$(TailwindCliPath)&quot; -i ./wwwroot/css/input.css -o ./wwwroot/css/app.css --minify"
+            ContinueOnError="false"
+            WorkingDirectory="$(MSBuildProjectDirectory)" />
+    </Target>
+
+</Project>

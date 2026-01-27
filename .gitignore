@@ -40,3 +40,10 @@ tf/accs/**/*.json
 /notes
 /context
 .env
+
+# Node modules
+node_modules/
+package-lock.json
+
+# Tailwind CLI tool (will be downloaded automatically)
+src/WebFrontend/tools/
