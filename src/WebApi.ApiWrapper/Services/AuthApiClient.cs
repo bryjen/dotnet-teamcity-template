@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Web.Common.DTOs.Auth;
 
 namespace WebApi.ApiWrapper.Services;
@@ -21,42 +22,42 @@ public class AuthApiClient : BaseApiClient, IAuthApiClient
     /// <inheritdoc/>
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
-        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/register", request);
+        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/register", request, BaseApiClient.JsonOptions);
         
         if (!response.IsSuccessStatusCode)
         {
             await HandleErrorResponseAsync(response);
         }
 
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var result = await response.Content.ReadFromJsonAsync<AuthResponse>(BaseApiClient.JsonOptions);
         return result ?? throw new Exceptions.ApiException("Failed to deserialize registration response", 500);
     }
 
     /// <inheritdoc/>
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
-        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/login", request);
+        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/login", request, BaseApiClient.JsonOptions);
         
         if (!response.IsSuccessStatusCode)
         {
             await HandleErrorResponseAsync(response);
         }
 
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var result = await response.Content.ReadFromJsonAsync<AuthResponse>(BaseApiClient.JsonOptions);
         return result ?? throw new Exceptions.ApiException("Failed to deserialize login response", 500);
     }
 
     /// <inheritdoc/>
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
     {
-        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/refresh", request);
+        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/refresh", request, BaseApiClient.JsonOptions);
         
         if (!response.IsSuccessStatusCode)
         {
             await HandleErrorResponseAsync(response);
         }
 
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var result = await response.Content.ReadFromJsonAsync<AuthResponse>(BaseApiClient.JsonOptions);
         return result ?? throw new Exceptions.ApiException("Failed to deserialize refresh token response", 500);
     }
 
@@ -72,7 +73,7 @@ public class AuthApiClient : BaseApiClient, IAuthApiClient
             await HandleErrorResponseAsync(response);
         }
 
-        var result = await response.Content.ReadFromJsonAsync<UserDto>();
+        var result = await response.Content.ReadFromJsonAsync<UserDto>(BaseApiClient.JsonOptions);
         return result ?? throw new Exceptions.ApiException("Failed to deserialize user response", 500);
     }
 
@@ -80,7 +81,7 @@ public class AuthApiClient : BaseApiClient, IAuthApiClient
     public async Task RequestPasswordResetAsync(string email)
     {
         var request = new { Email = email };
-        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/password-reset/request", request);
+        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/password-reset/request", request, BaseApiClient.JsonOptions);
         
         if (!response.IsSuccessStatusCode)
         {
@@ -92,7 +93,7 @@ public class AuthApiClient : BaseApiClient, IAuthApiClient
     public async Task ConfirmPasswordResetAsync(string token, string newPassword)
     {
         var request = new { Token = token, NewPassword = newPassword };
-        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/password-reset/confirm", request);
+        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/password-reset/confirm", request, BaseApiClient.JsonOptions);
         
         if (!response.IsSuccessStatusCode)
         {
@@ -103,14 +104,14 @@ public class AuthApiClient : BaseApiClient, IAuthApiClient
     /// <inheritdoc/>
     public async Task<AuthResponse> OAuthLoginAsync(OAuthLoginRequest request)
     {
-        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/oauth", request);
+        var response = await HttpClient.PostAsJsonAsync("api/v1/auth/oauth", request, BaseApiClient.JsonOptions);
         
         if (!response.IsSuccessStatusCode)
         {
             await HandleErrorResponseAsync(response);
         }
 
-        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var result = await response.Content.ReadFromJsonAsync<AuthResponse>(BaseApiClient.JsonOptions);
         return result ?? throw new Exceptions.ApiException("Failed to deserialize OAuth login response", 500);
     }
 }

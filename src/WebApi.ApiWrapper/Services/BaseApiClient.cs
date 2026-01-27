@@ -9,6 +9,15 @@ namespace WebApi.ApiWrapper.Services;
 /// </summary>
 public abstract class BaseApiClient
 {
+    /// <summary>
+    /// Shared JSON serializer options configured to match the backend API (snake_case_lower).
+    /// </summary>
+    protected static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        PropertyNameCaseInsensitive = true
+    };
+
     protected readonly HttpClient HttpClient;
     protected readonly ITokenProvider? TokenProvider;
 
@@ -72,10 +81,7 @@ public abstract class BaseApiClient
         {
             try
             {
-                errorResponse = JsonSerializer.Deserialize<ErrorResponse>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                errorResponse = JsonSerializer.Deserialize<ErrorResponse>(content, JsonOptions);
                 errorCode = errorResponse?.ErrorCode;
             }
             catch
@@ -130,7 +136,7 @@ public abstract class BaseApiClient
             return default;
         }
 
-        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken);
     }
 
     /// <summary>

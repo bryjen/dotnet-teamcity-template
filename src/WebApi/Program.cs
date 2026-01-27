@@ -54,6 +54,8 @@ builder.Services.AddScoped<HealthChatScenario>();
 builder.Services.AddScoped<ResponseRouterService>();
 builder.Services.AddScoped<HealthChatOrchestrator>();
 
+// SignalR
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -113,6 +115,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// SignalR hub
+app.MapHub<WebApi.Hubs.ChatHub>("/hubs/chat");
 
 // Health check endpoint
 app.MapHealthChecks("/health");

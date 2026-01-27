@@ -39,7 +39,7 @@ public static class AiConfiguration
             var kernel = builder.Build();
             var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
 
-            logger.LogInformation("Azure OpenAI ChatCompletionService configured with deployment: {DeploymentName}", 
+            logger.LogInformation("Azure OpenAI ChatCompletionService configured with deployment: {DeploymentName}",
                 settings.DeploymentName);
 
             return chatCompletionService;
@@ -61,7 +61,7 @@ public static class AiConfiguration
             var kernel = builder.Build();
             var embeddingService = kernel.GetRequiredService<ITextEmbeddingGenerationService>();
 
-            logger.LogInformation("Azure OpenAI TextEmbeddingGenerationService configured with deployment: {EmbeddingDeploymentName}", 
+            logger.LogInformation("Azure OpenAI TextEmbeddingGenerationService configured with deployment: {EmbeddingDeploymentName}",
                 embeddingDeploymentName);
 
             return embeddingService;
@@ -83,5 +83,8 @@ public static class AiConfiguration
 
             return kernelBuilder.Build();
         });
+
+        // Register keyed kernel for HealthChatScenario (reuses the same singleton Kernel instance)
+        services.AddKeyedSingleton<Kernel>("health", (sp, _) => sp.GetRequiredService<Kernel>());
     }
 }

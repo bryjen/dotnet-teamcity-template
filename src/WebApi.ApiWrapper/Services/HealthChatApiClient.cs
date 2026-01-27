@@ -23,14 +23,14 @@ public class HealthChatApiClient : BaseApiClient, IHealthChatApiClient
     {
         await EnsureAuthenticatedAsync();
         
-        var response = await HttpClient.PostAsJsonAsync("api/v1/health/chat", request);
+        var response = await HttpClient.PostAsJsonAsync("api/v1/health/chat", request, BaseApiClient.JsonOptions);
         
         if (!response.IsSuccessStatusCode)
         {
             await HandleErrorResponseAsync(response);
         }
 
-        var result = await response.Content.ReadFromJsonAsync<HealthChatResponse>();
+        var result = await response.Content.ReadFromJsonAsync<HealthChatResponse>(BaseApiClient.JsonOptions);
         return result ?? throw new Exceptions.ApiException("Failed to deserialize health chat response", 500);
     }
 }

@@ -65,6 +65,9 @@
     
     <!-- AI / Semantic Kernel -->
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.1" />
+    
+    <!-- SignalR -->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.9" />
   </ItemGroup>
 
   <ItemGroup>

@@ -30,7 +30,7 @@ public class ConversationsApiClient : BaseApiClient, IConversationsApiClient
             await HandleErrorResponseAsync(response);
         }
 
-        var result = await response.Content.ReadFromJsonAsync<List<ConversationSummaryDto>>();
+        var result = await response.Content.ReadFromJsonAsync<List<ConversationSummaryDto>>(BaseApiClient.JsonOptions);
         return result ?? new List<ConversationSummaryDto>();
     }
 
@@ -46,7 +46,7 @@ public class ConversationsApiClient : BaseApiClient, IConversationsApiClient
             await HandleErrorResponseAsync(response);
         }
 
-        return await response.Content.ReadFromJsonAsync<ConversationDto>();
+        return await response.Content.ReadFromJsonAsync<ConversationDto>(BaseApiClient.JsonOptions);
     }
 
     /// <inheritdoc/>
@@ -54,7 +54,7 @@ public class ConversationsApiClient : BaseApiClient, IConversationsApiClient
     {
         await EnsureAuthenticatedAsync();
         
-        var response = await HttpClient.PutAsJsonAsync($"api/v1/conversations/{id}", request);
+        var response = await HttpClient.PutAsJsonAsync($"api/v1/conversations/{id}", request, BaseApiClient.JsonOptions);
         
         if (!response.IsSuccessStatusCode)
         {
