@@ -4,23 +4,25 @@
 <PageTitle>Chat</PageTitle>
 
 <div class="flex flex-col h-[calc(100vh-3.5rem)] bg-background">
-    <!-- Chat Messages Area -->
-    <div class="flex-1 overflow-y-auto px-4 py-6">
-        <div class="max-w-3xl mx-auto space-y-6">
-            @if (Messages.Count == 0)
-            {
-                <div class="flex flex-col items-center justify-center h-full text-center py-12">
-                    <div class="mb-4">
-                        <svg class="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                    </div>
-                    <h2 class="text-xl font-semibold text-foreground mb-2">Start a conversation</h2>
-                    <p class="text-sm text-muted-foreground">Send a message to begin chatting</p>
+    @if (Messages.Count == 0)
+    {
+        <!-- New Chat View - Centered -->
+        <div class="flex-1 flex items-center justify-center">
+            <div class="text-center">
+                <div class="mb-6 flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    <h1 class="text-3xl font-semibold text-foreground">@GetGreeting()</h1>
                 </div>
-            }
-            else
-            {
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Active Chat View -->
+        <div class="flex-1 overflow-y-auto px-4 py-6">
+            <div class="max-w-3xl mx-auto space-y-6">
                 @foreach (var message in Messages)
                 {
                     <div class="flex gap-4 @(message.IsUser ? "justify-end" : "justify-start")">
@@ -63,34 +65,99 @@
                         </div>
                     </div>
                 }
-            }
+            </div>
         </div>
-    </div>
+    }
 
     <!-- Input Area -->
     <div class="border-t border-border bg-background">
         <div class="max-w-3xl mx-auto px-4 py-4">
-            <form @onsubmit="HandleSubmit" @onsubmit:preventDefault="true" class="flex gap-2">
-                <div class="flex-1 relative">
+            <form @onsubmit="HandleSubmit" @onsubmit:preventDefault="true" class="relative" @onclick:stopPropagation="true">
+                <div class="relative bg-muted rounded-lg border border-border">
                     <textarea 
                         @bind="InputText" 
                         @bind:event="oninput"
                         @onkeydown="HandleKeyDown"
-                        placeholder="Type your message..."
-                        class="w-full px-4 py-3 pr-12 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background resize-none min-h-[52px] max-h-32 overflow-y-auto"
+                        placeholder="How can I help you today?"
+                        class="w-full px-4 py-3 pr-32 pb-12 rounded-lg bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none resize-none min-h-[120px] max-h-32 overflow-y-auto"
                         rows="1"
                         disabled="@(IsLoading || !IsConnected)"
                         ref="InputRef">
                     </textarea>
+                    
+                    <!-- Bottom Left Controls (Disabled) -->
+                    <div class="absolute bottom-3 left-3 flex items-center gap-2">
+                        <button
+                            type="button"
+                            disabled
+                            class="p-1.5 rounded-md text-muted-foreground opacity-50 cursor-not-allowed"
+                            aria-label="Add attachment">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            disabled
+                            class="p-1.5 rounded-md text-muted-foreground opacity-50 cursor-not-allowed"
+                            aria-label="History">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Bottom Right Controls -->
+                    <div class="absolute bottom-3 right-3 flex items-center gap-2">
+                        <!-- Model Selector Dropdown -->
+                        <div class="relative">
+                            <button
+                                type="button"
+                                @onclick="ToggleModelDropdownAsync"
+                                @onclick:stopPropagation="true"
+                                data-dropdown-trigger="model-selector"
+                                class="px-3 py-1.5 rounded-md bg-background border border-input text-sm text-foreground hover:bg-accent transition-colors flex items-center gap-1.5">
+                                <span>@SelectedModel</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            
+                            @if (IsModelDropdownOpen)
+                            {
+                                <div class="absolute bottom-full right-0 mb-2 w-48 bg-card border border-border rounded-md shadow-lg z-50" data-dropdown-id="model-selector" @onclick:stopPropagation="true">
+                                    <div class="py-1">
+                                        @foreach (var model in AvailableModels)
+                                        {
+                                            <button
+                                                type="button"
+                                                @onclick="() => SelectModel(model)"
+                                                class="w-full px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors text-left flex items-center justify-between">
+                                                <span>@model</span>
+                                                @if (model == SelectedModel)
+                                                {
+                                                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                }
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Send Button -->
+                        <button 
+                            type="submit"
+                            disabled="@(string.IsNullOrWhiteSpace(InputText) || IsLoading || !IsConnected)"
+                            class="p-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <button 
-                    type="submit"
-                    disabled="@(string.IsNullOrWhiteSpace(InputText) || IsLoading || !IsConnected)"
-                    class="px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                </button>
             </form>
         </div>
     </div>

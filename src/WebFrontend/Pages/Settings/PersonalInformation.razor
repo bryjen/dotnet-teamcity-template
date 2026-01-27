@@ -1,0 +1,175 @@
+@page "/settings/personal-information"
+@layout SettingsLayout
+@inherits ComponentBase
+
+<PageTitle>Personal Information - Settings</PageTitle>
+
+<div class="space-y-6">
+    <div>
+        <h1 class="text-2xl font-semibold tracking-tight">Settings</h1>
+        <p class="text-muted-foreground text-sm mt-1">Manage your personal information and preferences</p>
+    </div>
+
+    @* Personal Information Card *@
+    <div class="bg-card border border-border rounded-lg p-6">
+        <h2 class="text-lg font-semibold mb-6">Personal information</h2>
+        
+        <div class="space-y-6">
+            @* Profile Image *@
+            <ProfileImageUpload 
+                ImageUrl="@ProfileImageUrl" 
+                Initials="@GetUserInitials()"
+                OnRemoveImage="HandleRemoveProfileImage" />
+            
+            @* Form Fields *@
+            <EditForm Model="@Model" OnValidSubmit="@HandleSave">
+                <DataAnnotationsValidator />
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @* First Name *@
+                    <div class="flex flex-col gap-2">
+                        <label for="firstName" class="text-sm font-medium text-foreground">First name</label>
+                        <InputText
+                            id="firstName"
+                            @bind-Value="Model.FirstName"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                        <ValidationMessage For="@(() => Model.FirstName)" />
+                    </div>
+                    
+                    @* Last Name *@
+                    <div class="flex flex-col gap-2">
+                        <label for="lastName" class="text-sm font-medium text-foreground">Last name</label>
+                        <InputText
+                            id="lastName"
+                            @bind-Value="Model.LastName"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                        <ValidationMessage For="@(() => Model.LastName)" />
+                    </div>
+                </div>
+                
+                @* Username *@
+                <div class="flex flex-col gap-2">
+                    <label for="username" class="text-sm font-medium text-foreground">User name</label>
+                    <InputText
+                        id="username"
+                        @bind-Value="Model.Username"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                    <ValidationMessage For="@(() => Model.Username)" />
+                </div>
+                
+                @* Email (Read-only) *@
+                <div class="flex flex-col gap-2">
+                    <label for="email" class="text-sm font-medium text-foreground">Email</label>
+                    <InputText
+                        id="email"
+                        @bind-Value="Model.Email"
+                        disabled
+                        class="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground cursor-not-allowed" />
+                </div>
+                
+                @* Phone Number *@
+                <div class="flex flex-col gap-2">
+                    <label for="phone" class="text-sm font-medium text-foreground">Phone number</label>
+                    <div class="flex gap-2">
+                        <select
+                            @bind="Model.PhoneCountryCode"
+                            class="flex h-10 w-24 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                            <option value="">Code</option>
+                            <option value="+1">us +1</option>
+                            <option value="+44">uk +44</option>
+                            <option value="+33">fr +33</option>
+                            <option value="+49">de +49</option>
+                            <option value="+81">jp +81</option>
+                        </select>
+                        <InputText
+                            id="phone"
+                            @bind-Value="Model.PhoneNumber"
+                            placeholder="Phone number"
+                            class="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                    </div>
+                    <ValidationMessage For="@(() => Model.PhoneNumber)" />
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    @* Address Information Card *@
+    <div class="bg-card border border-border rounded-lg p-6">
+        <h2 class="text-lg font-semibold mb-6">Address information</h2>
+        
+        <EditForm Model="@Model" OnValidSubmit="@HandleSave">
+            <DataAnnotationsValidator />
+            
+            <div class="space-y-4">
+                @* Country *@
+                <div class="flex flex-col gap-2">
+                    <label for="country" class="text-sm font-medium text-foreground">Country</label>
+                    <select
+                        id="country"
+                        @bind="Model.Country"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <option value="">Select country</option>
+                        <option value="us">United States</option>
+                        <option value="uk">United Kingdom</option>
+                        <option value="ca">Canada</option>
+                        <option value="au">Australia</option>
+                        <option value="de">Germany</option>
+                        <option value="fr">France</option>
+                        <option value="jp">Japan</option>
+                    </select>
+                    <ValidationMessage For="@(() => Model.Country)" />
+                </div>
+                
+                @* Address *@
+                <div class="flex flex-col gap-2">
+                    <label for="address" class="text-sm font-medium text-foreground">Address</label>
+                    <InputText
+                        id="address"
+                        @bind-Value="Model.Address"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                    <ValidationMessage For="@(() => Model.Address)" />
+                </div>
+                
+                @* City and Postal Code *@
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @* City *@
+                    <div class="flex flex-col gap-2">
+                        <label for="city" class="text-sm font-medium text-foreground">City</label>
+                        <InputText
+                            id="city"
+                            @bind-Value="Model.City"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                        <ValidationMessage For="@(() => Model.City)" />
+                    </div>
+                    
+                    @* Postal Code *@
+                    <div class="flex flex-col gap-2">
+                        <label for="postalCode" class="text-sm font-medium text-foreground">Postal Code</label>
+                        <InputText
+                            id="postalCode"
+                            @bind-Value="Model.PostalCode"
+                            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+                        <ValidationMessage For="@(() => Model.PostalCode)" />
+                    </div>
+                </div>
+                
+                @* Save Button *@
+                <div class="flex justify-end pt-4">
+                    <button
+                        type="submit"
+                        disabled="@IsSaving"
+                        class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                        @if (IsSaving)
+                        {
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <span>Save</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>

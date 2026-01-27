@@ -53,7 +53,7 @@
 
     html,
     body {
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
         background-color: hsl(var(--background));
         color: hsl(var(--foreground));
     }
@@ -105,6 +105,19 @@
     --color-border: hsl(var(--border));
     --color-input: hsl(var(--input));
     --color-ring: hsl(var(--ring));
+    /* Dashboard custom colors */
+    --color-background-black: #000000;
+    --color-background-dark: #0a0a0a;
+    --color-card-dark: #121212;
+    --color-border-dark: #1f1f1f;
+    /* Symptom Map custom colors */
+    --color-primary-neon: #5288ed;
+    --color-accent-neon: #ffffff;
+    --color-chat-dark: #0b0b0b;
+    --color-chat-sidebar: #111111;
+    --color-chat-border: #1f1f1f;
+    --color-sidebar-text: #d1d1d1;
+    --color-sidebar-header: #8e8e8e;
 }
 
 @layer components {
@@ -124,6 +137,60 @@
     .nav-link.active {
         background-color: hsl(var(--accent));
         color: hsl(var(--accent-foreground));
+    }
+
+    /* Scrollbar hide utility */
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* Material Symbols styling */
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* Symptom Map specific styles */
+    .graph-node {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .node-glow {
+        filter: drop-shadow(0 0 8px rgba(82, 136, 237, 0.6));
+    }
+
+    .node-glow-white {
+        filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+    }
+
+    .neon-ring {
+        border: 1px solid rgba(82, 136, 237, 0.3);
+        box-shadow: 0 0 15px rgba(82, 136, 237, 0.1);
+    }
+
+    .neon-ring-white {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar-scroll::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+        background: #2a2a2a;
+        border-radius: 10px;
+    }
+
+    .node-hover-neon:hover {
+        background-color: rgba(82, 136, 237, 0.1) !important;
+    }
+
+    .node-hover-white:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
     }
 }
 
