@@ -29,6 +29,8 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
         _contentComponent = contentComponent;
     }
 
+    private bool _isClosing = false;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -38,7 +40,7 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
         }
 
         // Update registration in OnAfterRenderAsync as well (in case Open changed via binding)
-        if (Open && _contentComponent != null)
+        if (Open && _contentComponent != null && !_isClosing)
         {
             var instance = new DialogInstance
             {
@@ -49,10 +51,8 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
             };
             DialogService.RegisterDialog(DialogId!, instance);
         }
-        else if (!Open)
-        {
-            DialogService.UnregisterDialog(DialogId!);
-        }
+        // Don't unregister immediately when closing - wait for animation to complete
+        // Unregistration happens in CloseAsync after animation delay
 
         if (_jsModule != null && _dotNetRef != null)
         {
@@ -68,12 +68,15 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
                 }
                 await _jsModule.InvokeVoidAsync("openDialog", DialogId);
             }
-            else
+            else if (_isInitialized && !_isClosing)
             {
-                if (_isInitialized)
-                {
-                    await _jsModule.InvokeVoidAsync("closeDialog", DialogId);
-                }
+                // Open was set to false via binding - trigger close animation
+                _isClosing = true;
+                await _jsModule.InvokeVoidAsync("closeDialog", DialogId);
+                await Task.Delay(300);
+                DialogService.UnregisterDialog(DialogId!);
+                await JSRuntime.InvokeVoidAsync("toggleBodyScroll", false);
+                _isClosing = false;
             }
         }
     }
@@ -146,10 +149,28 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
 
     public async Task CloseAsync()
     {
+        _isClosing = true;
+        
+        // Start the fade-out animation first
+        if (_jsModule != null && _isInitialized)
+        {
+            await _jsModule.InvokeVoidAsync("closeDialog", DialogId);
+        }
+        
+        // Wait for the animation to complete (250ms transition + small buffer)
+        await Task.Delay(300);
+        
+        // Now actually close and unregister
         Open = false;
         await OpenChanged.InvokeAsync(Open);
+        
+        // Unregister from service after animation completes
+        DialogService.UnregisterDialog(DialogId!);
+        
         // Re-enable scroll when dialog closes
         await JSRuntime.InvokeVoidAsync("toggleBodyScroll", false);
+        
+        _isClosing = false;
         StateHasChanged();
     }
 

@@ -130,17 +130,25 @@ export function closeDialog(dialogId) {
     overlayElement.setAttribute('data-state', 'closed');
     contentElement.setAttribute('data-state', 'closed');
 
-    // Disable interactions after fade-out completes
-    overlayElement.style.opacity = '0';
-    overlayElement.style.backdropFilter = 'blur(0px) saturate(120%)';
-    contentElement.style.opacity = '0';
-    contentElement.style.transform = 'translate(-50%, -50%) scale(0.95)';
-
-    setTimeout(() => {
-        if (overlayElement.getAttribute('data-state') === 'closed') {
-            overlayElement.style.pointerEvents = 'none';
-        }
-    }, 260);
+    // Ensure transitions are set before animating
+    overlayElement.style.transition = 'opacity 250ms ease-in-out, backdrop-filter 250ms ease-in-out';
+    contentElement.style.transition = 'opacity 250ms ease-in-out, transform 250ms ease-in-out';
+    
+    // Disable pointer events immediately
+    overlayElement.style.pointerEvents = 'none';
+    
+    // Use double RAF to ensure transitions are applied before changing values
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            // Animate overlay fade out and blur removal
+            overlayElement.style.opacity = '0';
+            overlayElement.style.backdropFilter = 'blur(0px) saturate(120%)';
+            
+            // Animate content fade out and scale down
+            contentElement.style.opacity = '0';
+            contentElement.style.transform = 'translate(-50%, -50%) scale(0.95)';
+        });
+    });
 }
 
 export function disposeDialog(dialogId) {
