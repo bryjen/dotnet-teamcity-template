@@ -1,21 +1,45 @@
 // Tooltip component JavaScript interop
-const tooltipHandlers = new Map();
+// Simplified and more reliable implementation following Floating UI patterns
 
-export function markTooltipTrigger(tooltipId) {
-    // Find the tooltip container
-    const tooltipContainer = document.querySelector(`[data-tooltip-id="${tooltipId}"]`);
-    if (!tooltipContainer) {
-        return;
+const tooltipHandlers = new Map();
+let rafId = null;
+
+// Auto-update loop for all visible tooltips
+function autoUpdate() {
+    if (rafId !== null) return; // Already running
+    
+    function update() {
+        let hasVisible = false;
+        for (const [tooltipId, handler] of tooltipHandlers.entries()) {
+            if (handler.isVisible && handler.triggerElement && handler.contentElement) {
+                const side = handler.contentElement.getAttribute('data-side') || 'top';
+                const sideOffset = parseInt(handler.contentElement.getAttribute('data-side-offset') || '0', 10);
+                positionTooltip(tooltipId, side, sideOffset);
+                hasVisible = true;
+            }
+        }
+        
+        if (hasVisible) {
+            rafId = requestAnimationFrame(update);
+        } else {
+            rafId = null;
+        }
     }
     
-    const contentElement = document.querySelector(`[data-tooltip-content="${tooltipId}"]`);
+    rafId = requestAnimationFrame(update);
+}
+
+export function markTooltipTrigger(tooltipId) {
+    const tooltipContainer = document.querySelector(`[data-tooltip-id="${tooltipId}"]`);
+    if (!tooltipContainer) return;
     
-    // Find the first interactive element (button, input, etc.) that's not the content
-    // This will be the actual trigger element
+    const contentElement = document.querySelector(`[data-tooltip-content="${tooltipId}"]`);
+    if (!contentElement) return;
+    
+    // Find the first interactive element that's not the content
     const allElements = tooltipContainer.querySelectorAll('button, a, input, select, textarea, [role="button"], [tabindex]');
     
     for (const element of allElements) {
-        // Skip if it's the content element or already marked
         if (element === contentElement || element.closest('[data-tooltip-content]') === contentElement) {
             continue;
         }
@@ -23,14 +47,12 @@ export function markTooltipTrigger(tooltipId) {
             continue;
         }
         
-        // Mark this element as the trigger
         element.setAttribute('data-tooltip-trigger', tooltipId);
-        break; // Only mark the first one
+        break;
     }
 }
 
 export function initializeTooltip(tooltipId, dotNetRef, delayDuration = 0) {
-    // Find trigger element - look for element with the data attribute
     const triggerElement = document.querySelector(`[data-tooltip-trigger="${tooltipId}"]`);
     const contentElement = document.querySelector(`[data-tooltip-content="${tooltipId}"]`);
     
@@ -38,152 +60,182 @@ export function initializeTooltip(tooltipId, dotNetRef, delayDuration = 0) {
         return;
     }
 
-    const handler = {
-        triggerElement,
-        contentElement,
-        dotNetRef,
-        showTimeout: null,
-        hideTimeout: null,
-        isVisible: false,
-        handleTriggerMouseEnter: () => {
-            clearTimeout(handler.hideTimeout);
-            const side = contentElement.getAttribute('data-side') || 'top';
-            const sideOffset = parseInt(contentElement.getAttribute('data-side-offset') || '0', 10);
-            handler.showTimeout = setTimeout(() => {
-                if (handler.isVisible === false) {
-                    showTooltip(tooltipId, side, sideOffset);
-                    handler.isVisible = true;
-                }
-            }, delayDuration);
-        },
-        handleTriggerMouseLeave: (e) => {
-            // Always clear show timeout
-            clearTimeout(handler.showTimeout);
-            
-            // Check if moving to tooltip content
-            const relatedTarget = e.relatedTarget;
-            if (relatedTarget && (relatedTarget === contentElement || contentElement.contains(relatedTarget))) {
-                return; // Don't hide if moving to tooltip
-            }
-            
-            // Always hide if tooltip is visible
-            clearTimeout(handler.hideTimeout);
-            handler.hideTimeout = setTimeout(() => {
-                if (handler.isVisible) {
-                    hideTooltip(tooltipId);
-                    handler.isVisible = false;
-                }
-            }, 100);
-        },
-        handleContentMouseEnter: () => {
-            clearTimeout(handler.hideTimeout);
-        },
-        handleContentMouseLeave: () => {
-            clearTimeout(handler.showTimeout);
-            clearTimeout(handler.hideTimeout);
-            handler.hideTimeout = setTimeout(() => {
-                hideTooltip(tooltipId);
-                handler.isVisible = false;
-            }, 100);
-        },
-        handleMouseMove: (e) => {
-            // Fallback: check if mouse is outside both elements
-            if (!handler.isVisible) return;
-            
-            const x = e.clientX;
-            const y = e.clientY;
-            
-            const triggerRect = triggerElement.getBoundingClientRect();
-            const contentRect = contentElement.getBoundingClientRect();
-            
-            const isOverTrigger = x >= triggerRect.left && x <= triggerRect.right &&
-                                 y >= triggerRect.top && y <= triggerRect.bottom;
-            const isOverContent = x >= contentRect.left && x <= contentRect.right &&
-                                 y >= contentRect.top && y <= contentRect.bottom;
-            
-            if (!isOverTrigger && !isOverContent) {
-                clearTimeout(handler.hideTimeout);
-                handler.hideTimeout = setTimeout(() => {
-                    hideTooltip(tooltipId);
-                    handler.isVisible = false;
-                }, 100);
-            } else {
-                clearTimeout(handler.hideTimeout);
-            }
-        },
-        handleFocus: () => {
-            clearTimeout(handler.hideTimeout);
-            const side = contentElement.getAttribute('data-side') || 'top';
-            const sideOffset = parseInt(contentElement.getAttribute('data-side-offset') || '0', 10);
-            handler.showTimeout = setTimeout(() => {
-                if (handler.isVisible === false) {
-                    showTooltip(tooltipId, side, sideOffset);
-                    handler.isVisible = true;
-                }
-            }, delayDuration);
-        },
-        handleBlur: () => {
-            clearTimeout(handler.showTimeout);
-            clearTimeout(handler.hideTimeout);
-            handler.hideTimeout = setTimeout(() => {
-                hideTooltip(tooltipId);
-                handler.isVisible = false;
-            }, 50);
+    let showTimeout = null;
+    let hideTimeout = null;
+    let isVisible = false;
+    let isHoveringTrigger = false;
+    let isHoveringContent = false;
+
+    const clearTimeouts = () => {
+        if (showTimeout) {
+            clearTimeout(showTimeout);
+            showTimeout = null;
+        }
+        if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
         }
     };
 
-    triggerElement.addEventListener('mouseenter', handler.handleTriggerMouseEnter);
-    triggerElement.addEventListener('mouseleave', handler.handleTriggerMouseLeave);
-    triggerElement.addEventListener('focus', handler.handleFocus);
-    triggerElement.addEventListener('blur', handler.handleBlur);
-    
-    // Also listen to tooltip content mouse events
-    contentElement.addEventListener('mouseenter', handler.handleContentMouseEnter);
-    contentElement.addEventListener('mouseleave', handler.handleContentMouseLeave);
-    
-    // Add document-level mouse move as fallback to detect when mouse leaves both elements
-    document.addEventListener('mousemove', handler.handleMouseMove);
+    const show = () => {
+        clearTimeouts();
+        
+        if (isVisible) return;
+        
+        showTimeout = setTimeout(() => {
+            if (!isVisible && (isHoveringTrigger || isHoveringContent)) {
+                isVisible = true;
+                const side = contentElement.getAttribute('data-side') || 'top';
+                const sideOffset = parseInt(contentElement.getAttribute('data-side-offset') || '0', 10);
+                
+                // Position first (while hidden)
+                positionTooltip(tooltipId, side, sideOffset);
+                
+                // Make visible with fade-in
+                contentElement.setAttribute('data-state', 'open');
+                contentElement.style.display = 'block';
+                contentElement.style.pointerEvents = 'auto';
+                
+                // Force reflow to ensure display change is applied
+                contentElement.offsetHeight;
+                
+                // Fade in using JS
+                contentElement.style.opacity = '0';
+                requestAnimationFrame(() => {
+                    contentElement.style.opacity = '1';
+                });
+                
+                // Update handler state
+                const handler = tooltipHandlers.get(tooltipId);
+                if (handler) {
+                    handler.isVisible = true;
+                }
+                
+                // Start auto-update loop
+                autoUpdate();
+            }
+        }, delayDuration);
+    };
 
-    tooltipHandlers.set(tooltipId, handler);
-}
+    const hide = () => {
+        clearTimeouts();
+        
+        if (!isVisible) return;
+        
+        // Small delay to allow moving from trigger to content
+        hideTimeout = setTimeout(() => {
+            if (isVisible && !isHoveringTrigger && !isHoveringContent) {
+                isVisible = false;
+                contentElement.setAttribute('data-state', 'closed');
+                contentElement.style.pointerEvents = 'none';
+                
+                // Fade out using JS
+                contentElement.style.opacity = '0';
+                
+                // Update handler state
+                const handler = tooltipHandlers.get(tooltipId);
+                if (handler) {
+                    handler.isVisible = false;
+                }
+                
+                // Hide completely after fade animation (200ms matches transition)
+                setTimeout(() => {
+                    if (contentElement.getAttribute('data-state') === 'closed') {
+                        contentElement.style.display = 'none';
+                    }
+                }, 200);
+            }
+        }, 50);
+    };
 
-export function showTooltip(tooltipId, side = 'top', sideOffset = 0) {
-    const handler = tooltipHandlers.get(tooltipId);
-    if (!handler) return;
+    const handleTriggerMouseEnter = () => {
+        isHoveringTrigger = true;
+        show();
+    };
 
-    const { contentElement } = handler;
-    // Make visible first
-    contentElement.style.visibility = 'visible';
-    contentElement.style.opacity = '1';
-    contentElement.setAttribute('data-state', 'open');
-    // Re-enable pointer events when showing
-    contentElement.style.pointerEvents = 'auto';
-    // Wait for animation classes to apply, then position
-    setTimeout(() => {
-        positionTooltip(tooltipId, side, sideOffset);
-    }, 10);
-}
-
-export function hideTooltip(tooltipId) {
-    const handler = tooltipHandlers.get(tooltipId);
-    if (!handler) return;
-
-    const { contentElement } = handler;
-    const currentState = contentElement.getAttribute('data-state');
-    
-    // Always hide regardless of state
-    contentElement.setAttribute('data-state', 'closed');
-    contentElement.style.pointerEvents = 'none';
-    
-    // Hide visually after animation completes
-    setTimeout(() => {
-        if (contentElement.getAttribute('data-state') === 'closed') {
-            contentElement.style.opacity = '0';
-            contentElement.style.visibility = 'hidden';
+    const handleTriggerMouseLeave = (e) => {
+        isHoveringTrigger = false;
+        // Check if moving to content
+        const relatedTarget = e.relatedTarget;
+        if (relatedTarget && (relatedTarget === contentElement || contentElement.contains(relatedTarget))) {
+            isHoveringContent = true;
+            return;
         }
-    }, 150);
+        hide();
+    };
+
+    const handleContentMouseEnter = () => {
+        isHoveringContent = true;
+        clearTimeouts();
+    };
+
+    const handleContentMouseLeave = () => {
+        isHoveringContent = false;
+        hide();
+    };
+
+    const handleFocus = () => {
+        isHoveringTrigger = true;
+        show();
+    };
+
+    const handleBlur = () => {
+        isHoveringTrigger = false;
+        hide();
+    };
+
+    const handleEscape = (e) => {
+        if (e.key === 'Escape' && isVisible) {
+            isHoveringTrigger = false;
+            isHoveringContent = false;
+            isVisible = false;
+            clearTimeouts();
+            
+            const handler = tooltipHandlers.get(tooltipId);
+            if (handler) {
+                handler.isVisible = false;
+            }
+            
+            contentElement.setAttribute('data-state', 'closed');
+            contentElement.style.pointerEvents = 'none';
+            contentElement.style.opacity = '0';
+            
+            setTimeout(() => {
+                if (contentElement.getAttribute('data-state') === 'closed') {
+                    contentElement.style.display = 'none';
+                }
+            }, 200);
+        }
+    };
+
+    // Add event listeners
+    triggerElement.addEventListener('mouseenter', handleTriggerMouseEnter);
+    triggerElement.addEventListener('mouseleave', handleTriggerMouseLeave);
+    triggerElement.addEventListener('focus', handleFocus);
+    triggerElement.addEventListener('blur', handleBlur);
     
-    handler.isVisible = false;
+    contentElement.addEventListener('mouseenter', handleContentMouseEnter);
+    contentElement.addEventListener('mouseleave', handleContentMouseLeave);
+    
+    document.addEventListener('keydown', handleEscape);
+
+    // Store handler with all event handlers for cleanup
+    tooltipHandlers.set(tooltipId, {
+        triggerElement,
+        contentElement,
+        dotNetRef,
+        isVisible: false,
+        show,
+        hide,
+        clearTimeouts,
+        handleTriggerMouseEnter,
+        handleTriggerMouseLeave,
+        handleContentMouseEnter,
+        handleContentMouseLeave,
+        handleFocus,
+        handleBlur,
+        handleEscape
+    });
 }
 
 export function positionTooltip(tooltipId, side = 'top', sideOffset = 0) {
@@ -192,66 +244,117 @@ export function positionTooltip(tooltipId, side = 'top', sideOffset = 0) {
 
     const { triggerElement, contentElement } = handler;
     
+    if (!triggerElement || !contentElement) return;
+    
     const triggerRect = triggerElement.getBoundingClientRect();
     const contentRect = contentElement.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    const padding = 8;
 
     let top = 0;
     let left = 0;
+    let actualSide = side;
 
-    // Calculate position based on side
+    // Calculate initial position
     switch (side) {
         case 'top':
             top = triggerRect.top - contentRect.height - sideOffset;
-            left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
+            left = triggerRect.left; // Align to left edge
             break;
         case 'bottom':
             top = triggerRect.bottom + sideOffset;
-            left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
+            left = triggerRect.left; // Align to left edge
             break;
         case 'left':
             left = triggerRect.left - contentRect.width - sideOffset;
-            top = triggerRect.top + (triggerRect.height / 2) - (contentRect.height / 2);
+            top = triggerRect.top; // Start at top of trigger, vertically aligned
             break;
         case 'right':
             left = triggerRect.right + sideOffset;
-            top = triggerRect.top + (triggerRect.height / 2) - (contentRect.height / 2);
+            top = triggerRect.top; // Start at top of trigger, vertically aligned
             break;
-        default:
-            top = triggerRect.top - contentRect.height - sideOffset;
-            left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
     }
 
-    // Keep within viewport bounds
-    if (left < 8) left = 8;
-    if (left + contentRect.width > viewportWidth - 8) left = viewportWidth - contentRect.width - 8;
-    if (top < 8) top = 8;
-    if (top + contentRect.height > viewportHeight - 8) top = viewportHeight - contentRect.height - 8;
+    // Auto-flip if would go off-screen
+    if (actualSide === 'top' && top < padding) {
+        actualSide = 'bottom';
+        top = triggerRect.bottom + sideOffset;
+        left = triggerRect.left; // Maintain left alignment
+    } else if (actualSide === 'bottom' && top + contentRect.height > viewportHeight - padding) {
+        actualSide = 'top';
+        top = triggerRect.top - contentRect.height - sideOffset;
+        left = triggerRect.left; // Maintain left alignment
+    } else if (actualSide === 'left' && left < padding) {
+        actualSide = 'right';
+        left = triggerRect.right + sideOffset;
+        top = triggerRect.top; // Maintain top alignment (start at top)
+    } else if (actualSide === 'right' && left + contentRect.width > viewportWidth - padding) {
+        actualSide = 'left';
+        left = triggerRect.left - contentRect.width - sideOffset;
+        top = triggerRect.top; // Maintain top alignment (start at top)
+    }
 
-    contentElement.style.position = 'fixed';
+    // Shift to keep within viewport bounds
+    if (left < padding) {
+        left = padding;
+    } else if (left + contentRect.width > viewportWidth - padding) {
+        left = viewportWidth - contentRect.width - padding;
+    }
+
+    if (top < padding) {
+        top = padding;
+    } else if (top + contentRect.height > viewportHeight - padding) {
+        top = viewportHeight - contentRect.height - padding;
+    }
+
+    // Apply position (position is already fixed from initial style, just update coords)
     contentElement.style.top = `${top}px`;
     contentElement.style.left = `${left}px`;
     contentElement.style.zIndex = '50';
+    
+    // Update data-side if flipped
+    if (actualSide !== side) {
+        contentElement.setAttribute('data-side', actualSide);
+        const arrow = contentElement.querySelector('[data-side]');
+        if (arrow) {
+            arrow.setAttribute('data-side', actualSide);
+        }
+    }
 }
 
 export function disposeTooltip(tooltipId) {
     const handler = tooltipHandlers.get(tooltipId);
     if (!handler) return;
 
-    const { triggerElement, contentElement } = handler;
-    triggerElement.removeEventListener('mouseenter', handler.handleTriggerMouseEnter);
-    triggerElement.removeEventListener('mouseleave', handler.handleTriggerMouseLeave);
-    triggerElement.removeEventListener('focus', handler.handleFocus);
-    triggerElement.removeEventListener('blur', handler.handleBlur);
+    handler.clearTimeouts();
     
-    contentElement.removeEventListener('mouseenter', handler.handleContentMouseEnter);
-    contentElement.removeEventListener('mouseleave', handler.handleContentMouseLeave);
+    // Remove event listeners
+    const { 
+        triggerElement, 
+        contentElement, 
+        handleTriggerMouseEnter,
+        handleTriggerMouseLeave,
+        handleContentMouseEnter,
+        handleContentMouseLeave,
+        handleFocus,
+        handleBlur,
+        handleEscape 
+    } = handler;
     
-    document.removeEventListener('mousemove', handler.handleMouseMove);
-
-    clearTimeout(handler.showTimeout);
-    clearTimeout(handler.hideTimeout);
+    if (triggerElement) {
+        triggerElement.removeEventListener('mouseenter', handleTriggerMouseEnter);
+        triggerElement.removeEventListener('mouseleave', handleTriggerMouseLeave);
+        triggerElement.removeEventListener('focus', handleFocus);
+        triggerElement.removeEventListener('blur', handleBlur);
+    }
+    
+    if (contentElement) {
+        contentElement.removeEventListener('mouseenter', handleContentMouseEnter);
+        contentElement.removeEventListener('mouseleave', handleContentMouseLeave);
+    }
+    
+    document.removeEventListener('keydown', handleEscape);
 
     tooltipHandlers.delete(tooltipId);
 }

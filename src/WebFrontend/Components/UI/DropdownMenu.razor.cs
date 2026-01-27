@@ -31,9 +31,16 @@ public partial class DropdownMenu : ComponentBase, IAsyncDisposable
             _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/dropdown.js");
         }
 
-        if (_jsModule != null && Open)
+        if (_jsModule != null)
         {
-            await _jsModule.InvokeVoidAsync("positionDropdownMenu", MenuId, Side, Align, SideOffset);
+            if (Open)
+            {
+                await _jsModule.InvokeVoidAsync("showDropdownMenu", MenuId, Side, Align, SideOffset);
+            }
+            else
+            {
+                await _jsModule.InvokeVoidAsync("hideDropdownMenu", MenuId);
+            }
         }
     }
 

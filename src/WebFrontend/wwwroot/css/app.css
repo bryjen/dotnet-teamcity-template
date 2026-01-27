@@ -716,12 +716,6 @@
   .shrink-0 {
     flex-shrink: 0;
   }
-  .origin-\[--radix-dropdown-menu-content-transform-origin\] {
-    transform-origin: --radix-dropdown-menu-content-transform-origin;
-  }
-  .origin-\[--radix-tooltip-content-transform-origin\] {
-    transform-origin: --radix-tooltip-content-transform-origin;
-  }
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1/2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
@@ -2418,17 +2412,6 @@
       color: var(--color-primary-foreground);
     }
   }
-  .data-\[state\=closed\]\:pointer-events-none {
-    &[data-state="closed"] {
-      pointer-events: none;
-    }
-  }
-  .data-\[state\=closed\]\:duration-150 {
-    &[data-state="closed"] {
-      --tw-duration: 150ms;
-      transition-duration: 150ms;
-    }
-  }
   .data-\[state\=open\]\:bg-accent {
     &[data-state="open"] {
       background-color: var(--color-accent);
@@ -2967,6 +2950,11 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+  @supports (overflow: overlay) {
+    html, body {
+      overflow: overlay;
+    }
+  }
   html.dark, html.dark body {
     background-color: hsl(var(--background));
   }
@@ -3032,6 +3020,27 @@
   .sidebar-scroll::-webkit-scrollbar-thumb {
     background: #2a2a2a;
     border-radius: 10px;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+    background-clip: padding-box;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
   .node-hover-neon:hover {
     background-color: rgba(82, 136, 237, 0.1) !important;

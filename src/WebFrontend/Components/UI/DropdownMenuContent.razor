@@ -1,15 +1,13 @@
 @* Dropdown menu content component *@
-@if (ParentMenu?.Open == true)
-{
-    <div 
-        data-slot="dropdown-menu-content"
-        data-dropdown-menu-content="@ParentMenu.MenuId"
-        data-state="@(ParentMenu.Open ? "open" : "closed")"
-        class="@GetClass()"
-        @attributes="AdditionalAttributes">
-        @ChildContent
-    </div>
-}
+<div 
+    data-slot="dropdown-menu-content"
+    data-dropdown-menu-content="@ParentMenu?.MenuId"
+    data-state="@(ParentMenu?.Open == true ? "open" : "closed")"
+    style="position: fixed; display: none; pointer-events: none; opacity: 0; transition: opacity 200ms ease-in-out;"
+    class="@GetClass()"
+    @attributes="AdditionalAttributes">
+    @ChildContent
+</div>
 
 @code {
     [CascadingParameter] public DropdownMenu? ParentMenu { get; set; }
@@ -20,7 +18,7 @@
 
     private string GetClass()
     {
-        var baseClasses = "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-[--radix-dropdown-menu-content-available-height] min-w-[8rem] origin-[--radix-dropdown-menu-content-transform-origin] overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md";
+        var baseClasses = "bg-popover text-popover-foreground z-50 max-h-[--radix-dropdown-menu-content-available-height] min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md";
         return ClassBuilder.Merge(baseClasses, Class);
     }
 }
