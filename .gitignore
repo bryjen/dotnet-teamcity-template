@@ -8,6 +8,9 @@ riderModule.iml
 AspTemplate.sln.DotSettings.user
 appsettings.Development.json
 
+# copy that doesn't get broken every rebuild
+src/WebFrontend/tailwindcss_dev.exe
+
 
 # Local .terraform directories
 **/.terraform/*

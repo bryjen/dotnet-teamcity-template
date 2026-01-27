@@ -192,3 +192,57 @@
 .loading-progress-text:after {
     content: var(--blazor-load-percentage-text, "Loading");
 }
+
+/* Toast animations */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slide-in-from-top {
+    from {
+        transform: translateY(-10px);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.toast-item {
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.animate-in {
+    animation: fade-in 0.2s ease-out, slide-in-from-top 0.2s ease-out;
+    animation-fill-mode: both;
+}
+
+.animate-out {
+    animation: fade-out 0.3s ease-out;
+    animation-fill-mode: both;
+}
+
+.fade-in {
+    animation-name: fade-in;
+}
+
+.fade-out {
+    animation-name: fade-out;
+}
+
+.slide-in-from-top-2 {
+    animation-name: slide-in-from-top;
+}

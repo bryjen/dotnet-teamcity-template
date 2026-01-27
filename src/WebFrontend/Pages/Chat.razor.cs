@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.JSInterop;
+using Web.Common.DTOs.Conversations;
 using Web.Common.DTOs.Health;
 using WebApi.ApiWrapper.Services;
 using WebFrontend.Services;
@@ -15,6 +16,11 @@ public partial class Chat : ComponentBase, IAsyncDisposable
     [Inject] private NavigationManager Navigation { get; set; } = default!;
     [Inject] private ITokenProvider TokenProvider { get; set; } = default!;
     [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+    [Inject] private IConversationsApiClient ConversationsApiClient { get; set; } = default!;
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Conversation { get; set; }
 
     private HubConnection? _hubConnection;
     protected List<ChatMessage> Messages { get; set; } = new();
@@ -23,6 +29,7 @@ public partial class Chat : ComponentBase, IAsyncDisposable
     protected ElementReference InputRef { get; set; }
     protected bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
     private Guid? _currentConversationId;
+    private Guid? _lastLoadedConversationId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -72,11 +79,95 @@ public partial class Chat : ComponentBase, IAsyncDisposable
         try
         {
             await _hubConnection.StartAsync();
+            
+            // Load conversation after connection is established
+            await HandleConversationParameterChange();
         }
         catch (Exception ex)
         {
             // Handle connection error - could show error message to user
             Console.WriteLine($"SignalR connection error: {ex.Message}");
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Handle conversation parameter changes (when clicking different conversations)
+        // Only process if SignalR is connected
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await HandleConversationParameterChange();
+        }
+    }
+
+    private async Task HandleConversationParameterChange()
+    {
+        // Clear messages if no conversation parameter
+        if (string.IsNullOrWhiteSpace(Conversation))
+        {
+            if (_currentConversationId != null)
+            {
+                // Starting a new chat - clear everything
+                _currentConversationId = null;
+                _lastLoadedConversationId = null;
+                Messages.Clear();
+                StateHasChanged();
+            }
+            return;
+        }
+
+        // Parse conversation ID
+        if (!Guid.TryParse(Conversation, out var conversationId))
+        {
+            return;
+        }
+
+        // Only load if it's a different conversation than what's currently loaded
+        if (conversationId != _lastLoadedConversationId)
+        {
+            await LoadConversationAsync(conversationId);
+        }
+    }
+
+    private async Task LoadConversationAsync(Guid conversationId)
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            
+            var conversation = await ConversationsApiClient.GetConversationByIdAsync(conversationId);
+            
+            if (conversation != null)
+            {
+                _currentConversationId = conversation.Id;
+                _lastLoadedConversationId = conversation.Id;
+                Messages = conversation.Messages
+                    .Select(m => new ChatMessage
+                    {
+                        Content = m.Content,
+                        IsUser = m.Role.ToLowerInvariant() == "user",
+                        Timestamp = m.CreatedAt
+                    })
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading conversation: {ex.Message}");
+            // Show error to user
+            Messages.Add(new ChatMessage
+            {
+                Content = $"Error loading conversation: {ex.Message}",
+                IsUser = false,
+                Timestamp = DateTime.Now
+            });
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+            await ScrollToBottom();
         }
     }
 
@@ -114,7 +205,14 @@ public partial class Chat : ComponentBase, IAsyncDisposable
             var response = await _hubConnection.InvokeAsync<HealthChatResponse>("SendMessage", currentInput, _currentConversationId);
 
             // Update conversation ID for subsequent messages
+            var wasNewConversation = _currentConversationId == null;
             _currentConversationId = response.ConversationId;
+
+            // Update URL if this is a new conversation
+            if (wasNewConversation)
+            {
+                Navigation.NavigateTo($"/chat?conversation={_currentConversationId}", false);
+            }
 
             var aiMessage = new ChatMessage
             {

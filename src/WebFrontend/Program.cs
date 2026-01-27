@@ -69,4 +69,10 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 builder.Services.AddScoped<AuthService>();
 
+// Register dropdown service
+builder.Services.AddScoped<DropdownService>();
+
+// Register toast service as singleton so it persists across components
+builder.Services.AddSingleton<ToastService>();
+
 await builder.Build().RunAsync();
