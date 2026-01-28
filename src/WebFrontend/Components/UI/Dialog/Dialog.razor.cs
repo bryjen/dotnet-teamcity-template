@@ -25,6 +25,9 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
     [Inject]
     private DialogService DialogService { get; set; } = null!;
 
+    [Inject]
+    private ScrollLockService ScrollLockService { get; set; } = null!;
+
     private IJSObjectReference? _jsModule;
     private DotNetObjectReference<Dialog>? _dotNetRef;
     private bool _isInitialized;
@@ -41,6 +44,7 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
     }
 
     private bool _isClosing = false;
+    private bool _closedByInternalLogic = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -79,14 +83,14 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
                 }
                 await _jsModule.InvokeVoidAsync("openDialog", DialogId);
             }
-            else if (_isInitialized && !_isClosing)
+            else if (_isInitialized && !_isClosing && !_closedByInternalLogic)
             {
-                // Open was set to false via binding - trigger close animation
+                // Open was set to false via external binding (e.g. @bind-Open) - handle close here
                 _isClosing = true;
                 await _jsModule.InvokeVoidAsync("closeDialog", DialogId);
                 await Task.Delay(300);
                 DialogService.UnregisterDialog(DialogId!);
-                await JsRuntime.InvokeVoidAsync("toggleBodyScroll", false);
+                await ScrollLockService.UnlockAsync();
                 _isClosing = false;
             }
         }
@@ -134,10 +138,10 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
 
     public async Task OpenAsync()
     {
+        _closedByInternalLogic = false;
         Open = true;
         await OpenChanged.InvokeAsync(Open);
-        // Lock scroll when dialog opens (without touching scroll-toggle implementation)
-        await JsRuntime.InvokeVoidAsync("toggleBodyScroll", true);
+        await ScrollLockService.LockAsync();
 
         // Register with DialogService immediately when opening
         if (_contentComponent != null)
@@ -160,6 +164,7 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
 
     public async Task CloseAsync()
     {
+        _closedByInternalLogic = true;
         _isClosing = true;
 
         // Start the fade-out animation first
@@ -178,8 +183,7 @@ public partial class Dialog : ComponentBase, IAsyncDisposable
         // Unregister from service after animation completes
         DialogService.UnregisterDialog(DialogId!);
 
-        // Re-enable scroll when dialog closes
-        await JsRuntime.InvokeVoidAsync("toggleBodyScroll", false);
+        await ScrollLockService.UnlockAsync();
 
         _isClosing = false;
         StateHasChanged();

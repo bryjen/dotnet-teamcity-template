@@ -75,6 +75,9 @@ builder.Services.AddScoped<DropdownService>();
 // Register dialog service as scoped
 builder.Services.AddScoped<DialogService>();
 
+// Register scroll lock service (ref-count for Dialog, Dropdown, etc.)
+builder.Services.AddScoped<ScrollLockService>();
+
 // Register toast service as singleton so it persists across components
 builder.Services.AddSingleton<ToastService>();
 

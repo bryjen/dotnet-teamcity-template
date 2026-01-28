@@ -48,6 +48,8 @@
     --text-3xl--line-height: calc(2.25 / 1.875);
     --text-4xl: 2.25rem;
     --text-4xl--line-height: calc(2.5 / 2.25);
+    --text-5xl: 3rem;
+    --text-5xl--line-height: 1;
     --font-weight-light: 300;
     --font-weight-normal: 400;
     --font-weight-medium: 500;
@@ -77,24 +79,26 @@
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
-    --color-background: hsl(var(--background));
-    --color-foreground: hsl(var(--foreground));
-    --color-card: hsl(var(--card));
-    --color-card-foreground: hsl(var(--card-foreground));
-    --color-popover: hsl(var(--popover));
-    --color-popover-foreground: hsl(var(--popover-foreground));
-    --color-primary: hsl(var(--primary));
-    --color-primary-foreground: hsl(var(--primary-foreground));
-    --color-secondary: hsl(var(--secondary));
-    --color-secondary-foreground: hsl(var(--secondary-foreground));
-    --color-muted: hsl(var(--muted));
-    --color-muted-foreground: hsl(var(--muted-foreground));
-    --color-accent: hsl(var(--accent));
-    --color-accent-foreground: hsl(var(--accent-foreground));
-    --color-destructive: hsl(var(--destructive));
-    --color-border: hsl(var(--border));
-    --color-input: hsl(var(--input));
-    --color-ring: hsl(var(--ring));
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-dropdown: var(--dropdown);
+    --color-dropdown-foreground: var(--dropdown-foreground);
     --color-background-dark: hsl(var(--background-dark));
   }
 }
@@ -435,6 +439,12 @@
   }
   .mt-4 {
     margin-top: calc(var(--spacing) * 4);
+  }
+  .mt-12 {
+    margin-top: calc(var(--spacing) * 12);
+  }
+  .mt-30 {
+    margin-top: calc(var(--spacing) * 30);
   }
   .mt-auto {
     margin-top: auto;
@@ -886,13 +896,6 @@
       margin-block-end: calc(calc(var(--spacing) * 10) * calc(1 - var(--tw-space-y-reverse)));
     }
   }
-  .space-y-12 {
-    :where(& > :not(:last-child)) {
-      --tw-space-y-reverse: 0;
-      margin-block-start: calc(calc(var(--spacing) * 12) * var(--tw-space-y-reverse));
-      margin-block-end: calc(calc(var(--spacing) * 12) * calc(1 - var(--tw-space-y-reverse)));
-    }
-  }
   .-space-x-2 {
     :where(& > :not(:last-child)) {
       --tw-space-x-reverse: 0;
@@ -1046,16 +1049,19 @@
     background-color: var(--color-card);
   }
   .bg-destructive\/10 {
-    background-color: color-mix(in srgb, hsl(var(--destructive)) 10%, transparent);
+    background-color: var(--color-destructive);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-destructive) 10%, transparent);
     }
   }
   .bg-destructive\/60 {
-    background-color: color-mix(in srgb, hsl(var(--destructive)) 60%, transparent);
+    background-color: var(--color-destructive);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-destructive) 60%, transparent);
     }
+  }
+  .bg-dropdown {
+    background-color: var(--color-dropdown);
   }
   .bg-emerald-500 {
     background-color: var(--color-emerald-500);
@@ -1067,7 +1073,7 @@
     background-color: var(--color-green-500);
   }
   .bg-input\/30 {
-    background-color: color-mix(in srgb, hsl(var(--input)) 30%, transparent);
+    background-color: var(--color-input);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-input) 30%, transparent);
     }
@@ -1078,20 +1084,17 @@
   .bg-muted-foreground {
     background-color: var(--color-muted-foreground);
   }
-  .bg-popover {
-    background-color: var(--color-popover);
-  }
   .bg-primary {
     background-color: var(--color-primary);
   }
   .bg-primary\/5 {
-    background-color: color-mix(in srgb, hsl(var(--primary)) 5%, transparent);
+    background-color: var(--color-primary);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-primary) 5%, transparent);
     }
   }
   .bg-primary\/10 {
-    background-color: color-mix(in srgb, hsl(var(--primary)) 10%, transparent);
+    background-color: var(--color-primary);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-primary) 10%, transparent);
     }
@@ -1130,7 +1133,7 @@
     --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
   }
   .from-primary\/80 {
-    --tw-gradient-from: color-mix(in srgb, hsl(var(--primary)) 80%, transparent);
+    --tw-gradient-from: var(--color-primary);
     @supports (color: color-mix(in lab, red, red)) {
       --tw-gradient-from: color-mix(in oklab, var(--color-primary) 80%, transparent);
     }
@@ -1299,6 +1302,10 @@
   .text-left {
     text-align: left;
   }
+  .\!text-5xl {
+    font-size: var(--text-5xl) !important;
+    line-height: var(--tw-leading, var(--text-5xl--line-height)) !important;
+  }
   .text-2xl {
     font-size: var(--text-2xl);
     line-height: var(--tw-leading, var(--text-2xl--line-height));
@@ -1447,6 +1454,9 @@
   .text-destructive {
     color: var(--color-destructive);
   }
+  .text-dropdown-foreground {
+    color: var(--color-dropdown-foreground);
+  }
   .text-emerald-400 {
     color: var(--color-emerald-400);
   }
@@ -1458,9 +1468,6 @@
   }
   .text-muted-foreground {
     color: var(--color-muted-foreground);
-  }
-  .text-popover-foreground {
-    color: var(--color-popover-foreground);
   }
   .text-primary {
     color: var(--color-primary);
@@ -1885,7 +1892,7 @@
   .hover\:bg-accent\/50 {
     &:hover {
       @media (hover: hover) {
-        background-color: color-mix(in srgb, hsl(var(--accent)) 50%, transparent);
+        background-color: var(--color-accent);
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in oklab, var(--color-accent) 50%, transparent);
         }
@@ -1905,7 +1912,7 @@
   .hover\:bg-destructive\/90 {
     &:hover {
       @media (hover: hover) {
-        background-color: color-mix(in srgb, hsl(var(--destructive)) 90%, transparent);
+        background-color: var(--color-destructive);
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in oklab, var(--color-destructive) 90%, transparent);
         }
@@ -1915,7 +1922,7 @@
   .hover\:bg-input\/50 {
     &:hover {
       @media (hover: hover) {
-        background-color: color-mix(in srgb, hsl(var(--input)) 50%, transparent);
+        background-color: var(--color-input);
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in oklab, var(--color-input) 50%, transparent);
         }
@@ -1932,7 +1939,7 @@
   .hover\:bg-muted\/50 {
     &:hover {
       @media (hover: hover) {
-        background-color: color-mix(in srgb, hsl(var(--muted)) 50%, transparent);
+        background-color: var(--color-muted);
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in oklab, var(--color-muted) 50%, transparent);
         }
@@ -1942,7 +1949,7 @@
   .hover\:bg-muted\/80 {
     &:hover {
       @media (hover: hover) {
-        background-color: color-mix(in srgb, hsl(var(--muted)) 80%, transparent);
+        background-color: var(--color-muted);
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in oklab, var(--color-muted) 80%, transparent);
         }
@@ -1952,7 +1959,7 @@
   .hover\:bg-primary\/90 {
     &:hover {
       @media (hover: hover) {
-        background-color: color-mix(in srgb, hsl(var(--primary)) 90%, transparent);
+        background-color: var(--color-primary);
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in oklab, var(--color-primary) 90%, transparent);
         }
@@ -1962,7 +1969,7 @@
   .hover\:bg-secondary\/80 {
     &:hover {
       @media (hover: hover) {
-        background-color: color-mix(in srgb, hsl(var(--secondary)) 80%, transparent);
+        background-color: var(--color-secondary);
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in oklab, var(--color-secondary) 80%, transparent);
         }
@@ -2161,7 +2168,7 @@
   }
   .focus-visible\:ring-destructive\/40 {
     &:focus-visible {
-      --tw-ring-color: color-mix(in srgb, hsl(var(--destructive)) 40%, transparent);
+      --tw-ring-color: var(--color-destructive);
       @supports (color: color-mix(in lab, red, red)) {
         --tw-ring-color: color-mix(in oklab, var(--color-destructive) 40%, transparent);
       }
@@ -2174,7 +2181,7 @@
   }
   .focus-visible\:ring-ring\/50 {
     &:focus-visible {
-      --tw-ring-color: color-mix(in srgb, hsl(var(--ring)) 50%, transparent);
+      --tw-ring-color: var(--color-ring);
       @supports (color: color-mix(in lab, red, red)) {
         --tw-ring-color: color-mix(in oklab, var(--color-ring) 50%, transparent);
       }
@@ -2257,7 +2264,7 @@
   }
   .aria-invalid\:ring-destructive\/40 {
     &[aria-invalid="true"] {
-      --tw-ring-color: color-mix(in srgb, hsl(var(--destructive)) 40%, transparent);
+      --tw-ring-color: var(--color-destructive);
       @supports (color: color-mix(in lab, red, red)) {
         --tw-ring-color: color-mix(in oklab, var(--color-destructive) 40%, transparent);
       }
@@ -2397,7 +2404,7 @@
   .\*\:data-\[slot\=alert-description\]\:text-destructive\/90 {
     :is(& > *) {
       &[data-slot="alert-description"] {
-        color: color-mix(in srgb, hsl(var(--destructive)) 90%, transparent);
+        color: var(--color-destructive);
         @supports (color: color-mix(in lab, red, red)) {
           color: color-mix(in oklab, var(--color-destructive) 90%, transparent);
         }
@@ -2446,7 +2453,7 @@
   }
   .data-\[state\=unchecked\]\:bg-input\/80 {
     &[data-state="unchecked"] {
-      background-color: color-mix(in srgb, hsl(var(--input)) 80%, transparent);
+      background-color: var(--color-input);
       @supports (color: color-mix(in lab, red, red)) {
         background-color: color-mix(in oklab, var(--color-input) 80%, transparent);
       }
@@ -2460,7 +2467,7 @@
   .data-\[variant\=destructive\]\:focus\:bg-destructive\/20 {
     &[data-variant="destructive"] {
       &:focus {
-        background-color: color-mix(in srgb, hsl(var(--destructive)) 20%, transparent);
+        background-color: var(--color-destructive);
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in oklab, var(--color-destructive) 20%, transparent);
         }
@@ -2482,6 +2489,11 @@
   .sm\:max-w-lg {
     @media (width >= 40rem) {
       max-width: var(--container-lg);
+    }
+  }
+  .sm\:grid-cols-2 {
+    @media (width >= 40rem) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
   .sm\:flex-row {
@@ -2584,6 +2596,12 @@
       padding-inline: calc(var(--spacing) * 8);
     }
   }
+  .md\:text-4xl {
+    @media (width >= 48rem) {
+      font-size: var(--text-4xl);
+      line-height: var(--tw-leading, var(--text-4xl--line-height));
+    }
+  }
   .md\:text-sm {
     @media (width >= 48rem) {
       font-size: var(--text-sm);
@@ -2618,6 +2636,11 @@
   .lg\:grid-cols-3 {
     @media (width >= 64rem) {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  .lg\:grid-cols-4 {
+    @media (width >= 64rem) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
   .lg\:p-8 {
@@ -2705,9 +2728,14 @@
       translate: var(--tw-translate-x) var(--tw-translate-y);
     }
   }
-  .\[\&\>svg\]\:text-current {
+  .\[\&\>svg\]\:text-card-foreground {
     &>svg {
-      color: currentcolor;
+      color: var(--color-card-foreground);
+    }
+  }
+  .\[\&\>svg\]\:text-destructive {
+    &>svg {
+      color: var(--color-destructive);
     }
   }
   .group-has-data-\[size\=lg\]\/avatar-group\:\[\&\>svg\]\:size-5 {
@@ -2762,7 +2790,7 @@
     a& {
       &:hover {
         @media (hover: hover) {
-          background-color: color-mix(in srgb, hsl(var(--destructive)) 90%, transparent);
+          background-color: var(--color-destructive);
           @supports (color: color-mix(in lab, red, red)) {
             background-color: color-mix(in oklab, var(--color-destructive) 90%, transparent);
           }
@@ -2774,7 +2802,7 @@
     a& {
       &:hover {
         @media (hover: hover) {
-          background-color: color-mix(in srgb, hsl(var(--primary)) 90%, transparent);
+          background-color: var(--color-primary);
           @supports (color: color-mix(in lab, red, red)) {
             background-color: color-mix(in oklab, var(--color-primary) 90%, transparent);
           }
@@ -2786,7 +2814,7 @@
     a& {
       &:hover {
         @media (hover: hover) {
-          background-color: color-mix(in srgb, hsl(var(--secondary)) 90%, transparent);
+          background-color: var(--color-secondary);
           @supports (color: color-mix(in lab, red, red)) {
             background-color: color-mix(in oklab, var(--color-secondary) 90%, transparent);
           }
@@ -2815,26 +2843,38 @@
 }
 @layer base {
   :root {
-    --background: 0 0% 4%;
-    --foreground: 210 40% 98%;
-    --card: 0 0% 9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 0 0% 4%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 0 0% 9%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 0 0% 9%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 0 0% 12%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 224.3 76.3% 48%;
-    --radius: 0.5rem;
+    --radius: 0.65rem;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.141 0.005 285.823);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.141 0.005 285.823);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.141 0.005 285.823);
+    --primary: oklch(0.488 0.243 264.376);
+    --primary-foreground: oklch(0.97 0.014 254.604);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --muted: oklch(0.967 0.001 286.375);
+    --muted-foreground: oklch(0.552 0.016 285.938);
+    --accent: oklch(0.967 0.001 286.375);
+    --accent-foreground: oklch(0.21 0.006 285.885);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.92 0.004 286.32);
+    --input: oklch(0.92 0.004 286.32);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.809 0.105 251.813);
+    --chart-2: oklch(0.623 0.214 259.815);
+    --chart-3: oklch(0.546 0.245 262.881);
+    --chart-4: oklch(0.488 0.243 264.376);
+    --chart-5: oklch(0.424 0.199 265.638);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.141 0.005 285.823);
+    --sidebar-primary: oklch(0.546 0.245 262.881);
+    --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+    --sidebar-accent: oklch(0.967 0.001 286.375);
+    --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+    --sidebar-border: oklch(0.92 0.004 286.32);
+    --sidebar-ring: oklch(0.708 0 0);
     --background-black: 0 0% 0%;
     --background-dark: 0 0% 3.9%;
     --card-dark: 0 0% 7.1%;
@@ -2849,11 +2889,46 @@
     --sidebar-header: 0 0% 55.7%;
     --primary-neon: 221 72% 65%;
     --accent-neon: 0 0% 100%;
+    --dropdown: #262626;
+    --dropdown-foreground: #f5f5f5;
+  }
+  .dark {
+    --background: oklch(0.141 0.005 285.823);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.21 0.006 285.885);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.21 0.006 285.885);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.488 0.243 264.376);
+    --primary-foreground: oklch(0.97 0.014 254.604);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.274 0.006 286.033);
+    --muted-foreground: oklch(0.705 0.015 286.067);
+    --accent: oklch(0.274 0.006 286.033);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 0.1);
+    --input: oklch(1 0 0 / 0.15);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.809 0.105 251.813);
+    --chart-2: oklch(0.623 0.214 259.815);
+    --chart-3: oklch(0.546 0.245 262.881);
+    --chart-4: oklch(0.488 0.243 264.376);
+    --chart-5: oklch(0.424 0.199 265.638);
+    --sidebar: oklch(0.21 0.006 285.885);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.623 0.214 259.815);
+    --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+    --sidebar-accent: oklch(0.274 0.006 286.033);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 0.1);
+    --sidebar-ring: oklch(0.439 0 0);
   }
   html, body {
     font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    background-color: var(--background);
+    color: var(--foreground);
   }
   @supports (overflow: overlay) {
     html, body {
@@ -2864,14 +2939,14 @@
     outline: none;
   }
   a, .btn-link {
-    color: hsl(var(--primary));
+    color: var(--primary);
   }
   a:hover, .btn-link:hover {
     opacity: 0.8;
   }
   code {
-    background-color: hsl(var(--muted));
-    color: hsl(var(--foreground));
+    background-color: var(--muted);
+    color: var(--foreground);
     padding: 0.125rem 0.25rem;
     border-radius: 0.25rem;
   }

@@ -79,9 +79,11 @@
     }
   }
 
-  // Global function used from Blazor components.
-  window.toggleBodyScroll = function (disabled) {
-    console.log("toggleBodyScroll called with:", disabled);
-    setBodyScrollDisabled(!!disabled);
+  // Explicit lock/unlock for Blazor scroll lock service (ref-count in C#).
+  window.lockScroll = function () {
+    setBodyScrollDisabled(true);
+  };
+  window.unlockScroll = function () {
+    setBodyScrollDisabled(false);
   };
 })();

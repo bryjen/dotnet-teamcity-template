@@ -1,330 +1,337 @@
 @page "/components"
-@using WebFrontend.Components.UI.Dialog
-@using WebFrontend.Components.UI.DropdownMenu
-@using WebFrontend.Components.UI.Tooltip
+
+@using System.Diagnostics.CodeAnalysis
+
 @layout EmptyLayout
 
-<PageTitle>Component Showcase</PageTitle>
+@Render
 
-<div class="min-h-screen bg-background p-8">
-    <div class="max-w-7xl mx-auto space-y-12">
-        <div>
-            <h1 class="text-4xl font-bold text-foreground mb-2">shadcn/ui Components</h1>
-            <p class="text-muted-foreground">Blazor WASM implementation of shadcn/ui components</p>
+@* ReSharper disable once UnusedParameter.Local *@
+@code {
+    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+    private RenderFragment Render => __builder =>
+    {
+        <PageTitle>Component Showcase</PageTitle>
+
+        <div class="min-h-screen bg-background p-8">
+            <div class="mx-auto space-y-10">
+
+                <div class="flex flex-col items-center gap-2">
+                    <h1 class="!text-5xl font-bold text-foreground">
+                        Blazor shadcn components
+                    </h1>
+                    <p class="text-center text-foreground">
+                        <span>"A set of beautifully designed components that you can customize, extend, and build on. Start here then make it your own. Open Source. Open Code."</span>
+                        <br/>
+                        <span>Now in Blazor!</span>
+                    </p>
+                </div>
+
+                <div class="flex flex-col">
+                    @RenderSection1
+                </div>
+
+                <div class="mt-30">
+                    scroll bait
+                </div>
+            </div>
+        </div>
+    };
+
+    [SuppressMessage("ReSharper", "UnusedParameter.Local")]
+    private RenderFragment RenderSection1 => __builder =>
+    {
+        <div class="flex flex-col gap-2 mt-12 mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-foreground">Section 1</h1>
+            <p class="text-sm text-muted-foreground">
+                badge, button, card, input, label, separator, alert, avatar, switch, checkbox, dialog/modal, dropdown, tooltip.
+            </p>
         </div>
 
-        @* Scroll Lock Toggle Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Scroll Lock</CardTitle>
-                <CardDescription>Toggle page scrolling using JavaScript interop.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div class="flex items-center gap-3">
-                    <Button Variant="outline" @onclick="ToggleScroll">
-                        @(_scrollLocked ? "Enable Scrolling" : "Disable Scrolling")
-                    </Button>
-                    <span class="text-sm text-muted-foreground">
-                        Current: @(_scrollLocked ? "Locked" : "Unlocked")
-                    </span>
-                </div>
-            </CardContent>
-        </Card>
-
-        @* Badge Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Badge</CardTitle>
-                <CardDescription>Displays a badge or a component that looks like a badge.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div class="flex flex-wrap gap-2">
-                    <Badge Variant="default">Default</Badge>
-                    <Badge Variant="secondary">Secondary</Badge>
-                    <Badge Variant="destructive">Destructive</Badge>
-                    <Badge Variant="outline">Outline</Badge>
-                    <Badge Variant="ghost">Ghost</Badge>
-                    <Badge Variant="link">Link</Badge>
-                </div>
-            </CardContent>
-        </Card>
-
-        @* Button Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Button</CardTitle>
-                <CardDescription>Displays a button or a component that looks like a button.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div class="flex flex-wrap gap-2 items-center">
-                    <Button Variant="default">Default</Button>
-                    <Button Variant="secondary">Secondary</Button>
-                    <Button Variant="destructive">Destructive</Button>
-                    <Button Variant="outline">Outline</Button>
-                    <Button Variant="ghost">Ghost</Button>
-                    <Button Variant="link">Link</Button>
-                </div>
-                <Separator class="my-4" />
-                <div class="flex flex-wrap gap-2 items-center">
-                    <Button Size="xs">Extra Small</Button>
-                    <Button Size="sm">Small</Button>
-                    <Button Size="default">Default</Button>
-                    <Button Size="lg">Large</Button>
-                </div>
-            </CardContent>
-        </Card>
-
-        @* Card Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Card</CardTitle>
-                <CardDescription>Displays a card with header, content, and footer.</CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            @* Column 1: Environment & Status *@
+            <div class="flex flex-col gap-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Card Title</CardTitle>
-                        <CardDescription>Card description goes here.</CardDescription>
+                        <CardTitle>Scroll Lock</CardTitle>
+                        <CardDescription>Toggle page scrolling using JavaScript interop.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p>This is the card content area.</p>
+                        <div class="flex items-center justify-between gap-3">
+                            <Button Variant="outline" @onclick="ToggleScroll">
+                                @(_scrollLocked ? "Enable Scrolling" : "Disable Scrolling")
+                            </Button>
+                            <span class="text-xs md:text-sm text-muted-foreground">
+                                Current: @(_scrollLocked ? "Locked" : "Unlocked")
+                            </span>
+                        </div>
                     </CardContent>
-                    <CardFooter>
-                        <Button>Action</Button>
-                    </CardFooter>
                 </Card>
-            </CardContent>
-        </Card>
 
-        @* Input & Label Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Input & Label</CardTitle>
-                <CardDescription>Displays a form input field or a component that looks like an input field.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div class="space-y-4">
-                    <div>
-                        <Label For="email">Email</Label>
-                        <Input type="email" id="email" placeholder="Enter your email" class="mt-2" />
-                    </div>
-                    <div>
-                        <Label For="password">Password</Label>
-                        <Input type="password" id="password" placeholder="Enter your password" class="mt-2" />
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Alerts</CardTitle>
+                        <CardDescription>Callouts for user attention.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-4">
+                            <Alert Variant="default">
+                                <AlertTitle>Heads up!</AlertTitle>
+                                <AlertDescription>
+                                    You can add components to your app using the cli.
+                                </AlertDescription>
+                            </Alert>
+                            <Alert Variant="destructive">
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>
+                                    Your session has expired. Please log in again.
+                                </AlertDescription>
+                            </Alert>
+                        </div>
+                    </CardContent>
+                </Card>
 
-        @* Separator Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Separator</CardTitle>
-                <CardDescription>Visually or semantically separates content.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div class="space-y-4">
-                    <div>Content above</div>
-                    <Separator />
-                    <div>Content below</div>
-                </div>
-            </CardContent>
-        </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Badges</CardTitle>
+                        <CardDescription>Status and metadata chips.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="flex flex-wrap gap-2">
+                            <Badge Variant="default">Default</Badge>
+                            <Badge Variant="secondary">Secondary</Badge>
+                            <Badge Variant="destructive">Destructive</Badge>
+                            <Badge Variant="outline">Outline</Badge>
+                            <Badge Variant="ghost">Ghost</Badge>
+                            <Badge Variant="link">Link</Badge>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
-        @* Alert Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Alert</CardTitle>
-                <CardDescription>Displays a callout for user attention.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div class="space-y-4">
-                    <Alert Variant="default">
-                        <AlertTitle>Heads up!</AlertTitle>
-                        <AlertDescription>
-                            You can add components to your app using the cli.
-                        </AlertDescription>
-                    </Alert>
-                    <Alert Variant="destructive">
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>
-                            Your session has expired. Please log in again.
-                        </AlertDescription>
-                    </Alert>
-                </div>
-            </CardContent>
-        </Card>
+            @* Column 2: Actions *@
+            <div class="flex flex-col gap-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Buttons</CardTitle>
+                        <CardDescription>Primary, secondary, and utility actions.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <Button Variant="default">Default</Button>
+                            <Button Variant="secondary">Secondary</Button>
+                            <Button Variant="destructive">Destructive</Button>
+                            <Button Variant="outline">Outline</Button>
+                            <Button Variant="ghost">Ghost</Button>
+                            <Button Variant="link">Link</Button>
+                        </div>
+                        <Separator class="my-4" />
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <Button Size="xs">Extra Small</Button>
+                            <Button Size="sm">Small</Button>
+                            <Button Size="default">Default</Button>
+                            <Button Size="lg">Large</Button>
+                        </div>
+                    </CardContent>
+                </Card>
 
-        @* Avatar Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Avatar</CardTitle>
-                <CardDescription>An image element with a fallback for representing the user.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div class="flex flex-wrap gap-4 items-center">
-                    <Avatar Size="sm">
-                        <AvatarImage src="https://github.com/shadcn.png" alt="@Username" />
-                        <AvatarFallback>CN</AvatarFallback>
-                    </Avatar>
-                    <Avatar Size="default">
-                        <AvatarImage src="https://github.com/shadcn.png" alt="@Username" />
-                        <AvatarFallback>CN</AvatarFallback>
-                    </Avatar>
-                    <Avatar Size="lg">
-                        <AvatarImage src="https://github.com/shadcn.png" alt="@Username" />
-                        <AvatarFallback>CN</AvatarFallback>
-                    </Avatar>
-                    <Avatar>
-                        <AvatarFallback>AB</AvatarFallback>
-                        <AvatarBadge>
-                            <svg class="size-2" fill="currentColor" viewBox="0 0 8 8">
-                                <circle cx="4" cy="4" r="4" />
-                            </svg>
-                        </AvatarBadge>
-                    </Avatar>
-                </div>
-            </CardContent>
-        </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Dropdown Menu</CardTitle>
+                        <CardDescription>Contextual menu for account actions.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <DropdownMenu Open="_dropdownOpen" OpenChanged="OnDropdownOpenChanged">
+                            <DropdownMenuTrigger>
+                                <Button Variant="outline">Open Menu</Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem>Profile</DropdownMenuItem>
+                                <DropdownMenuItem>Settings</DropdownMenuItem>
+                                <DropdownMenuItem>Team</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem Variant="destructive">Logout</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CardContent>
+                </Card>
 
-        @* Switch Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Switch</CardTitle>
-                <CardDescription>A control that allows the user to toggle between checked and unchecked states.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div class="flex flex-col gap-4">
-                    <div class="flex items-center gap-2">
-                        <Switch Checked="_switchChecked" CheckedChanged="OnSwitchCheckedChanged" />
-                        <Label>Enable notifications</Label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <Switch Size="sm" Checked="_switchChecked2" CheckedChanged="OnSwitch2CheckedChanged" />
-                        <Label>Small switch</Label>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Tooltip</CardTitle>
+                        <CardDescription>Inline hints and affordances.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Button Variant="outline">Hover me</Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>This is a tooltip</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </CardContent>
+                </Card>
+            </div>
 
-        @* Checkbox Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Checkbox</CardTitle>
-                <CardDescription>A control that allows the user to toggle between checked and unchecked states.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div class="flex flex-col gap-4">
-                    <div class="flex items-center gap-2">
-                        <Checkbox Checked="_checkboxChecked" CheckedChanged="OnCheckboxCheckedChanged" />
-                        <Label>Accept terms and conditions</Label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <Checkbox Checked="_checkboxChecked2" CheckedChanged="OnCheckbox2CheckedChanged" />
-                        <Label>Subscribe to newsletter</Label>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
+            @* Column 3: Forms & Toggles *@
+            <div class="flex flex-col gap-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Inputs</CardTitle>
+                        <CardDescription>Form fields with labels and helpers.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-4">
+                            <div>
+                                <Label For="email">Email</Label>
+                                <Input type="email" id="email" placeholder="Enter your email" class="mt-2" />
+                            </div>
+                            <div>
+                                <Label For="password">Password</Label>
+                                <Input type="password" id="password" placeholder="Enter your password" class="mt-2" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-        @* Dialog Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Dialog</CardTitle>
-                <CardDescription>A window overlaid on either the primary window or another dialog window.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Dialog @bind-Open="DialogOpen">
-                    <DialogTrigger>
-                        <Button>Open Dialog</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Are you absolutely sure?</DialogTitle>
-                            <DialogDescription>
-                                This action cannot be undone. This will permanently delete your account
-                                and remove your data from our servers.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                            <Button Variant="outline" @onclick="() => DialogOpen = false">Cancel</Button>
-                            <Button Variant="destructive" @onclick="() => DialogOpen = false">Continue</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </CardContent>
-        </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Switches</CardTitle>
+                        <CardDescription>Quick binary toggles.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-center gap-2">
+                                <Switch Checked="_switchChecked" CheckedChanged="OnSwitchCheckedChanged" />
+                                <Label>Enable notifications</Label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Switch Size="sm" Checked="_switchChecked2" CheckedChanged="OnSwitch2CheckedChanged" />
+                                <Label>Small switch</Label>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-        @* Dropdown Menu Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Dropdown Menu</CardTitle>
-                <CardDescription>Displays a menu to the user — such as a set of actions or functions — triggered by a button.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <DropdownMenu Open="_dropdownOpen" OpenChanged="OnDropdownOpenChanged">
-                    <DropdownMenuTrigger>
-                        <Button Variant="outline">Open Menu</Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>Profile</DropdownMenuItem>
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
-                        <DropdownMenuItem>Team</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem Variant="destructive">Logout</DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </CardContent>
-        </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Checkboxes</CardTitle>
+                        <CardDescription>Selection controls for lists and agreements.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-center gap-2">
+                                <Checkbox Checked="_checkboxChecked" CheckedChanged="OnCheckboxCheckedChanged" />
+                                <Label>Accept terms and conditions</Label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Checkbox Checked="_checkboxChecked2" CheckedChanged="OnCheckbox2CheckedChanged" />
+                                <Label>Subscribe to newsletter</Label>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-        @* Tooltip Section *@
-        <Card>
-            <CardHeader>
-                <CardTitle>Tooltip</CardTitle>
-                <CardDescription>A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Tooltip>
-                    <TooltipTrigger>
-                        <Button Variant="outline">Hover me</Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>This is a tooltip</p>
-                    </TooltipContent>
-                </Tooltip>
-            </CardContent>
-        </Card>
-    </div>
-</div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Separator</CardTitle>
+                        <CardDescription>Visual separation of content blocks.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-4">
+                            <div>Content above</div>
+                            <Separator />
+                            <div>Content below</div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
-@code {
-    [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
+            @* Column 4: Surfaces & Identity *@
+            <div class="flex flex-col gap-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Cards</CardTitle>
+                        <CardDescription>Composable surfaces for grouping content.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Card Title</CardTitle>
+                                <CardDescription>Card description goes here.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <p>This is the card content area.</p>
+                            </CardContent>
+                            <CardFooter>
+                                <Button>Action</Button>
+                            </CardFooter>
+                        </Card>
+                    </CardContent>
+                </Card>
 
-    private bool _switchChecked = false;
-    private bool _switchChecked2 = false;
-    private bool _checkboxChecked = false;
-    private bool _checkboxChecked2 = false;
-    public bool DialogOpen = false;
-    private bool _dropdownOpen = false;
-    private const string Username = "shadcn";
-    private bool _scrollLocked = false;
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Dialog</CardTitle>
+                        <CardDescription>Overlay for critical decisions and flows.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Dialog @bind-Open="DialogOpen">
+                            <DialogTrigger>
+                                <Button>Open Dialog</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Are you absolutely sure?</DialogTitle>
+                                    <DialogDescription>
+                                        This action cannot be undone. This will permanently delete your account
+                                        and remove your data from our servers.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter>
+                                    <Button Variant="outline" @onclick="() => DialogOpen = false">Cancel</Button>
+                                    <Button Variant="destructive" @onclick="() => DialogOpen = false">Continue</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </CardContent>
+                </Card>
 
-    private async Task ToggleScroll()
-    {
-        _scrollLocked = !_scrollLocked;
-        await JsRuntime.InvokeVoidAsync("toggleBodyScroll", _scrollLocked);
-    }
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Avatar</CardTitle>
+                        <CardDescription>User identity and presence.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="flex flex-wrap gap-4 items-center">
+                            <Avatar Size="sm">
+                                <AvatarImage src="https://github.com/shadcn.png" alt="@Username" />
+                                <AvatarFallback>CN</AvatarFallback>
+                            </Avatar>
+                            <Avatar Size="default">
+                                <AvatarImage src="https://github.com/shadcn.png" alt="@Username" />
+                                <AvatarFallback>CN</AvatarFallback>
+                            </Avatar>
+                            <Avatar Size="lg">
+                                <AvatarImage src="https://github.com/shadcn.png" alt="@Username" />
+                                <AvatarFallback>CN</AvatarFallback>
+                            </Avatar>
+                            <Avatar>
+                                <AvatarFallback>AB</AvatarFallback>
+                                <AvatarBadge>
+                                    <svg class="size-2" fill="currentColor" viewBox="0 0 8 8">
+                                        <circle cx="4" cy="4" r="4" />
+                                    </svg>
+                                </AvatarBadge>
+                            </Avatar>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    };
 
-    private async Task OnDropdownOpenChanged(bool isOpen)
-    {
-        _dropdownOpen = isOpen;
-        await JsRuntime.InvokeVoidAsync("toggleBodyScroll", _dropdownOpen);
-    }
-
-    private void OnSwitchCheckedChanged(bool value) => _switchChecked = value;
-    private void OnSwitch2CheckedChanged(bool value) => _switchChecked2 = value;
-    private void OnCheckboxCheckedChanged(bool value) => _checkboxChecked = value;
-    private void OnCheckbox2CheckedChanged(bool value) => _checkboxChecked2 = value;
 }
