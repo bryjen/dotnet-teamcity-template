@@ -1,8 +1,13 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using WebFrontend.Utils;
 
 namespace WebFrontend.Components.UI.Tooltip;
 
+[ComponentMetadata(
+    Description = "Tooltip root component for displaying rich hover and focus hints.",
+    IsEntry = true,
+    Group = nameof(Tooltip))]
 public partial class Tooltip : ComponentBase, IAsyncDisposable
 {
     [Parameter] public RenderFragment? ChildContent { get; set; }

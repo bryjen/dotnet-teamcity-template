@@ -1,0 +1,216 @@
+@using WebFrontend.Components.UI.Shared
+@using WebFrontend.Components.UI.Select
+@using WebFrontend.Services
+
+@* Fully custom dropdown-style select (no native <select>, no DropdownMenu dependency) *@
+<div class="relative inline-block w-full text-left">
+    <button type="button"
+            class='@ClassBuilder.Merge("flex w-full items-center justify-between rounded-full border border-input bg-background/80 px-3 py-2.5 text-sm shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50", Class)'
+            disabled="@Disabled"
+            @onclick="ToggleAsync">
+        <span class="truncate text-left">
+            @DisplayText
+        </span>
+        <span class="ml-2 flex items-center text-muted-foreground">
+            <svg class="h-4 w-4 transition-transform duration-150 @( _open ? "rotate-180" : "" )"
+                 viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </span>
+    </button>
+
+    @if (_open)
+    {
+        @* overlay to close on outside click *@
+        <div class="fixed inset-0 z-40" @onclick="CloseAsync"></div>
+
+        <div class="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg origin-top @AnimationClass"
+             @onclick:stopPropagation="true">
+            @if (!string.IsNullOrEmpty(Label))
+            {
+                <div class="px-3 pt-3 pb-1 text-xs font-medium text-muted-foreground">
+                    @Label
+                </div>
+            }
+
+            <ul class="py-1.5">
+                @foreach (var option in Options)
+                {
+                    var isSelected = IsOptionSelected(option);
+                    <li>
+                        <button type="button"
+                                disabled="@option.Disabled"
+                                class="@GetItemClasses(option, isSelected)"
+                                @onclick="() => SelectAsync(option.Value)">
+                            @if (isSelected)
+                            {
+                                <span class="mr-2 flex shrink-0 items-center">
+                                    <svg class="h-4 w-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </span>
+                            }
+                            <span class="flex-1 text-left truncate">
+                                @option.Label
+                            </span>
+                        </button>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<SelectOption> Options { get; set; } = Array.Empty<SelectOption>();
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    [Inject] private ScrollLockService ScrollLockService { get; set; } = default!;
+
+    private bool _open;
+    private bool _isClosing;
+    private string? _displayLabel;
+    private string? _currentValue;
+
+    private string AnimationClass =>
+        _isClosing
+            ? "animate-[select-out_140ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]"
+            : "animate-[select-in_160ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]";
+
+    private string DisplayText => _displayLabel ?? Placeholder ?? "Select an option";
+
+    protected override void OnInitialized()
+    {
+        _currentValue = Value;
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Keep display label and current value in sync with external Value when it changes.
+        // Always sync _currentValue with Value parameter
+        if (_currentValue != Value)
+        {
+            _currentValue = Value;
+        }
+        
+        if (Value is null)
+        {
+            _displayLabel = null;
+            return;
+        }
+
+        var match = FindOption(Value);
+        if (match is not null)
+        {
+            _displayLabel = match.Label;
+        }
+    }
+
+    private SelectOption? FindOption(string? value)
+    {
+        if (Options is null || value is null) return null;
+
+        foreach (var option in Options)
+        {
+            if (option.Value == value)
+                return option;
+        }
+
+        return null;
+    }
+
+    private bool IsOptionSelected(SelectOption option)
+    {
+        // Check both _currentValue (for immediate UI updates) and Value (from parent)
+        // Prefer _currentValue if set, otherwise use Value parameter
+        var valueToCheck = _currentValue ?? Value;
+        
+        // Debug: Let's ensure we're comparing correctly
+        if (valueToCheck is null || option.Value is null)
+            return false;
+        
+        // Use string comparison to ensure exact match
+        var result = string.Equals(option.Value, valueToCheck, StringComparison.Ordinal);
+        return result;
+    }
+
+    private string GetItemClasses(SelectOption option, bool isSelected)
+    {
+        var baseClasses = "flex w-full items-center px-3 py-2 text-sm rounded-md transition-colors";
+
+        if (option.Disabled)
+        {
+            return $"{baseClasses} text-muted-foreground/60 cursor-not-allowed";
+        }
+
+        if (isSelected)
+        {
+            return $"{baseClasses} bg-primary text-primary-foreground";
+        }
+
+        return $"{baseClasses} cursor-pointer text-foreground hover:bg-muted/70";
+    }
+
+    private async Task ToggleAsync()
+    {
+        if (Disabled) return;
+
+        if (_open)
+        {
+            await StartCloseAnimationAsync();
+            return;
+        }
+
+        // Ensure _currentValue is synced with Value when opening
+        _currentValue = Value;
+        _isClosing = false;
+        _open = true;
+        await ScrollLockService.LockAsync();
+        StateHasChanged();
+    }
+
+    private Task CloseAsync()
+    {
+        if (!_open) return Task.CompletedTask;
+        return StartCloseAnimationAsync();
+    }
+
+    private async Task SelectAsync(string value)
+    {
+        if (Disabled) return;
+
+        _currentValue = value;
+        var match = FindOption(value);
+        if (match is not null)
+        {
+            _displayLabel = match.Label;
+        }
+
+        if (ValueChanged.HasDelegate)
+        {
+            await ValueChanged.InvokeAsync(value);
+        }
+
+        await StartCloseAnimationAsync();
+    }
+
+    private async Task StartCloseAnimationAsync()
+    {
+        _isClosing = true;
+        StateHasChanged();
+
+        await Task.Delay(140);
+
+        _open = false;
+        _isClosing = false;
+        await ScrollLockService.UnlockAsync();
+        StateHasChanged();
+    }
+}
+

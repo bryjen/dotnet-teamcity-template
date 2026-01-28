@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using WebFrontend.Services;
+using WebFrontend.Utils;
 
 namespace WebFrontend.Components.UI.DropdownMenu;
 
+[ComponentMetadata(
+    Description = "Dropdown menu root component for contextual actions.",
+    IsEntry = true,
+    Group = nameof(DropdownMenu))]
 public partial class DropdownMenu : ComponentBase, IAsyncDisposable
 {
     [Parameter] public RenderFragment? ChildContent { get; set; }

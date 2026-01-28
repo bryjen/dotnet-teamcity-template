@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using WebFrontend.Services;
+using WebFrontend.Utils;
 
 namespace WebFrontend.Components.UI.Dialog;
 
+[ComponentMetadata(
+    Description = "Modal dialog root component for layered content and overlays.",
+    IsEntry = true,
+    Group = nameof(Dialog))]
 public partial class Dialog : ComponentBase, IAsyncDisposable
 {
     [Parameter]
