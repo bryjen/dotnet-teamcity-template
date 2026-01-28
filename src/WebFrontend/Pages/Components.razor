@@ -1,4 +1,8 @@
 @page "/components"
+@using WebFrontend.Components.UI.Dialog
+@using WebFrontend.Components.UI.DropdownMenu
+@using WebFrontend.Components.UI.Tooltip
+@layout EmptyLayout
 
 <PageTitle>Component Showcase</PageTitle>
 
@@ -192,11 +196,11 @@
             <CardContent>
                 <div class="flex flex-col gap-4">
                     <div class="flex items-center gap-2">
-                        <Switch @bind-Checked="_switchChecked" />
+                        <Switch Checked="_switchChecked" CheckedChanged="OnSwitchCheckedChanged" />
                         <Label>Enable notifications</Label>
                     </div>
                     <div class="flex items-center gap-2">
-                        <Switch Size="sm" @bind-Checked="_switchChecked2" />
+                        <Switch Size="sm" Checked="_switchChecked2" CheckedChanged="OnSwitch2CheckedChanged" />
                         <Label>Small switch</Label>
                     </div>
                 </div>
@@ -212,11 +216,11 @@
             <CardContent>
                 <div class="flex flex-col gap-4">
                     <div class="flex items-center gap-2">
-                        <Checkbox @bind-Checked="_checkboxChecked" />
+                        <Checkbox Checked="_checkboxChecked" CheckedChanged="OnCheckboxCheckedChanged" />
                         <Label>Accept terms and conditions</Label>
                     </div>
                     <div class="flex items-center gap-2">
-                        <Checkbox @bind-Checked="_checkboxChecked2" />
+                        <Checkbox Checked="_checkboxChecked2" CheckedChanged="OnCheckbox2CheckedChanged" />
                         <Label>Subscribe to newsletter</Label>
                     </div>
                 </div>
@@ -318,4 +322,9 @@
         _dropdownOpen = isOpen;
         await JsRuntime.InvokeVoidAsync("toggleBodyScroll", _dropdownOpen);
     }
+
+    private void OnSwitchCheckedChanged(bool value) => _switchChecked = value;
+    private void OnSwitch2CheckedChanged(bool value) => _switchChecked2 = value;
+    private void OnCheckboxCheckedChanged(bool value) => _checkboxChecked = value;
+    private void OnCheckbox2CheckedChanged(bool value) => _checkboxChecked2 = value;
 }

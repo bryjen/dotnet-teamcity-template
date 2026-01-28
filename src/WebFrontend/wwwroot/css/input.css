@@ -7,51 +7,7 @@
 
 @layer base {
     :root {
-        /* Core semantic tokens (shadcn-style) */
-        --background: 0 0% 100%;
-        --foreground: 222.2 84% 4.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 222.2 84% 4.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 222.2 84% 4.9%;
-        --primary: 221.2 83.2% 53.3%;
-        --primary-foreground: 210 40% 98%;
-        --secondary: 210 40% 96.1%;
-        --secondary-foreground: 222.2 47.4% 11.2%;
-        --muted: 210 40% 96.1%;
-        --muted-foreground: 215.4 16.3% 46.9%;
-        --accent: 210 40% 96.1%;
-        --accent-foreground: 222.2 47.4% 11.2%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 210 40% 98%;
-        --border: 214.3 31.8% 91.4%;
-        --input: 214.3 31.8% 91.4%;
-        --ring: 221.2 83.2% 53.3%;
-        --radius: 0.5rem;
-        
-        /* Extended theme tokens - unified color system */
-        --background-black: 0 0% 0%;
-        --background-dark: 0 0% 3.9%;
-        --card-dark: 0 0% 7.1%;
-        --border-dark: 0 0% 12.2%;
-        --scrollbar-track: 0 0% 9%;
-        --scrollbar-thumb: 0 0% 61.2%;
-        --scrollbar-thumb-hover: 0 0% 75.3%;
-        
-        /* Chat/Sidebar specific (can be merged into semantic tokens later) */
-        --chat-dark: 0 0% 4.3%;
-        --chat-sidebar: 0 0% 6.7%;
-        --chat-border: 0 0% 12.2%;
-        --sidebar-text: 0 0% 82%;
-        --sidebar-header: 0 0% 55.7%;
-        
-        /* Neon accent (for symptom map) */
-        --primary-neon: 221 72% 65%;
-        --accent-neon: 0 0% 100%;
-    }
-
-    .dark {
-        /* Core semantic tokens */
+        /* Core semantic tokens - unified single theme */
         --background: 0 0% 4%;
         --foreground: 210 40% 98%;
         --card: 0 0% 9%;
@@ -71,8 +27,9 @@
         --border: 0 0% 15%;
         --input: 0 0% 15%;
         --ring: 224.3 76.3% 48%;
+        --radius: 0.5rem;
         
-        /* Extended theme tokens - dark mode values */
+        /* Extended theme tokens - unified color system */
         --background-black: 0 0% 0%;
         --background-dark: 0 0% 3.9%;
         --card-dark: 0 0% 7.1%;
@@ -88,7 +45,7 @@
         --sidebar-text: 0 0% 82%;
         --sidebar-header: 0 0% 55.7%;
         
-        /* Neon accent */
+        /* Neon accent (for symptom map) */
         --primary-neon: 221 72% 65%;
         --accent-neon: 0 0% 100%;
     }
@@ -109,10 +66,6 @@
         }
     }
 
-    html.dark,
-    html.dark body {
-        background-color: hsl(var(--background));
-    }
 
     h1:focus {
         outline: none;
@@ -245,29 +198,29 @@
     }
 
     /* Scrollbar styling - uses theme tokens */
-    html.dark ::-webkit-scrollbar {
+    ::-webkit-scrollbar {
         width: 10px;
         height: 10px;
     }
 
-    html.dark ::-webkit-scrollbar-track {
+    ::-webkit-scrollbar-track {
         background: hsl(var(--scrollbar-track));
     }
 
-    html.dark ::-webkit-scrollbar-thumb {
+    ::-webkit-scrollbar-thumb {
         background: hsl(var(--scrollbar-thumb));
         border-radius: 9999px;
         border: 1px solid hsl(var(--scrollbar-track));
         background-clip: padding-box;
     }
 
-    html.dark ::-webkit-scrollbar-thumb:hover {
+    ::-webkit-scrollbar-thumb:hover {
         background: hsl(var(--scrollbar-thumb-hover));
         background-clip: padding-box;
     }
 
-    /* Firefox - thin scrollbar matching dark theme */
-    html.dark * {
+    /* Firefox - thin scrollbar */
+    * {
         scrollbar-width: thin;
         scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
     }

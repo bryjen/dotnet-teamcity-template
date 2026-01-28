@@ -1,0 +1,9 @@
+@namespace WebFrontend.Components.UI.Tooltip
+
+@* Tooltip trigger component - applies trigger attributes to child element *@
+@ChildContent
+
+@code {
+    [CascadingParameter] public Tooltip? ParentTooltip { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
