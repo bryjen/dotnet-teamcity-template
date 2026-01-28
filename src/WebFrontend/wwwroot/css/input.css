@@ -10,8 +10,7 @@
         --radius: 0.65rem;
         --background: oklch(1 0 0);
         --foreground: oklch(0.141 0.005 285.823);
-        /* Slightly separate card from page background in light mode */
-        --card: oklch(0.98 0 0);
+        --card: oklch(1 0 0);
         --card-foreground: oklch(0.141 0.005 285.823);
         --popover: oklch(1 0 0);
         --popover-foreground: oklch(0.141 0.005 285.823);
@@ -47,8 +46,8 @@
         --card-dark: 0 0% 7.1%;
         --border-dark: 0 0% 12.2%;
         --scrollbar-track: 0 0% 9%;
-        --scrollbar-thumb: 0 0% 61.2%;
-        --scrollbar-thumb-hover: 0 0% 75.3%;
+        --scrollbar-thumb: 0 0% 25%;
+        --scrollbar-thumb-hover: 0 0% 30%;
 
         /* Chat/Sidebar specific */
         --chat-dark: 0 0% 4.3%;
@@ -355,7 +354,7 @@
     }
 
     50% {
-        transform: translateX(100%) scaleX(1.75);
+        transform: translateX(100%) scaleX(1);
     }
 
     100% {
@@ -386,31 +385,6 @@
     to {
         transform: translateX(100%);
         opacity: 0;
-    }
-}
-
-/* Select dropdown show/hide animations */
-@keyframes select-in {
-    from {
-        opacity: 0;
-        transform: translateY(-4px) scaleY(0.96);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scaleY(1);
-    }
-}
-
-@keyframes select-out {
-    from {
-        opacity: 1;
-        transform: translateY(0) scaleY(1);
-    }
-
-    to {
-        opacity: 0;
-        transform: translateY(-4px) scaleY(0.96);
     }
 }
 

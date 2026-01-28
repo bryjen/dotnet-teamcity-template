@@ -1,3 +1,5 @@
+using TailwindMerge;
+
 namespace WebFrontend.Components.UI.Shared;
 
 /// <summary>
@@ -5,29 +7,25 @@ namespace WebFrontend.Components.UI.Shared;
 /// </summary>
 public static class ClassBuilder
 {
+    private static readonly TwMerge _twMerge = new();
+
     /// <summary>
     /// Merges multiple class strings, removing duplicates and empty entries.
     /// </summary>
     public static string Merge(params string?[] classes)
     {
-        var classList = new List<string>();
+        // Filter out null/empty entries first to avoid unnecessary work.
+        var nonEmpty = classes
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .ToArray();
 
-        foreach (var cls in classes)
+        if (nonEmpty.Length == 0)
         {
-            if (string.IsNullOrWhiteSpace(cls))
-                continue;
-
-            var parts = cls.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            foreach (var part in parts)
-            {
-                if (!classList.Contains(part))
-                {
-                    classList.Add(part);
-                }
-            }
+            return string.Empty;
         }
 
-        return string.Join(" ", classList);
+        // Use TwMerge to perform Tailwind-aware conflict resolution.
+        return _twMerge.Merge(nonEmpty);
     }
 
     /// <summary>
