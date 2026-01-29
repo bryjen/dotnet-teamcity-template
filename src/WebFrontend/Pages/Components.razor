@@ -155,6 +155,31 @@
 
                 <Card>
                     <CardHeader>
+                        <CardTitle>Toggle Buttons</CardTitle>
+                        <CardDescription>Outline/ghost action that fills when activated.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="flex flex-wrap gap-3 items-center">
+                            <ToggleButton VariantUntoggled="outline"
+                                          VariantToggled="default"
+                                          @bind-IsToggled="_toggleButtonPrimary">
+                                Enable quick summary
+                            </ToggleButton>
+
+                            <ToggleButton VariantUntoggled="ghost"
+                                          VariantToggled="secondary"
+                                          @bind-IsToggled="_toggleButtonSecondary">
+                                Alerts
+                            </ToggleButton>
+                        </div>
+                        <p class="mt-3 text-xs text-muted-foreground">
+                            Each toggle switches between a subtle outline/ghost state and a filled style when active.
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
                         <CardTitle>Dropdown Menu</CardTitle>
                         <CardDescription>Contextual menu for account actions.</CardDescription>
                     </CardHeader>
@@ -183,8 +208,8 @@
                     </CardHeader>
                     <CardContent>
                         <Tooltip>
-                            <TooltipTrigger>
-                                <Button Variant="outline">Hover me</Button>
+                            <TooltipTrigger Context="ctx">
+                                <Button Variant="outline" @attributes="ctx.Attributes">Hover me</Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>This is a tooltip</p>
@@ -632,7 +657,8 @@
                                     ValueChanged="OnClinicChanged"
                                     Placeholder="Select a clinic"
                                     Label="Clinics"
-                                    Options="_clinicOptions" />
+                                    Options="_clinicOptions">
+                                </Select>
                             </div>
                             <p class="text-xs text-muted-foreground">
                                 Selected: @(_selectedClinic is null ? "None" : _selectedClinicDisplay)

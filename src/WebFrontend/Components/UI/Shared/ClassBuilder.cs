@@ -25,7 +25,8 @@ public static class ClassBuilder
         }
 
         // Use TwMerge to perform Tailwind-aware conflict resolution.
-        return _twMerge.Merge(nonEmpty);
+        var safeNonEmpty = nonEmpty.Select(c => c!).ToArray();
+        return _twMerge.Merge(safeNonEmpty);
     }
 
     /// <summary>

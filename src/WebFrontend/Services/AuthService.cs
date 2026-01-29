@@ -65,7 +65,7 @@ public class AuthService
             await StoreAuthResponseAsync(response);
             return true;
         }
-        catch (ApiUnauthorizedException ex)
+        catch (ApiUnauthorizedException)
         {
             throw new Exception("Invalid email or password");
         }
@@ -76,6 +76,17 @@ public class AuthService
     }
 
     public async Task LogoutAsync()
+    {
+        _currentUser = null;
+        _tokenProvider.ClearToken();
+        await _tokenProvider.SetRefreshTokenAsync(null);
+        await _tokenProvider.SetUserAsync(null);
+    }
+
+    /// <summary>
+    /// Clears authentication tokens without full logout (used when refresh fails).
+    /// </summary>
+    public async Task ClearTokensAsync()
     {
         _currentUser = null;
         _tokenProvider.ClearToken();

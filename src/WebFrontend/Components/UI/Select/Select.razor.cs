@@ -13,3 +13,11 @@ public partial class Select
 {
 }
 
+public enum DropdownDirection
+{
+    Auto,
+    Down,
+    Up
+}
+
+

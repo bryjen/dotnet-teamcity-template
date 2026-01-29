@@ -1,9 +1,30 @@
 @namespace WebFrontend.Components.UI.Tooltip
+@using System.Collections.Generic
 
-@* Tooltip trigger component - applies trigger attributes to child element *@
-@ChildContent
+@* Tooltip trigger component - surfaces attributes needed for the trigger element *@
+@if (ChildContent is not null)
+{
+    @ChildContent(BuildContext())
+}
 
 @code {
     [CascadingParameter] public Tooltip? ParentTooltip { get; set; }
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment<TooltipTriggerContext>? ChildContent { get; set; }
+
+    private TooltipTriggerContext BuildContext() => new(BuildAttributes());
+
+    private Dictionary<string, object>? BuildAttributes()
+    {
+        if (string.IsNullOrEmpty(ParentTooltip?.TooltipId))
+        {
+            return null;
+        }
+
+        return new Dictionary<string, object>
+        {
+            ["data-tooltip-trigger"] = ParentTooltip!.TooltipId
+        };
+    }
+
+    public sealed record TooltipTriggerContext(Dictionary<string, object>? Attributes);
 }

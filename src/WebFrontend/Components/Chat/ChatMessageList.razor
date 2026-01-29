@@ -1,0 +1,61 @@
+@namespace WebFrontend.Components.Chat
+@using WebFrontend.Pages
+
+<div class="flex flex-col flex-1 min-h-0 overflow-y-auto scrollbar-hide px-4 pt-6 pb-2">
+    <div class="flex-1">
+        <div class="max-w-3xl mx-auto space-y-6">
+        @foreach (var message in Messages)
+        {
+            <div class="flex gap-4 @(message.IsUser ? "justify-end" : "justify-start")">
+                @if (!message.IsUser)
+                {
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
+                        AI
+                    </div>
+                }
+                <div class="flex flex-col @(message.IsUser ? "items-end" : "items-start") max-w-[80%]">
+                    <div class="px-4 py-3 rounded-lg @(message.IsUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")">
+                        <p class="text-sm whitespace-pre-wrap">@message.Content</p>
+                    </div>
+                    <span class="text-xs text-muted-foreground mt-1 px-1">
+                        @message.Timestamp.ToString("h:mm tt")
+                    </span>
+                </div>
+                @if (message.IsUser)
+                {
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-foreground text-sm font-medium">
+                        You
+                    </div>
+                }
+            </div>
+        }
+
+        @if (IsLoading)
+        {
+            <div class="flex gap-4 justify-start">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
+                    AI
+                </div>
+                <div class="flex flex-col items-start">
+                    <div class="px-4 py-3 rounded-lg bg-muted">
+                        <div class="flex gap-1">
+                            <div class="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                            <div class="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                            <div class="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<ChatMessage> Messages { get; set; } = Array.Empty<ChatMessage>();
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+}
+

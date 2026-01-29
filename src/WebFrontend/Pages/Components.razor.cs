@@ -18,6 +18,8 @@ public partial class Components : ComponentBase
     private bool _checkboxChecked = false;
     private bool _checkboxChecked2 = false;
     private bool _checkboxChecked3 = false;
+    private bool _toggleButtonPrimary = false;
+    private bool _toggleButtonSecondary = false;
     public bool DialogOpen = false;
     private bool _dropdownOpen = false;
     private const string Username = "shadcn";

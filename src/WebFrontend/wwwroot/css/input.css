@@ -286,6 +286,10 @@
         background-color: hsl(var(--accent-neon) / 0.05) !important;
     }
 
+    .tooltip-trigger-wrapper {
+        display: contents;
+    }
+
     /* Accordion content transitions */
     .accordion-content-height {
         transition: max-height 0.22s linear;
@@ -385,6 +389,55 @@
     to {
         transform: translateX(100%);
         opacity: 0;
+    }
+}
+
+/* Select dropdown animations (fade + directional pop) */
+@keyframes select-in-down {
+    from {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes select-out-down {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.97);
+    }
+}
+
+@keyframes select-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(4px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes select-out-up {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(4px) scale(0.97);
     }
 }
 

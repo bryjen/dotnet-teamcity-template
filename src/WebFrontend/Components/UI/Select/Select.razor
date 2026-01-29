@@ -3,11 +3,12 @@
 @using WebFrontend.Services
 
 @* Fully custom dropdown-style select (no native <select>, no DropdownMenu dependency) *@
-<div class="relative inline-block w-full text-left">
+<div class="@ClassBuilder.Merge("relative inline-block w-full text-left", OuterClass)">
     <button type="button"
             class='@ClassBuilder.Merge("flex w-full items-center justify-between rounded-full border border-input bg-background/80 px-3 py-2.5 text-sm shadow-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50", Class)'
             disabled="@Disabled"
-            @onclick="ToggleAsync">
+            @onclick="ToggleAsync"
+            @ref="_triggerRef">
         <span class="truncate text-left">
             @DisplayText
         </span>
@@ -24,7 +25,7 @@
         @* overlay to close on outside click *@
         <div class="fixed inset-0 z-40" @onclick="CloseAsync"></div>
 
-        <div class="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg origin-top @AnimationClass"
+        <div class="absolute z-50 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg @GetPositionClasses() @AnimationClass"
              @onclick:stopPropagation="true">
             @if (!string.IsNullOrEmpty(Label))
             {
@@ -68,47 +69,66 @@
     [Parameter] public bool Disabled { get; set; }
     [Parameter] public string? Placeholder { get; set; }
     [Parameter] public string? Label { get; set; }
-    [Parameter] public string? Class { get; set; }
+    [Parameter] public DropdownDirection Direction { get; set; } = DropdownDirection.Auto;
     [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
+    [Parameter] public string? OuterClass { get; set; }
+    [Parameter] public string? Class { get; set; }
+
     [Inject] private ScrollLockService ScrollLockService { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
     private bool _open;
     private bool _isClosing;
-    private string? _displayLabel;
-    private string? _currentValue;
+    private bool _openUpwards;
+    private ElementReference _triggerRef;
+    private IJSObjectReference? _jsModule;
 
     private string AnimationClass =>
         _isClosing
-            ? "animate-[select-out_140ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]"
-            : "animate-[select-in_160ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]";
+            ? _openUpwards
+                ? "animate-[select-out-up_140ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]"
+                : "animate-[select-out-down_140ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]"
+            : _openUpwards
+                ? "animate-[select-in-up_160ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]"
+                : "animate-[select-in-down_160ms_cubic-bezier(0.2,0.8,0.2,1)_forwards]";
 
-    private string DisplayText => _displayLabel ?? Placeholder ?? "Select an option";
-
-    protected override void OnInitialized()
+    private string DisplayText
     {
-        _currentValue = Value;
+        get
+        {
+            // Prefer matching option label when we have a value
+            if (!string.IsNullOrEmpty(Value) && Options is not null)
+            {
+                foreach (var option in Options)
+                {
+                    if (string.Equals(option.Value, Value, StringComparison.Ordinal))
+                    {
+                        return option.Label;
+                    }
+                }
+
+                // Fallback: show raw value if no option matches
+                return Value!;
+            }
+
+            // No value yet – fall back to placeholder or generic text
+            return Placeholder ?? "Select an option";
+        }
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Keep display label and current value in sync with external Value when it changes.
-        // Always sync _currentValue with Value parameter
-        if (_currentValue != Value)
+        if (firstRender && _jsModule is null)
         {
-            _currentValue = Value;
-        }
-        
-        if (Value is null)
-        {
-            _displayLabel = null;
-            return;
-        }
-
-        var match = FindOption(Value);
-        if (match is not null)
-        {
-            _displayLabel = match.Label;
+            try
+            {
+                _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/select.js");
+            }
+            catch (JSException)
+            {
+                // JS module not available; fall back to downward-only.
+            }
         }
     }
 
@@ -127,17 +147,10 @@
 
     private bool IsOptionSelected(SelectOption option)
     {
-        // Check both _currentValue (for immediate UI updates) and Value (from parent)
-        // Prefer _currentValue if set, otherwise use Value parameter
-        var valueToCheck = _currentValue ?? Value;
-        
-        // Debug: Let's ensure we're comparing correctly
-        if (valueToCheck is null || option.Value is null)
+        if (Value is null || option.Value is null)
             return false;
-        
-        // Use string comparison to ensure exact match
-        var result = string.Equals(option.Value, valueToCheck, StringComparison.Ordinal);
-        return result;
+
+        return string.Equals(option.Value, Value, StringComparison.Ordinal);
     }
 
     private string GetItemClasses(SelectOption option, bool isSelected)
@@ -167,11 +180,10 @@
             return;
         }
 
-        // Ensure _currentValue is synced with Value when opening
-        _currentValue = Value;
         _isClosing = false;
         _open = true;
         await ScrollLockService.LockAsync();
+        await DetermineDirectionAsync();
         StateHasChanged();
     }
 
@@ -184,13 +196,6 @@
     private async Task SelectAsync(string value)
     {
         if (Disabled) return;
-
-        _currentValue = value;
-        var match = FindOption(value);
-        if (match is not null)
-        {
-            _displayLabel = match.Label;
-        }
 
         if (ValueChanged.HasDelegate)
         {
@@ -211,6 +216,48 @@
         _isClosing = false;
         await ScrollLockService.UnlockAsync();
         StateHasChanged();
+    }
+
+    private async Task DetermineDirectionAsync()
+    {
+        // Explicit overrides from caller
+        if (Direction == DropdownDirection.Up)
+        {
+            _openUpwards = true;
+            return;
+        }
+
+        if (Direction == DropdownDirection.Down)
+        {
+            _openUpwards = false;
+            return;
+        }
+
+        // Auto mode: prefer JS-based viewport measurement when available
+        if (_jsModule != null)
+        {
+            try
+            {
+                var result = await _jsModule.InvokeAsync<string>("chooseSelectDirection", _triggerRef);
+                _openUpwards = string.Equals(result, "up", StringComparison.OrdinalIgnoreCase);
+                return;
+            }
+            catch (JSException)
+            {
+                // Ignore and fall through to default
+            }
+        }
+
+        // Fallback: open downward
+        _openUpwards = false;
+    }
+
+    private string GetPositionClasses()
+    {
+        // When opening upwards, align to bottom of trigger; otherwise below it.
+        return _openUpwards
+            ? "bottom-full mb-1 left-0 origin-bottom"
+            : "mt-1 left-0 origin-top";
     }
 }
 

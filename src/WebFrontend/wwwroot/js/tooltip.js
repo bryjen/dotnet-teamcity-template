@@ -36,6 +36,12 @@ export function markTooltipTrigger(tooltipId) {
     const contentElement = document.querySelector(`[data-tooltip-content="${tooltipId}"]`);
     if (!contentElement) return;
     
+    // If the trigger was already annotated (e.g. TooltipTrigger added it), skip scanning
+    const existingTrigger = tooltipContainer.querySelector(`[data-tooltip-trigger="${tooltipId}"]`);
+    if (existingTrigger) {
+        return;
+    }
+
     // Find the first interactive element that's not the content
     const allElements = tooltipContainer.querySelectorAll('button, a, input, select, textarea, [role="button"], [tabindex]');
     
@@ -260,19 +266,19 @@ export function positionTooltip(tooltipId, side = 'top', sideOffset = 0) {
     switch (side) {
         case 'top':
             top = triggerRect.top - contentRect.height - sideOffset;
-            left = triggerRect.left; // Align to left edge
+            left = triggerRect.left + (triggerRect.width - contentRect.width) / 2;
             break;
         case 'bottom':
             top = triggerRect.bottom + sideOffset;
-            left = triggerRect.left; // Align to left edge
+            left = triggerRect.left + (triggerRect.width - contentRect.width) / 2;
             break;
         case 'left':
             left = triggerRect.left - contentRect.width - sideOffset;
-            top = triggerRect.top; // Start at top of trigger, vertically aligned
+            top = triggerRect.top + (triggerRect.height - contentRect.height) / 2;
             break;
         case 'right':
             left = triggerRect.right + sideOffset;
-            top = triggerRect.top; // Start at top of trigger, vertically aligned
+            top = triggerRect.top + (triggerRect.height - contentRect.height) / 2;
             break;
     }
 
@@ -309,8 +315,13 @@ export function positionTooltip(tooltipId, side = 'top', sideOffset = 0) {
     }
 
     // Apply position (position is already fixed from initial style, just update coords)
-    contentElement.style.top = `${top}px`;
-    contentElement.style.left = `${left}px`;
+    const tooltipContainer = contentElement.closest('[data-tooltip-id]');
+    const containerRect = tooltipContainer ? tooltipContainer.getBoundingClientRect() : null;
+    const relativeTop = containerRect ? top - containerRect.top : top;
+    const relativeLeft = containerRect ? left - containerRect.left : left;
+
+    contentElement.style.top = `${relativeTop}px`;
+    contentElement.style.left = `${relativeLeft}px`;
     contentElement.style.zIndex = '50';
     
     // Update data-side if flipped

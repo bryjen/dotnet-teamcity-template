@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using WebApi.Data;
 using Web.Common.DTOs.Conversations;
@@ -64,10 +67,7 @@ public class ConversationService(AppDbContext context)
             return null;
         }
 
-        // Order messages by CreatedAt
-        conversation.Messages = conversation.Messages
-            .OrderBy(m => m.CreatedAt)
-            .ToList();
+        conversation.Messages = OrderMessagesChronologically(conversation.Messages).ToList();
 
         return MapToDto(conversation);
     }
@@ -96,7 +96,7 @@ public class ConversationService(AppDbContext context)
 
         // Reload with messages for DTO mapping
         await context.Entry(conversation).Collection(c => c.Messages).LoadAsync();
-        conversation.Messages = conversation.Messages.OrderBy(m => m.CreatedAt).ToList();
+        conversation.Messages = OrderMessagesChronologically(conversation.Messages).ToList();
 
         return MapToDto(conversation);
     }
@@ -140,5 +140,28 @@ public class ConversationService(AppDbContext context)
             CreatedAt = conversation.CreatedAt,
             UpdatedAt = conversation.UpdatedAt
         };
+    }
+
+    private static IEnumerable<Message> OrderMessagesChronologically(IEnumerable<Message> messages)
+    {
+        return messages
+            .OrderBy(m => m.CreatedAt)
+            .ThenBy(m => GetRoleSortOrder(m.Role))
+            .ThenBy(m => m.Id);
+    }
+
+    private static int GetRoleSortOrder(string role)
+    {
+        if (string.Equals(role, "user", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        if (string.Equals(role, "assistant", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 2;
     }
 }
